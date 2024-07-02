@@ -35,9 +35,13 @@ std::vector<layout> experimental_detectron_roi_feature_extractor_inst::calc_outp
         experimental_detectron_roi_feature_extractor_node const& /*node*/, const kernel_impl_params& impl_param) {
     layout rois_layout = impl_param.get_input_layout(0);
     layout data_layout = impl_param.get_input_layout(1);
+    auto desc = impl_param.typed_desc<experimental_detectron_roi_feature_extractor>();
+    if (rois_layout.is_dynamic() || data_layout.is_dynamic()) {
+        return {layout(ov::PartialShape::dynamic(4), data_layout.data_type, format::bfyx),
+                layout(ov::PartialShape::dynamic(2), data_layout.data_type, format::bfyx)};
+    }
     int num_rois = rois_layout.batch();
     int num_channels = data_layout.feature();
-    auto desc = impl_param.typed_desc<experimental_detectron_roi_feature_extractor>();
 
     return {
         layout(ov::PartialShape{num_rois, num_channels, desc->output_dim, desc->output_dim}, data_layout.data_type, format::bfyx),
