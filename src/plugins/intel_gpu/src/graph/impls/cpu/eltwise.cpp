@@ -180,12 +180,20 @@ struct eltwise_impl : public typed_primitive_impl<eltwise> {
         auto output_mem_ptr = instance.output_memory_ptr();
 
         cldnn::mem_lock<uint8_t, mem_lock_type::read> output_read_lock(output_mem_ptr, stream);
-        cldnn::mem_lock<uint8_t, mem_lock_type::write> output_write_lock(output_mem_ptr, stream);
 
         for (size_t i = 0; i < input_mem_ptrs.size(); i++)
             input_host_tensors.push_back(make_tensor(params->input_layouts[i], input_mem_ptrs[i]->lock(stream, mem_lock_type::read)));
 
-        output_host_tensors.push_back(make_tensor(params->output_layouts[0], output_write_lock.data()));
+        if (output_mem_ptr->get_allocation_type() != allocation_type::usm_device) {
+            cldnn::mem_lock<uint8_t, mem_lock_type::write> output_write_lock(output_mem_ptr, stream);
+            output_host_tensors.push_back(make_tensor(params->output_layouts[0], output_write_lock.data()));
+        } else {
+            auto engine = input_mem_ptrs[0]->get_engine();
+            cldnn::memory::ptr temp_memory_ptr{engine->allocate_memory(output_mem_ptr->get_layout())};
+            cldnn::mem_lock<uint8_t, mem_lock_type::write> output_write_lock(temp_memory_ptr, stream);
+            output_host_tensors.push_back(make_tensor(params->output_layouts[0], output_write_lock.data()));
+            output_mem_ptr->copy_from(stream, *temp_memory_ptr);
+        }
 
         OPENVINO_ASSERT(op->evaluate(output_host_tensors, input_host_tensors),
                         "[GPU] Couldn't execute eltwise primitive with id ", instance.id());
