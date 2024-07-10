@@ -51,18 +51,22 @@ int main(int argc, char* argv[]) {
         slog::info << "model_path "<< model_path << slog::endl;
 
         ov::Core core;
-        ov::CompiledModel compiled_model = core.compile_model(model_path, device_name, SetDeviceConfig(device_name));
+        auto conf = SetDeviceConfig(device_name);
+        conf.emplace(ov::hint::inference_precision("fp32"));
+        ov::CompiledModel compiled_model = core.compile_model(model_path, device_name, conf);
         slog::info << "compile_model succeed" << slog::endl;
         ov::InferRequest ireq = compiled_model.create_infer_request();
         slog::info << "create_infer_request succeed" << slog::endl;
         std::vector<ov::Tensor> tensors{{ov::element::Type_t::f32, {1,3,16,112,112}}};
-        ov::Tensor out_tensor;
-        auto input = compiled_model.get_runtime_model()->get_parameters().at(0);
-        ireq.set_input_tensors(input, tensors);
+        ov::Tensor out_tensor{ov::element::Type_t::f32, {1,400}};
+        std::cout<< "params size" << compiled_model.get_runtime_model()->get_parameters().size() << std::endl;
+        ireq.set_input_tensors(0, tensors);
         ireq.set_output_tensor(0, out_tensor);
         ireq.infer();
         auto ten = ireq.get_output_tensor();
-        
+        for(int i=0; i<400;i++){
+            std::cout << ((float*)ten.data())[i] << std::endl;
+        }
     } catch (const std::exception& ex) {
         slog::err << ex.what() << slog::endl;
         return EXIT_FAILURE;
