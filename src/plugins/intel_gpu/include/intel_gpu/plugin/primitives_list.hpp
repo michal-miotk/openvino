@@ -212,6 +212,7 @@ REGISTER_FACTORY(v6, ExperimentalDetectronGenerateProposalsSingleImage);
 REGISTER_FACTORY(v6, ExperimentalDetectronDetectionOutput);
 REGISTER_FACTORY(v6, Assign);
 REGISTER_FACTORY(v6, ReadValue);
+REGISTER_FACTORY(v6, LSTMSequence);
 
 // ------------------------------ Supported v7 ops ------------------------------ //
 REGISTER_FACTORY(v7, DFT);

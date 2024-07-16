@@ -229,7 +229,7 @@ std::shared_ptr<Node> op::v6::LSTMSequence::clone_with_new_inputs(const OutputVe
     OV_OP_SCOPE(v6_LSTMSequence_clone_with_new_inputs);
     check_new_args_count(this, new_args);
     if (new_args.size() == 7) {
-        return std::make_shared<op::v5::LSTMSequence>(new_args.at(0),  // X
+        return std::make_shared<op::v6::LSTMSequence>(new_args.at(0),  // X
                                                       new_args.at(1),  // initial_hidden_state
                                                       new_args.at(2),  // initial_cell_state
                                                       new_args.at(3),  // sequence_lengths
