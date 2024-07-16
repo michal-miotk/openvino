@@ -232,7 +232,7 @@ ov::OutputVector lstm(const ov::frontend::onnx::Node& node) {
                                                                    attributes.m_input_forget);
         OPENVINO_SUPPRESS_DEPRECATED_END
     } else {
-        lstm_sequence = std::make_shared<v5::LSTMSequence>(input_map.at(LSTMInput::LSTM_INPUT_X),
+        lstm_sequence = std::make_shared<v6::LSTMSequence>(input_map.at(LSTMInput::LSTM_INPUT_X),
                                                            input_map.at(LSTMInput::LSTM_INPUT_INIT_H),
                                                            input_map.at(LSTMInput::LSTM_INPUT_INIT_C),
                                                            input_map.at(LSTMInput::LSTM_INPUT_SEQ_LENGTHS),

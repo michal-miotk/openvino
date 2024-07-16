@@ -1073,7 +1073,7 @@ ov::pass::NopElimination::NopElimination(bool use_shape_for_elimination) {
     ADD_MATCHER_FOR_THIS(EliminateSplit)
     ADD_MATCHER_FOR_THIS(EliminateTranspose)
     ADD_MATCHER_FOR_THIS(EliminateEltwise)
-    ADD_MATCHER_FOR_THIS(EliminateSplitConcat)
+    //ADD_MATCHER_FOR_THIS(EliminateSplitConcat)
     ADD_MATCHER_FOR_THIS(EliminateStridedSlice)
     ADD_MATCHER_FOR_THIS(EliminateSlice)
 

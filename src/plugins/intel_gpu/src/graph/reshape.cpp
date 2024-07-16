@@ -270,14 +270,18 @@ reshape_inst::typed_primitive_inst(network& network, reshape_node const& node) :
                                     "output layout data type",
                                     output_layout.data_type,
                                     "");
-    if (output_layout.is_static() && input_layout.is_static())
+    if (output_layout.is_static() && input_layout.is_static()) {
+        if (output_layout.count() != input_layout.count()) {
+            int xx = 0;
+            xx++;
+        }
         CLDNN_ERROR_NOT_EQUAL(node.id(),
                               "Output layout count",
                               output_layout.count(),
                               "input layout count",
                               input_layout.count(),
                               "Output layout of reshape primitive changes size of input buffer");
-
+    }
     // if reshape operated in-place, postpone creation of the output until network run,
     // then create new memory object as the reinterpreted output of the previous primitive
     if (input_layout.is_static() && output_layout.is_static()) {
