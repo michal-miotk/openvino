@@ -18,10 +18,10 @@
 
 ov::pass::BidirectionalLSTMSequenceDecomposition::BidirectionalLSTMSequenceDecomposition() {
     MATCHER_SCOPE(BidirectionalLSTMSequenceDecomposition);
-    auto lstm_sequence_ov = ov::pass::pattern::wrap_type<ov::op::v5::LSTMSequence>();
+    auto lstm_sequence_ov = ov::pass::pattern::wrap_type<ov::op::v6::LSTMSequence>();
 
     matcher_pass_callback callback = [this](pattern::Matcher& m) {
-        auto lstm_sequence = std::dynamic_pointer_cast<ov::op::v5::LSTMSequence>(m.get_match_root());
+        auto lstm_sequence = std::dynamic_pointer_cast<ov::op::v6::LSTMSequence>(m.get_match_root());
         if (!lstm_sequence || transformation_callback(lstm_sequence)) {
             return false;
         }
@@ -37,7 +37,7 @@ ov::pass::BidirectionalLSTMSequenceDecomposition::BidirectionalLSTMSequenceDecom
         auto R = std::make_shared<ov::op::v1::Split>(lstm_sequence->input_value(5), axis_0, 2);
         auto B = std::make_shared<ov::op::v1::Split>(lstm_sequence->input_value(6), axis_0, 2);
         auto lstm_sequence_forward =
-            std::make_shared<ov::op::v5::LSTMSequence>(lstm_sequence->input_value(0),
+            std::make_shared<ov::op::v6::LSTMSequence>(lstm_sequence->input_value(0),
                                                        H->output(0),
                                                        C->output(0),
                                                        lstm_sequence->input_value(3),
@@ -52,7 +52,7 @@ ov::pass::BidirectionalLSTMSequenceDecomposition::BidirectionalLSTMSequenceDecom
                                                        lstm_sequence->get_clip());
 
         auto lstm_sequence_reverse =
-            std::make_shared<ov::op::v5::LSTMSequence>(lstm_sequence->input_value(0),
+            std::make_shared<ov::op::v6::LSTMSequence>(lstm_sequence->input_value(0),
                                                        H->output(1),
                                                        C->output(1),
                                                        lstm_sequence->input_value(3),

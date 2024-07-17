@@ -373,6 +373,8 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
 
         if (!unroll_loop) {
             manager.register_pass<ov::pass::BidirectionalGRUSequenceDecomposition>();
+            manager.register_pass<ov::pass::BidirectionalLSTMSequenceDecomposition>();
+            manager.register_pass<ov::pass::BidirectionalRNNSequenceDecomposition>();
         }
 
         manager.register_pass<ov::intel_gpu::ConvertBinaryConvolutionToConvolution>();
@@ -383,6 +385,8 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
 
         if (unroll_loop) {
             manager.register_pass<ov::pass::BidirectionalGRUSequenceDecomposition>();
+            manager.register_pass<ov::pass::BidirectionalLSTMSequenceDecomposition>();
+            manager.register_pass<ov::pass::BidirectionalRNNSequenceDecomposition>();
         }
 
         manager.register_pass<ConvertShapeOf1To3>();
@@ -748,7 +752,7 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
         // TODO: check why we have these reshapes
         manager.register_pass<ov::pass::ConstantFolding>();
 
-        manager.register_pass<ov::pass::UnrollTensorIterator>();
+        //manager.register_pass<ov::pass::UnrollTensorIterator>();
         auto pass_config = manager.get_pass_config();
         pass_config->set_callback<ov::pass::UnrollTensorIterator>(
             [unroll_loop](const std::shared_ptr<const ov::Node> &node) -> bool {
