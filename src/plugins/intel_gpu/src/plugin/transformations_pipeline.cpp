@@ -372,17 +372,24 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
         manager.register_pass<ov::pass::TransposeSinking>();
 
         if (!unroll_loop) {
+            manager.register_pass<ov::pass::BidirectionalLSTMSequenceDecomposition>();
             manager.register_pass<ov::pass::BidirectionalGRUSequenceDecomposition>();
+            manager.register_pass<ov::pass::BidirectionalRNNSequenceDecomposition>();
         }
 
         manager.register_pass<ov::intel_gpu::ConvertBinaryConvolutionToConvolution>();
         manager.register_pass<ov::pass::ConvertSequenceToTensorIterator>();
         manager.register_pass<ov::pass::ConvertOpSet3ToOpSet2>();
         manager.register_pass<ov::pass::ConvertOpSet2ToOpSet1>();
+
+        manager.register_pass<ov::pass::LSTMCellDecomposition>();
         manager.register_pass<ov::pass::GRUCellDecomposition>();
+        manager.register_pass<ov::pass::RNNCellDecomposition>();
 
         if (unroll_loop) {
+            manager.register_pass<ov::pass::BidirectionalLSTMSequenceDecomposition>();
             manager.register_pass<ov::pass::BidirectionalGRUSequenceDecomposition>();
+            manager.register_pass<ov::pass::BidirectionalRNNSequenceDecomposition>();
         }
 
         manager.register_pass<ConvertShapeOf1To3>();
@@ -503,7 +510,9 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
             return false;
         };
 
-        pass_config->set_callback<ov::pass::GRUCellDecomposition>(
+        pass_config->set_callback<ov::pass::RNNCellDecomposition,
+                                  ov::pass::GRUCellDecomposition,
+                                  ov::pass::LSTMCellDecomposition>(
             [isCellPrimitiveSupported](const_node_ptr &node) -> bool {
                 return isCellPrimitiveSupported(node);
             });
@@ -514,13 +523,17 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
             });
 
         if (unroll_loop) {
-            pass_config->set_callback<ov::pass::ConvertGRUSequenceToTensorIterator>(
+            pass_config->set_callback<ov::pass::ConvertRNNSequenceToTensorIterator,
+                    ov::pass::ConvertGRUSequenceToTensorIterator,
+                    ov::pass::ConvertLSTMSequenceToTensorIterator>(
                     [isSequencePrimitiveSupported](const_node_ptr &node) -> bool {
                         return isSequencePrimitiveSupported(node);
                     });
         }
 
-        pass_config->set_callback<ov::pass::FuseReverseLSTMSequence>(
+        pass_config->set_callback<ov::pass::ConvertLoopToLSTMSequence,
+                                  ov::pass::FuseReverseLSTMSequence,
+                                  ov::pass::FuseLSTMSequencesToBidirectionalLSTMSequence>(
                 [isSequencePrimitiveSupported](const_node_ptr &node) -> bool {
                     return !isSequencePrimitiveSupported(node);
                 });
