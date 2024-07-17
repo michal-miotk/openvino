@@ -145,7 +145,7 @@ bool ov::pass::MOCTransformations::run_on_model(const std::shared_ptr<ov::Model>
     using namespace ov::pass;
     REGISTER_PASS(manager, EliminateScatterUpdate)
     REGISTER_PASS(manager, RemoveConcatZeroDimInput)
-    //REGISTER_PASS(manager, EliminateLoopInputsOutputs);
+    REGISTER_PASS(manager, EliminateLoopInputsOutputs);
     REGISTER_PASS(manager, Validate)
     // todo: ticket 96960
     // the order EliminateDuplicateTIInputs and RemoveMultiSubGraphOpDanglingParamsResults is important
@@ -166,7 +166,7 @@ bool ov::pass::MOCTransformations::run_on_model(const std::shared_ptr<ov::Model>
     REGISTER_PASS(manager, Validate)
 
     if (!m_use_shapes) {  // Approved Smart Reshape
-        //REGISTER_PASS(manager, LSTMStatesBroadcast)
+        REGISTER_PASS(manager, LSTMStatesBroadcast)
         REGISTER_PASS(manager, Validate)
         REGISTER_PASS(manager, ReshapeSinkingMatMul)
         REGISTER_PASS(manager, Validate)
@@ -185,9 +185,9 @@ bool ov::pass::MOCTransformations::run_on_model(const std::shared_ptr<ov::Model>
     REGISTER_PASS(manager, PullThroughReduce)
 
     // GRUCellFusion and SequenceFusion should be before NopElimination
-    //REGISTER_PASS(manager, LSTMCellFusion)
+    REGISTER_PASS(manager, LSTMCellFusion)
     REGISTER_PASS(manager, GRUCellFusion)
-    //REGISTER_PASS(manager, SequenceFusion)
+    REGISTER_PASS(manager, SequenceFusion)
 
     REGISTER_PASS(manager, ConcatToBroadcast);
 
@@ -225,7 +225,7 @@ bool ov::pass::MOCTransformations::run_on_model(const std::shared_ptr<ov::Model>
     ADD_MATCHER(common_fusions, GeluFusion)
     ADD_MATCHER(common_fusions, LeakyReluFusion)
     ADD_MATCHER(common_fusions, RandomUniformFusion)
-    //ADD_MATCHER(common_fusions, ConvertTensorIteratorToSequence)
+    ADD_MATCHER(common_fusions, ConvertTensorIteratorToSequence)
     ADD_MATCHER(common_fusions, SplitConcatPairToInterpolateFusion, m_use_shapes)
     ADD_MATCHER(common_fusions, ConvolutionToGroupConvolutionFusion)
     if (m_use_shapes) {
