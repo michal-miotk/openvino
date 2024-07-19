@@ -57,7 +57,7 @@ protected:
     KernelsData GetCommonKernelsData(const Params& params) const;
 
     bool Validate(const Params& p) const override {
-        if (p.GetType() != KernelType::LSTM_SEQ_CELL) {
+        if (p.GetType() != KernelType::GRU_SEQ_CELL) {
             return false;
         }
 

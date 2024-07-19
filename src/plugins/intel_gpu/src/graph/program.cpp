@@ -1658,6 +1658,7 @@ void program::set_layout_optimizer_attributes(layout_optimizer& lo) {
             } else {
                 if (get_config().get_use_onednn()) {
                     lo.enable_onednn_for<lstm_seq>();
+                    lo.enable_onednn_for<gru_seq>();
                 }
             }
         }

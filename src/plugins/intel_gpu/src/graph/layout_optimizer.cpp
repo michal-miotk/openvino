@@ -1525,6 +1525,7 @@ void layout_optimizer::add_all_onednn_impls_optimization_attribute() {
     enable_onednn_for<fully_connected>();
     enable_onednn_for<gemm>();
     enable_onednn_for<lstm_seq>();
+    enable_onednn_for<gru_seq>();
     enable_onednn_for<pooling>();
     enable_onednn_for<reduce>();
     enable_onednn_for<reorder>();
