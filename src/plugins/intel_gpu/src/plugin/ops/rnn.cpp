@@ -263,7 +263,7 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     cldnn::primitive_id inHiddenReorderID = layerName + "_inHiddenReorder";
     cldnn::primitive_id inHiddenStateID = inHiddenReshapeID + "_1";
     cldnn::primitive_id inCellStateID = inHiddenReshapeID + "_2";
-    cldnn::primitive_id WreorderedID = "Wreordered";
+    cldnn::primitive_id WreorderedID = "Wlstm_reordered";
     cldnn::tensor WreorderedShape = {1, lstm_input_size, 4*lstm_hidden_size, 1};
     cldnn::layout WreorderedLayout = cldnn::layout(lstm_dtype, cldnn::format::bfyx, WreorderedShape);
     cldnn::tensor inputShape = { lstm_batch_size, lstm_sequence_len, lstm_input_size, 1 };
