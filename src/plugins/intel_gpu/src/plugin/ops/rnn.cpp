@@ -276,8 +276,8 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     p.add_primitive(*op, cldnn::reshape(inCellStateID, inputs[2], inStateShape));
     p.add_primitive(*op, cldnn::reorder(WreorderedID, cldnn::input_info(weight), WreorderedLayout));
 
-    auto a = op->get_output_shape(1);
-    auto b = op->get_output_shape(2);
+    cldnn::primitive_id Wx_plusb_ID = "Wx_plusb";
+    p.add_primitive(*op, cldnn::fully_connected(Wx_plusb_ID, permuteID, WreorderedID, bias.pid)); //output maybe batch, seq, 4*hidden
     auto mutable_precision_first = op->get_output_element_type(1);
     cldnn::layout out1Layout = cldnn::layout(
                 cldnn::element_type_to_data_type(mutable_precision_first),
@@ -298,8 +298,8 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out2", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memory2));
     inputs.push_back(cldnn::input_info(lstm_seq_id + ".out2"));
     p.add_primitive(*op, cldnn::lstm_seq(lstm_seq_id + ".out0", cldnn::input_info(permuteID), cldnn::input_info(inHiddenStateID), \
-    cldnn::input_info(inCellStateID), cldnn::input_info(weight), cldnn::input_info(recurrent), cldnn::input_info(bias), inCellStateID, clip, 0, activations, \
-                                            activation_params, cldnn::lstm_weights_order::fizo, 0));
+    cldnn::input_info(inCellStateID), cldnn::input_info(Wx_plusb_ID), cldnn::input_info(recurrent), cldnn::input_info(bias), inCellStateID, clip, \
+                    0, activations, activation_params, cldnn::lstm_weights_order::fizo, 0));
 }
 
 REGISTER_FACTORY_IMPL(v4, LSTMCell);
