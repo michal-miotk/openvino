@@ -263,7 +263,7 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     cldnn::primitive_id inHiddenReorderID = layerName + "_inHiddenReorder";
     cldnn::primitive_id inHiddenStateID = inHiddenReshapeID + "_1";
     cldnn::primitive_id inCellStateID = inHiddenReshapeID + "_2";
-    cldnn::primitive_id WreorderedID = "Wlstm_reordered";
+    cldnn::primitive_id WreorderedID = layerName + "Wlstm_reordered";
     cldnn::tensor WreorderedShape = {1, lstm_input_size, 4*lstm_hidden_size, 1};
     cldnn::layout WreorderedLayout = cldnn::layout(lstm_dtype, cldnn::format::bfyx, WreorderedShape);
     cldnn::tensor inputShape = { lstm_batch_size, lstm_sequence_len, lstm_input_size, 1 };
@@ -276,7 +276,7 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     p.add_primitive(*op, cldnn::reshape(inCellStateID, inputs[2], inStateShape));
     p.add_primitive(*op, cldnn::reorder(WreorderedID, cldnn::input_info(weight), WreorderedLayout));
 
-    cldnn::primitive_id Wx_plusb_ID = "Wx_plusb";
+    cldnn::primitive_id Wx_plusb_ID = layerName + "Wx_plusb";
     p.add_primitive(*op, cldnn::fully_connected(Wx_plusb_ID, permuteID, WreorderedID, bias.pid)); //output maybe batch, seq, 4*hidden
     auto mutable_precision_first = op->get_output_element_type(1);
     cldnn::layout out1Layout = cldnn::layout(
