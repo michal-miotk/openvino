@@ -222,22 +222,8 @@ void inline fill_data_random(T* pointer,
                              double_t start_from = 0,
                              const int32_t k = 1,
                              const int seed = 1) {
-    if (range == 0) {
-        for (std::size_t i = 0; i < size; i++) {
-            pointer[i] = static_cast<T>(start_from);
-        }
-        return;
-    }
-
-    testing::internal::Random random(seed);
-    const uint32_t k_range = k * range;  // range with respect to k
-    random.Generate(k_range);
-
-    if (start_from < 0 && !std::numeric_limits<T>::is_signed) {
-        start_from = 0;
-    }
     for (std::size_t i = 0; i < size; i++) {
-        pointer[i] = static_cast<T>(start_from + static_cast<double>(random.Generate(k_range)) / k);
+        pointer[i] = static_cast<T>(i);
     }
 }
 
