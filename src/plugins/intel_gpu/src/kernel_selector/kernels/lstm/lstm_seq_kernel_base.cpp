@@ -32,8 +32,8 @@ JitConstants LSTMSeqKernelBase::GetJitConstants(const lstm_seq_params& params) c
         MakeJitConstant("GEMM_OFFSET_Z", params.GetOffsetIndexZ() * size),
     });
     jit.AddConstants({MakeJitConstant("BATCH_SIZE", GEMMInput.Batch().v)});
-    jit.AddConstants({MakeJitConstant("MAX_SEQ_LENGTH", GEMMInput.Feature().v)});
-    jit.AddConstants({MakeJitConstant("INPUT_SIZE", GEMMInput.Y().v)});
+    jit.AddConstants({MakeJitConstant("MAX_SEQ_LENGTH", params.inputs[0].Feature().v)});
+    jit.AddConstants({MakeJitConstant("INPUT_SIZE", params.inputs[0].Y().v)});
     jit.AddConstants({MakeJitConstant("HIDDEN_SIZE", params.inputs[1].Y().v)});
     auto ftype = GetUnitType(params);
     // if ReLU activation present, we have to reset accumulator type for the kernel to FP32

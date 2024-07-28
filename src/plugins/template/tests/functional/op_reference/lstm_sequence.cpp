@@ -3474,7 +3474,7 @@ std::vector<LSTMSequenceV1Params> generateV1CombinedParams() {
     return combinedParams;
 }
 
-INSTANTIATE_TEST_SUITE_P(*smoke_LSTMSequence_With_Hardcoded_Refs*,
+INSTANTIATE_TEST_SUITE_P(smoke_LSTMSequence_With_Hardcoded_Refs,
                          ReferenceLSTMSequenceTest,
                          testing::ValuesIn(generateCombinedParams()),
                          ReferenceLSTMSequenceTest::getTestCaseName);
