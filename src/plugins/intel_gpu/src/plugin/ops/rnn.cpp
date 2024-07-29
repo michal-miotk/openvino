@@ -274,17 +274,12 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
                 tensor_from_dims(op->get_output_shape(2)));
     cldnn::memory::ptr shared_memory2 = p.get_engine().allocate_memory(out2Layout);
 
-    p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out1", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memory1));
-    inputs.push_back(cldnn::input_info(lstm_seq_id + ".out1"));
-    p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out2", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memory2));
-    inputs.push_back(cldnn::input_info(lstm_seq_id + ".out2"));
-
     auto prim = cldnn::lstm_seq(lstm_seq_id + ".out0", inputs[0], inputs[1], \
-    inputs[2], inputs[3], inputs[4], inputs[5], cldnn::input_info(bias), lstm_seq_id + ".out1", \
-    lstm_seq_id + ".out2", inCellStateID, clip, 0, activations, activation_params, cldnn::lstm_weights_order::fizo, 0);
-    prim.second_output = inputs[inputs.size() - 2].pid;
-    prim.third_output = inputs[inputs.size() - 1].pid;
+    inputs[2], inputs[3], inputs[4], inputs[5], cldnn::input_info(bias), \
+    "", clip, 0, activations, activation_params, cldnn::lstm_weights_order::fizo, 0);
     p.add_primitive(*op, prim);
+    p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out1", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memory1));
+    p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out2", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memory2));
 }
 
 REGISTER_FACTORY_IMPL(v4, LSTMCell);
