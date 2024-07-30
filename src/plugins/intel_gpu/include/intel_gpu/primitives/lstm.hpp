@@ -183,7 +183,7 @@ struct lstm_seq : public primitive_base<lstm_seq> {
              const lstm_weights_order offset_order = lstm_weights_order::iofz,
              const uint32_t direction = 0,
              const padding& output_padding = padding())
-        : primitive_base(id, {x, initial_hidden_state, initial_cell_state, seq_lenghts, W, R, B}, {output_padding}, {}, 2),
+        : primitive_base(id, {x, initial_hidden_state, initial_cell_state, seq_lenghts, W, R, B, out2_prim_id}, {output_padding}, {}, 1),
           out2_prim_id(out2_prim_id),
           cell(cell),
           clip(clip),
@@ -282,7 +282,7 @@ protected:
             ret.push_back(cell);
         */
         //ret.push_back(out1_prim_id);
-        ret.push_back(out2_prim_id);
+        //ret.push_back(out2_prim_id);
         return ret;
     }
 };

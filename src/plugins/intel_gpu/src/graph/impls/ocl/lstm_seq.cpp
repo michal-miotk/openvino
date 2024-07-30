@@ -26,15 +26,7 @@ struct lstm_seq_impl : typed_primitive_impl_ocl<lstm_seq> {
 protected:
     kernel_arguments_data get_arguments(const typed_primitive_inst<lstm_seq>& instance) const override {
         kernel_arguments_data args = parent::get_arguments(instance);
-        args.inputs = { instance.dep_memory_ptr(0), instance.dep_memory_ptr(1), instance.dep_memory_ptr(2), instance.dep_memory_ptr(3),
-        instance.dep_memory_ptr(4), instance.dep_memory_ptr(5), instance.dep_memory_ptr(6)};
-        args.cell = instance.cell_term() ? instance.cell_memory() : nullptr;
-        // New API for mutiple outputs support
-        for (size_t i = 0; i < 1; i++) {
-            args.outputs.push_back(instance.output_memory_ptr(i));
-        }
-        args.outputs.push_back(instance.second_output_mem());
-        args.outputs.push_back(instance.third_output_mem());
+        args.outputs.push_back(instance.dep_memory_ptr(instance.desc()->input_size() - 1));
         return args;
     }
 
