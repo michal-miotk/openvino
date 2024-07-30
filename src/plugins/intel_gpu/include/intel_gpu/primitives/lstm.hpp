@@ -282,8 +282,8 @@ protected:
         if (!cell.empty())
             ret.push_back(cell);
         */
-        //ret.push_back(second_output);
-        //ret.push_back(third_output);
+        ret.push_back(out1_prim_id);
+        ret.push_back(out2_prim_id);
         return ret;
     }
 };

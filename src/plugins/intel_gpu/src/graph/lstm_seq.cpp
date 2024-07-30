@@ -52,6 +52,26 @@ std::vector<layout> lstm_seq_inst::calc_output_layouts(lstm_seq_node const& node
 
 template std::vector<layout> lstm_seq_inst::calc_output_layouts<ov::PartialShape>(lstm_seq_node const& node, const kernel_impl_params& impl_param);
 
+void lstm_seq_inst::on_execute() {
+    update_output_memory();
+}
+
+void lstm_seq_inst::update_output_memory() {
+    if (!can_be_optimized())
+        return;
+
+    for (size_t i = 1; i < 3; i++) {
+        if (node->get_program().is_new_shape_infer() && input_memory_ptr(i+6) == nullptr)
+            return;
+
+        if (output_memory_ptr(i) != nullptr && _network.get_engine().is_the_same_buffer(output_memory(i), input_memory(i+6)))
+            return;
+
+        _outputs[i] = {_network.get_engine().reinterpret_buffer(input_memory(i+6), _impl_params->get_output_layout(i))};
+    }
+}
+
+
 std::string lstm_seq_inst::to_string(lstm_seq_node const& node) {
     auto desc = node.get_primitive();
     auto node_info = node.desc_to_json();

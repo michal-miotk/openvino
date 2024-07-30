@@ -139,5 +139,5 @@ KERNEL(lstm_seq)(
         printf("hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, i, hidden_idx)] is %f\n", hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, i, hidden_idx)]);
     }
     //printf("cell state for %d is %f \n", OUTPUT2_GET_INDEX_SAFE(b, hidden_idx, 0, 0), cell_state[OUTPUT2_GET_INDEX_SAFE(b, hidden_idx, 0, 0)]);
-    //printf("R is %p B is %p ; %p out0 %p add for out1 for out2 %p batch %d\n", &R, &B, &hidden_history, &hidden_state, &cell_state, b);
+    printf("R is %p B is %p ; hidden history %p hidden state %p cell state %p batch %d\n", &R[0], &B[0], &hidden_history[0], &hidden_state[0], &cell_state[0], b);
 }

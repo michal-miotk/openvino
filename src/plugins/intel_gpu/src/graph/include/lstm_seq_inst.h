@@ -65,8 +65,12 @@ public:
         size_t offset = 8;
         return dep_memory_ptr(offset);
     }
+
+    void update_output_memory() override;
+
+private:
+    void on_execute() override;
 };
 
 using lstm_seq_inst = typed_primitive_inst<lstm_seq>;
-
 }  // namespace cldnn

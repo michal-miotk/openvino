@@ -265,9 +265,9 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
                 cldnn::element_type_to_data_type(mutable_precision_first),
                 cldnn::format::bfyx,
                 tensor_from_dims(op->get_output_shape(1)));
-    cldnn::memory::ptr shared_memory1 = p.get_engine().allocate_memory(out1Layout);
+    cldnn::memory::ptr shared_memory0 = p.get_engine().allocate_memory(out1Layout);
     const cldnn::primitive_id mutable_id_0 = layerName + "_md_write0";
-    const cldnn::mutable_data mutable_prim_0{mutable_id_0, shared_memory1};
+    const cldnn::mutable_data mutable_prim_0{mutable_id_0, shared_memory0};
     p.add_primitive(*op, mutable_prim_0);
 
     inputs.push_back(cldnn::input_info(mutable_id_0));
@@ -278,9 +278,9 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
                 cldnn::element_type_to_data_type(mutable_precision_second),
                 cldnn::format::bfyx,
                 tensor_from_dims(op->get_output_shape(2)));
-    cldnn::memory::ptr shared_memory2 = p.get_engine().allocate_memory(out2Layout);
+    cldnn::memory::ptr shared_memory1 = p.get_engine().allocate_memory(out2Layout);
     const cldnn::primitive_id mutable_id_1 = layerName + "_md_write1";
-    const cldnn::mutable_data mutable_prim_1{mutable_id_1, shared_memory2};
+    const cldnn::mutable_data mutable_prim_1{mutable_id_1, shared_memory1};
     p.add_primitive(*op, mutable_prim_1);
 
     inputs.push_back(cldnn::input_info(mutable_id_1));
@@ -289,8 +289,8 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     inputs[2], inputs[3], inputs[4], inputs[5], cldnn::input_info(bias), inputs[7].pid, inputs[8].pid, \
     "", clip, 0, activations, activation_params, cldnn::lstm_weights_order::fizo, 0);
     p.add_primitive(*op, prim);
-    p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out1", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memory1));
-    p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out2", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memory2));
+    p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out1", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memory0));
+    p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out2", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memory1));
 }
 
 REGISTER_FACTORY_IMPL(v4, LSTMCell);
