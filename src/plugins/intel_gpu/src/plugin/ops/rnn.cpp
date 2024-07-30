@@ -271,7 +271,7 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     p.add_primitive(*op, mutable_prim_0);
 
     inputs.push_back(cldnn::input_info(mutable_id_0));
-
+    auto f_id = inputs.back().pid;
 
     auto mutable_precision_second = op->get_output_element_type(2);
     cldnn::layout out2Layout = cldnn::layout(
@@ -284,10 +284,12 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     p.add_primitive(*op, mutable_prim_1);
 
     inputs.push_back(cldnn::input_info(mutable_id_1));
-
-    auto prim = cldnn::lstm_seq(lstm_seq_id + ".out0", inputs[0], inputs[1], \
-    inputs[2], inputs[3], inputs[4], inputs[5], cldnn::input_info(bias), inputs[7].pid, inputs[8].pid, \
-    "", clip, 0, activations, activation_params, cldnn::lstm_weights_order::fizo, 0);
+    auto s_id = inputs.back().pid;
+    cldnn::lstm_seq prim(lstm_seq_id + ".out0", inputs[0], inputs[1], \
+        inputs[2], inputs[3], inputs[4], inputs[5], cldnn::input_info(bias), "", "", \
+        "", clip, 0, activations, activation_params, cldnn::lstm_weights_order::fizo, 0);
+    prim.out1_prim_id = f_id;
+    prim.out2_prim_id = s_id;
     p.add_primitive(*op, prim);
     p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out1", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memory0));
     p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out2", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memory1));

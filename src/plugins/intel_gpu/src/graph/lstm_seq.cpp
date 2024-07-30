@@ -57,6 +57,7 @@ void lstm_seq_inst::on_execute() {
 }
 
 void lstm_seq_inst::update_output_memory() {
+    /*
     if (!can_be_optimized())
         return;
 
@@ -69,6 +70,7 @@ void lstm_seq_inst::update_output_memory() {
 
         _outputs[i] = {_network.get_engine().reinterpret_buffer(input_memory(i+6), _impl_params->get_output_layout(i))};
     }
+    */
 }
 
 

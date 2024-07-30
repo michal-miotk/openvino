@@ -82,8 +82,8 @@ KERNEL(lstm_seq)(
     for(int i=0;i<MAX_SEQ_LENGTH;i++){
         for(int k=0;k<gate_num;k++){
             hidden_result[k] = 0;
-            //printf("begin hidden result %f for b%d i %d k %d\n", hidden_result[k], b, i, k);
             input_result[k] = 0;
+            printf("I set to zero %p %p\n", &hidden_result[k], &input_result[k]);
         }
         for(int k=0;k<gate_num;k++){
             for(int j=0;j<HIDDEN_SIZE;j++) {
@@ -103,7 +103,7 @@ KERNEL(lstm_seq)(
             }
             for(int j=0;j<HIDDEN_SIZE;j++){
                 gate_output[k] = hidden_result[k] + input_result[k] + B[INPUT6_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[k], 0, 0)];
-                //printf("gate_output[b][hidden_idx][k] %f %f %f for b %d and k %d\n", hidden_result[k], input_result[b][j][k], B[INPUT6_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[k], 0, 0)], b, k);
+                printf("gate_output[b][hidden_idx][k] %f %f %f for b %d and k %d\n", hidden_result[k], input_result[k], B[INPUT6_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[k], 0, 0)], b, k);
             }
             switch(k){
                 case 0:
@@ -135,9 +135,11 @@ KERNEL(lstm_seq)(
         //hidden_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)]
         local_hidden_state = gate_output[3]*ACTIVATION_H(ACTIVATION_CLIP(cell_state[OUTPUT2_GET_INDEX_SAFE(b, 0, hidden_idx, 0)], ACTIVATION_PARAMS_CLIP), ACTIVATION_PARAMS_H);
         //printf("hidden_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] is %f on b %d\n", hidden_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)], b);
-        hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, i, hidden_idx)] = local_hidden_state;
+        hidden_history[OUTPUT_GET_INDEX_SAFE(b, i, 0, 0)] = local_hidden_state;
         printf("hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, i, hidden_idx)] is %f\n", hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, i, hidden_idx)]);
     }
     //printf("cell state for %d is %f \n", OUTPUT2_GET_INDEX_SAFE(b, hidden_idx, 0, 0), cell_state[OUTPUT2_GET_INDEX_SAFE(b, hidden_idx, 0, 0)]);
-    printf("R is %p B is %p ; hidden history %p hidden state %p cell state %p batch %d\n", &R[0], &B[0], &hidden_history[0], &hidden_state[0], &cell_state[0], b);
+    //printf("R is %p B is %p ; hidden history %p hidden state %p cell state %p batch %d\n", &R[0], &B[0], &hidden_history[0], &hidden_state[0], &cell_state[0], b);
+    //hidden_history[OUTPUT_GET_INDEX_SAFE(b, 1, 0, 0)] = 69;
+    printf("result is %f %f \n", hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, 0, 0)], hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, 1, 0)]);
 }

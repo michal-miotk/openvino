@@ -57,12 +57,13 @@ public:
     }
     bool input_forget() const { return get_typed_desc<lstm_seq>()->input_forget; }
     uint32_t direction() const { return get_typed_desc<lstm_seq>()->direction; }
+
     memory::ptr second_output_mem() const {
-        size_t offset = 7;
+        size_t offset = dependencies().size()-2;
         return dep_memory_ptr(offset);
     }
     memory::ptr third_output_mem() const {
-        size_t offset = 8;
+        size_t offset = dependencies().size()-1;
         return dep_memory_ptr(offset);
     }
 
