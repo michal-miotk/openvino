@@ -260,19 +260,6 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
 
     cldnn::primitive_id lstm_seq_id = layerName;// + "_lstm_seq";
 
-    auto mutable_precision_first = op->get_output_element_type(1);
-    cldnn::layout out1Layout = cldnn::layout(
-                cldnn::element_type_to_data_type(mutable_precision_first),
-                cldnn::format::bfyx,
-                tensor_from_dims(op->get_output_shape(1)));
-    cldnn::memory::ptr shared_memory0 = p.get_engine().allocate_memory(out1Layout);
-    const cldnn::primitive_id mutable_id_0 = layerName + "_md_write0";
-    const cldnn::mutable_data mutable_prim_0{mutable_id_0, shared_memory0};
-    p.add_primitive(*op, mutable_prim_0);
-
-    inputs.push_back(cldnn::input_info(mutable_id_0));
-    auto f_id = inputs.back().pid;
-
     auto mutable_precision_second = op->get_output_element_type(2);
     cldnn::layout out2Layout = cldnn::layout(
                 cldnn::element_type_to_data_type(mutable_precision_second),
@@ -288,11 +275,15 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     cldnn::lstm_seq prim(lstm_seq_id + ".out0", inputs[0], inputs[1], \
         inputs[2], inputs[3], inputs[4], inputs[5], cldnn::input_info(bias), "", "", \
         "", clip, 0, activations, activation_params, cldnn::lstm_weights_order::fizo, 0);
-    prim.out1_prim_id = f_id;
+    //prim.out1_prim_id = f_id;
     prim.out2_prim_id = s_id;
     p.add_primitive(*op, prim);
-    p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out1", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memory0));
     p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out2", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memory1));
+    int b = op->get_input_shape(0)[0];
+    int seqlen = op->get_input_shape(0)[1];
+    int hidden_size = op->get_input_shape(1)[2];
+    p.add_primitive(*op, cldnn::crop(lstm_seq_id + ".out1", {cldnn::input_info(lstm_seq_id + ".out0")},  \
+    cldnn::tensor{ b, 1, seqlen-1,  hidden_size}, cldnn::tensor{ 0, 0, 0, 0 }));
 }
 
 REGISTER_FACTORY_IMPL(v4, LSTMCell);

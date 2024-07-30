@@ -13,7 +13,6 @@ KERNEL(lstm_seq)(
     const __global INPUT5_TYPE* R,
     const __global INPUT6_TYPE* B,
     __global OUTPUT_TYPE* hidden_history,
-    __global OUTPUT1_TYPE* hidden_state,
     __global OUTPUT2_TYPE* cell_state
 )
 {
@@ -135,7 +134,7 @@ KERNEL(lstm_seq)(
         //hidden_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)]
         local_hidden_state = gate_output[3]*ACTIVATION_H(ACTIVATION_CLIP(cell_state[OUTPUT2_GET_INDEX_SAFE(b, 0, hidden_idx, 0)], ACTIVATION_PARAMS_CLIP), ACTIVATION_PARAMS_H);
         //printf("hidden_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] is %f on b %d\n", hidden_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)], b);
-        hidden_history[OUTPUT_GET_INDEX_SAFE(b, i, 0, 0)] = local_hidden_state;
+        hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, i, 0)] = local_hidden_state;
         printf("hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, i, hidden_idx)] is %f\n", hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, i, hidden_idx)]);
     }
     //printf("cell state for %d is %f \n", OUTPUT2_GET_INDEX_SAFE(b, hidden_idx, 0, 0), cell_state[OUTPUT2_GET_INDEX_SAFE(b, hidden_idx, 0, 0)]);
