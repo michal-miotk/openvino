@@ -28,6 +28,7 @@ KERNEL(lstm_seq)(
     for(int k=0;k<gate_num;k++){
         gate_output[k] = 0;
     }
+    printf("DIRECTION %d \n", DIRECTION);
     //printf("initial hidden state is %f for b %d hidden idx %d\n", initial_hidden_state[INPUT1_GET_INDEX_SAFE(b, hidden_idx, 0, 0)], b, hidden_idx);
     //printf("offsets are %d %d %d %d \n", weight_offsets[0], weight_offsets[1], weight_offsets[2], weight_offsets[3]);
     //printf("W is %d R is %d B is %d\n", INPUT4_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[0], 0, 0), INPUT5_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[0],  0, 0), INPUT6_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[0], 0, 0));
@@ -38,10 +39,14 @@ KERNEL(lstm_seq)(
         }
         for(int k=0;k<gate_num;k++){
             for(int j=0;j<HIDDEN_SIZE;j++) {
-                if(i==0){
+                if((i==0 && !DIRECTION) || (DIRECTION && i==sequence_lengths[INPUT3_GET_INDEX_SAFE(b, 0, 0, 0)]-1)){
                     hidden_result[k] += initial_hidden_state[INPUT1_GET_INDEX_SAFE(b, 0, j, 0)]*R[INPUT5_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[k], j, 0)];
                 }else{
-                    hidden_result[k] += hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, i-1, j)]*R[INPUT5_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[k], j, 0)];
+                    int prev_idx = i-1;
+                    if(DIRECTION){ //reverse
+                        prev_idx = sequence_lengths[INPUT3_GET_INDEX_SAFE(b, 0, 0, 0)] - 1 - i ;
+                    }
+                    hidden_result[k] += hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, prev_idx, j)]*R[INPUT5_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[k], j, 0)];
                 }
             }
             
@@ -71,7 +76,11 @@ KERNEL(lstm_seq)(
             cell_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] *= (OUTPUT_TYPE)gate_output[0];
             cell_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] += (OUTPUT_TYPE)(gate_output[1]*gate_output[2]);
         }
-        hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, i, hidden_idx)] = (OUTPUT_TYPE)(gate_output[3]*ACTIVATION_H(cell_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)], ACTIVATION_PARAMS_H));
+        int cur_history_idx = i;
+        if(DIRECTION){ //reverse
+            cur_history_idx = sequence_lengths[INPUT3_GET_INDEX_SAFE(b, 0, 0, 0)] - 1 - i ;
+        }
+        hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, cur_history_idx, hidden_idx)] = (OUTPUT_TYPE)(gate_output[3]*ACTIVATION_H(cell_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)], ACTIVATION_PARAMS_H));
     }
     //printf("R is %p B is %p ; hidden history %p cell state %p batch %d\n", &R[0], &B[0], &hidden_history[0],  &cell_state[0], b);
     //printf("result is %f %f fb %d\n", hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, 0, hidden_idx)], hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, 1, hidden_idx)], b);

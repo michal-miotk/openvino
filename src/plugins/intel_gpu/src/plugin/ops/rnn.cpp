@@ -255,18 +255,23 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     const cldnn::primitive_id mutable_id_1 = layerName + "_md_write1";
     const cldnn::mutable_data mutable_prim_1{mutable_id_1, shared_memory1};
     p.add_primitive(*op, mutable_prim_1);
-
+    int direction = op->get_direction() == ov::op::RecurrentSequenceDirection::REVERSE ? 1 : 0;
     cldnn::lstm_seq prim(lstm_seq_id + ".out0", inputs[0], inputs[1], \
         inputs[2], inputs[3], inputs[4], inputs[5], cldnn::input_info(bias), "", mutable_id_1, \
-        "", clip, 0, activations, activation_params, cldnn::lstm_weights_order::fizo, 0);
+        "", clip, 0, activations, activation_params, cldnn::lstm_weights_order::fizo, direction);
     //prim.out1_prim_id = f_id;
     p.add_primitive(*op, prim);
     p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out2", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memory1));
     int b = op->get_input_shape(0)[0];
     int seqlen = op->get_input_shape(0)[1];
     int hidden_size = op->get_input_shape(1)[2];
-    p.add_primitive(*op, cldnn::crop(lstm_seq_id + ".out1", {cldnn::input_info(lstm_seq_id + ".out0")},  \
-    cldnn::tensor{ b, 1, hidden_size, 1}, cldnn::tensor{ 0, 0, 0, seqlen-1}));
+    if (direction) {
+        p.add_primitive(*op, cldnn::crop(lstm_seq_id + ".out1", {cldnn::input_info(lstm_seq_id + ".out0")},  \
+        cldnn::tensor{ b, 1, hidden_size, 1}, cldnn::tensor{ 0, 0, 0, 0}));
+    } else {
+        p.add_primitive(*op, cldnn::crop(lstm_seq_id + ".out1", {cldnn::input_info(lstm_seq_id + ".out0")},  \
+        cldnn::tensor{ b, 1, hidden_size, 1}, cldnn::tensor{ 0, 0, 0, seqlen-1}));
+    }
 }
 
 REGISTER_FACTORY_IMPL(v4, LSTMCell);
