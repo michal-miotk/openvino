@@ -34,7 +34,7 @@ JitConstants LSTMSeqKernelBase::GetJitConstants(const lstm_seq_params& params) c
     jit.AddConstants({MakeJitConstant("MAX_SEQ_LENGTH", params.inputs[0].Feature().v)});
     jit.AddConstants({MakeJitConstant("INPUT_SIZE", params.inputs[0].Y().v)});
     jit.AddConstants({MakeJitConstant("HIDDEN_SIZE", params.inputs[1].Y().v)});
-    auto ftype = GetUnitType(params);
+    auto ftype = params.inputs[0].GetDType();
     // if ReLU activation present, we have to reset accumulator type for the kernel to FP32
     // to avoid possible overflows on FP16, since ReLU doesn't limit upper border of its result
     for (size_t i = 0; i < params.activations.size(); i++) {

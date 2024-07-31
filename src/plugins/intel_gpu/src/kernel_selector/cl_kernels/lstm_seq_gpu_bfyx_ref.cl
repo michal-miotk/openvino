@@ -20,11 +20,10 @@ KERNEL(lstm_seq)(
     const uint b = get_global_id(1);
     const int weight_offsets[4] = {GEMM_OFFSET_F, GEMM_OFFSET_I, GEMM_OFFSET_Z, GEMM_OFFSET_O};
     const int gate_num = 4;
-    printf("b %d is hidden is %d hsize is %d \n", b, hidden_idx, HIDDEN_SIZE);
-    OUTPUT_TYPE local_hidden_state = 0;
-    OUTPUT_TYPE hidden_result[gate_num];
-    OUTPUT_TYPE input_result[gate_num];
-    OUTPUT_TYPE gate_output[gate_num];
+    printf("b %d is hidden is %d hsize is %d seq len is %d\n", b, hidden_idx, HIDDEN_SIZE, sequence_lengths[INPUT3_GET_INDEX_SAFE(b, 0, 0, 0)]);
+    ACCUMULATOR_TYPE hidden_result[gate_num];
+    ACCUMULATOR_TYPE input_result[gate_num];
+    ACCUMULATOR_TYPE gate_output[gate_num];
 
     for(int k=0;k<gate_num;k++){
         gate_output[k] = 0;
@@ -66,15 +65,14 @@ KERNEL(lstm_seq)(
         }
 
         if (i==0){
-            cell_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] = gate_output[0]*initial_cell_state[INPUT2_GET_INDEX_SAFE(b, 0, hidden_idx, 0)];
-            cell_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] += gate_output[1]*gate_output[2];
+            cell_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] = (OUTPUT_TYPE)(gate_output[0]*initial_cell_state[INPUT2_GET_INDEX_SAFE(b, 0, hidden_idx, 0)]);
+            cell_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] += (OUTPUT_TYPE)(gate_output[1]*gate_output[2]);
         }else{
-            cell_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] *= gate_output[0];
-            cell_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] += gate_output[1]*gate_output[2];
+            cell_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] *= (OUTPUT_TYPE)gate_output[0];
+            cell_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] += (OUTPUT_TYPE)(gate_output[1]*gate_output[2]);
         }
-        local_hidden_state = gate_output[3]*ACTIVATION_H(cell_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)], ACTIVATION_PARAMS_H);
-        hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, i, hidden_idx)] = local_hidden_state;
+        hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, i, hidden_idx)] = (OUTPUT_TYPE)(gate_output[3]*ACTIVATION_H(cell_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)], ACTIVATION_PARAMS_H));
     }
     //printf("R is %p B is %p ; hidden history %p cell state %p batch %d\n", &R[0], &B[0], &hidden_history[0],  &cell_state[0], b);
-    //printf("result is %f %f \n", hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, 0, 0)], hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, 1, 0)]);
+    //printf("result is %f %f fb %d\n", hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, 0, hidden_idx)], hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, 1, hidden_idx)], b);
 }
