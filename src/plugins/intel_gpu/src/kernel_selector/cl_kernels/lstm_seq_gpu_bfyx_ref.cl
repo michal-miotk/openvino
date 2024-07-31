@@ -20,7 +20,7 @@ KERNEL(lstm_seq)(
     const uint b = get_global_id(1);
     const int weight_offsets[4] = {GEMM_OFFSET_F, GEMM_OFFSET_I, GEMM_OFFSET_Z, GEMM_OFFSET_O};
     const int gate_num = 4;
-    printf("b %d is hidden is %d hsize is %d seq len is %d\n", b, hidden_idx, HIDDEN_SIZE, sequence_lengths[INPUT3_GET_INDEX_SAFE(b, 0, 0, 0)]);
+    printf("b %d MAX_SEQ_LENGTH %d sequence_lengths %d\n", b, MAX_SEQ_LENGTH, sequence_lengths[INPUT3_GET_INDEX_SAFE(b, 0, 0, 0)]);
     ACCUMULATOR_TYPE hidden_result[gate_num];
     ACCUMULATOR_TYPE input_result[gate_num];
     ACCUMULATOR_TYPE gate_output[gate_num];
@@ -32,26 +32,31 @@ KERNEL(lstm_seq)(
     //printf("initial hidden state is %f for b %d hidden idx %d\n", initial_hidden_state[INPUT1_GET_INDEX_SAFE(b, hidden_idx, 0, 0)], b, hidden_idx);
     //printf("offsets are %d %d %d %d \n", weight_offsets[0], weight_offsets[1], weight_offsets[2], weight_offsets[3]);
     //printf("W is %d R is %d B is %d\n", INPUT4_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[0], 0, 0), INPUT5_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[0],  0, 0), INPUT6_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[0], 0, 0));
-    for(int i=0;i<sequence_lengths[INPUT3_GET_INDEX_SAFE(b, 0, 0, 0)];i++){
+    const int real_seq_length = sequence_lengths[INPUT3_GET_INDEX_SAFE(b, 0, 0, 0)];// == MAX_SEQ_LENGTH ? MAX_SEQ_LENGTH: sequence_lengths[INPUT3_GET_INDEX_SAFE(b, 0, 0, 0)]+1;
+    for(int i=0;i<real_seq_length;i++){
         for(int k=0;k<gate_num;k++){
             hidden_result[k] = 0;
             input_result[k] = 0;
         }
         for(int k=0;k<gate_num;k++){
             for(int j=0;j<HIDDEN_SIZE;j++) {
-                if((i==0 && !DIRECTION) || (DIRECTION && i==sequence_lengths[INPUT3_GET_INDEX_SAFE(b, 0, 0, 0)]-1)){
+                if(i==0){
                     hidden_result[k] += initial_hidden_state[INPUT1_GET_INDEX_SAFE(b, 0, j, 0)]*R[INPUT5_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[k], j, 0)];
                 }else{
                     int prev_idx = i-1;
                     if(DIRECTION){ //reverse
-                        prev_idx = sequence_lengths[INPUT3_GET_INDEX_SAFE(b, 0, 0, 0)] - 1 - i ;
+                        prev_idx = real_seq_length - i ;
                     }
                     hidden_result[k] += hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, prev_idx, j)]*R[INPUT5_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[k], j, 0)];
                 }
             }
             
             for(int j=0;j<INPUT_SIZE;j++) {
-                input_result[k] += x[INPUT0_GET_INDEX_SAFE(b, i, j, 0)]*W[INPUT4_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[k], j, 0)];
+                if(DIRECTION){ //reverse
+                    input_result[k] += x[INPUT0_GET_INDEX_SAFE(b, real_seq_length-1-i, j, 0)]*W[INPUT4_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[k], j, 0)];
+                } else {
+                    input_result[k] += x[INPUT0_GET_INDEX_SAFE(b, i, j, 0)]*W[INPUT4_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[k], j, 0)];
+                }
             }
             gate_output[k] = hidden_result[k] + input_result[k] + B[INPUT6_GET_INDEX_SAFE(0, hidden_idx+weight_offsets[k], 0, 0)];
         
@@ -78,10 +83,10 @@ KERNEL(lstm_seq)(
         }
         int cur_history_idx = i;
         if(DIRECTION){ //reverse
-            cur_history_idx = sequence_lengths[INPUT3_GET_INDEX_SAFE(b, 0, 0, 0)] - 1 - i ;
+            cur_history_idx = real_seq_length - 1 - i ;
         }
         hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, cur_history_idx, hidden_idx)] = (OUTPUT_TYPE)(gate_output[3]*ACTIVATION_H(cell_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)], ACTIVATION_PARAMS_H));
     }
     //printf("R is %p B is %p ; hidden history %p cell state %p batch %d\n", &R[0], &B[0], &hidden_history[0],  &cell_state[0], b);
-    //printf("result is %f %f fb %d\n", hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, 0, hidden_idx)], hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, 1, hidden_idx)], b);
+    printf("result is %f %f fb %d\n", hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, 0, hidden_idx)], hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, 1, hidden_idx)], b);
 }
