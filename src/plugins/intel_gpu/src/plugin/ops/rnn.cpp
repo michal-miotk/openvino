@@ -234,30 +234,16 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     cldnn::input_info recurrent = inputs[5];
     cldnn::input_info bias = inputs[6];
 
-    {
-        const auto in_dims0 = op->get_input_shape(0);
-        const auto out_dims0 = op->get_output_shape(0);
-
-        if (in_dims0.size() != 3 ||
-            op->get_input_shape(1).size() != 3 ||
-            op->get_input_shape(2).size() != 3 || op->get_input_shape(3).size() != 1 \
-            || op->get_input_shape(4).size() != 3 || op->get_input_shape(5).size() != 3 || op->get_input_shape(6).size() != 2)
-            OPENVINO_THROW("Wrong input shapes for LSTMSequence op ", op->get_friendly_name());
-    }
+    if (op->get_input_shape(0).size() != 3 ||
+        op->get_input_shape(1).size() != 3 ||
+        op->get_input_shape(2).size() != 3 || op->get_input_shape(3).size() != 1 \
+        || op->get_input_shape(4).size() != 3 || op->get_input_shape(5).size() != 3 || op->get_input_shape(6).size() != 2)
+        OPENVINO_THROW("Wrong input shapes for LSTMSequence op ", op->get_friendly_name());
 
     std::vector<cldnn::activation_func> activations;
     std::vector<cldnn::activation_additional_params> activation_params;
     GetLSTMActivationParams(op, activations, activation_params);
     float clip = op->get_clip();
-
-    //  LSTM primitive works with single precision for all in/out/weights tensors
-    cldnn::primitive_id inReshapeID = layerName + "_inReshape";
-    cldnn::primitive_id permuteID = layerName + "_inputReorder";
-    cldnn::primitive_id inHiddenReshapeID = layerName + "_inHiddenReshape";
-    cldnn::primitive_id inHiddenReorderID = layerName + "_inHiddenReorder";
-    cldnn::primitive_id inHiddenStateID = inHiddenReshapeID + "_1";
-    cldnn::primitive_id inCellStateID = inHiddenReshapeID + "_2";
-
     cldnn::primitive_id lstm_seq_id = layerName;// + "_lstm_seq";
 
     auto mutable_precision_second = op->get_output_element_type(2);
