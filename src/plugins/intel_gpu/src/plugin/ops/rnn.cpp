@@ -234,9 +234,7 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     cldnn::input_info recurrent = inputs[5];
     cldnn::input_info bias = inputs[6];
 
-    if (op->get_input_shape(0).size() != 3 ||
-        op->get_input_shape(1).size() != 3 ||
-        op->get_input_shape(2).size() != 3 || op->get_input_shape(3).size() != 1 \
+    if (op->get_input_shape(2).size() != 3 || op->get_input_shape(3).size() != 1 \
         || op->get_input_shape(4).size() != 3 || op->get_input_shape(5).size() != 3 || op->get_input_shape(6).size() != 2)
         OPENVINO_THROW("Wrong input shapes for LSTMSequence op ", op->get_friendly_name());
 

@@ -24,8 +24,9 @@ std::vector<layout> lstm_seq_inst::calc_output_layouts(lstm_seq_node const& node
     if (impl_param.desc->output_data_types.size() > 0) {
         OPENVINO_ASSERT(static_cast<bool>(impl_param.desc->output_data_types[0]) == false, "Output data type forcing is not supported for lstm_seq_node!");
     }
-    OPENVINO_ASSERT(input_pshape_x.rank().get_length() == 4, "input_layout rank should be 4 on dynamic shape.");
-
+    if (input_pshape_x.is_static()) {
+        OPENVINO_ASSERT(input_pshape_x.rank().get_length() == 4, "input_layout rank should be 4 on static shape.");
+    }
     int lstm_batch_size, lstm_seq_length, lstm_hidden_size;
     if (input_pshape_x[input_pshape_x.size() - 3].is_static()) {
         lstm_batch_size = input_pshape_x[0].get_length();
@@ -95,7 +96,6 @@ lstm_seq_inst::typed_primitive_inst(network& network, lstm_seq_node const& node)
                                   "input format",
                                   input_size.format.value,
                                   "expected format",
-                                  format::bfyx,
-                                  format::fyxb);
+                                  format::bfyx);
 }
 }  // namespace cldnn
