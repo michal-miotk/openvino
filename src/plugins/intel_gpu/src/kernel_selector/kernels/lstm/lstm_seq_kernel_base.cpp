@@ -82,7 +82,7 @@ KernelsData LSTMSeqKernelBase::GetCommonKernelsData(const Params& params) const 
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 6});
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::OUTPUT, 0});
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::OUTPUT, 1});
-    //kernel.params.arguments.push_back({ArgumentDescriptor::Types::OUTPUT, 2});
+    kernel.params.arguments.push_back({ArgumentDescriptor::Types::OUTPUT, 2});
     auto cldnnJit = GetJitConstants(orgParams);
     auto entryPoint = GetEntryPoint(kernelName, orgParams.layerID, params);
     auto jit = CreateJit(kernelName, cldnnJit, entryPoint);

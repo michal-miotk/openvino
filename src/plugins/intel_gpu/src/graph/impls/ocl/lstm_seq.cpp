@@ -26,6 +26,7 @@ struct lstm_seq_impl : typed_primitive_impl_ocl<lstm_seq> {
 protected:
     kernel_arguments_data get_arguments(const typed_primitive_inst<lstm_seq>& instance) const override {
         kernel_arguments_data args = parent::get_arguments(instance);
+        args.outputs.push_back(instance.dep_memory_ptr(instance.desc()->input_size() - 2));
         args.outputs.push_back(instance.dep_memory_ptr(instance.desc()->input_size() - 1));
         return args;
     }

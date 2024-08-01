@@ -183,7 +183,8 @@ struct lstm_seq : public primitive_base<lstm_seq> {
              const lstm_weights_order offset_order = lstm_weights_order::iofz,
              const uint32_t direction = 0,
              const padding& output_padding = padding())
-        : primitive_base(id, {x, initial_hidden_state, initial_cell_state, seq_lenghts, W, R, B, out2_prim_id}, {output_padding}, {}, 1),
+        : primitive_base(id, {x, initial_hidden_state, initial_cell_state, seq_lenghts, W, R, B, out1_prim_id, out2_prim_id}, {output_padding}, {}, 1),
+          out1_prim_id(out1_prim_id),
           out2_prim_id(out2_prim_id),
           cell(cell),
           clip(clip),
@@ -194,7 +195,7 @@ struct lstm_seq : public primitive_base<lstm_seq> {
           direction(direction) {}
 
     /// @brief Primitive id containing the initial value of the cell state data.
-    //primitive_id out1_prim_id;
+    primitive_id out1_prim_id;
     primitive_id out2_prim_id;
     primitive_id cell;
     /// @brief Cell clip threshold T. It is applied to the input of activations [-T, T]. No clip is applied if it is not specified.
@@ -239,6 +240,8 @@ struct lstm_seq : public primitive_base<lstm_seq> {
 
         #define cmp_fields(name) name == rhs_casted.name
         return act_params_eq &&
+               cmp_fields(out1_prim_id) &&
+               cmp_fields(out2_prim_id) &&
                cmp_fields(clip) &&
                cmp_fields(input_forget) &&
                cmp_fields(activations) &&
@@ -250,7 +253,7 @@ struct lstm_seq : public primitive_base<lstm_seq> {
 
     void save(BinaryOutputBuffer& ob) const override {
         primitive_base<lstm_seq>::save(ob);
-        //ob << out1_prim_id;
+        ob << out1_prim_id;
         ob << out2_prim_id;
         ob << cell;
         ob << clip;
@@ -263,7 +266,7 @@ struct lstm_seq : public primitive_base<lstm_seq> {
 
     void load(BinaryInputBuffer& ib) override {
         primitive_base<lstm_seq>::load(ib);
-        //ib >> out1_prim_id;
+        ib >> out1_prim_id;
         ib >> out2_prim_id;
         ib >> cell;
         ib >> clip;
