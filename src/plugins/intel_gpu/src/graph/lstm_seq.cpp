@@ -21,9 +21,11 @@ std::vector<layout> lstm_seq_inst::calc_output_layouts(lstm_seq_node const& node
     auto input_pshape_x = input_layout_x.get_partial_shape();
     auto input_layout_hidden = impl_param.get_input_layout(1);
     auto input_pshape_hidden = input_layout_hidden.get_partial_shape();
+    /*
     if (impl_param.desc->output_data_types.size() > 0) {
         OPENVINO_ASSERT(static_cast<bool>(impl_param.desc->output_data_types[0]) == false, "Output data type forcing is not supported for lstm_seq_node!");
     }
+    */
     if (input_pshape_x.is_static()) {
         OPENVINO_ASSERT(input_pshape_x.rank().get_length() == 4, "input_layout rank should be 4 on static shape.");
     }

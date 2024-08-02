@@ -48,7 +48,7 @@ KERNEL (concatenation_gpu_ref)(
     uint output_offset = FUNC_CALL(get_output_index)(OPTIONAL_SHAPE_INFO_TENSOR out_b, out_f, out_w, out_z, out_y, out_x);
 
     INPUT0_TYPE result = input[input_offset];
-
+    printf("result is %f for input_offset %d from %d %d %d %d %d %d\n", result, input_offset, b, f, w, z, y, x);
 #if HAS_FUSED_OPS
     FUSED_OPS;
     output[output_offset] = TO_OUTPUT_TYPE(FUSED_OPS_RESULT);

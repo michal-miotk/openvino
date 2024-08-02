@@ -213,6 +213,7 @@ struct lstm_seq : public primitive_base<lstm_seq> {
 
     size_t hash() const override {
         size_t seed = primitive::hash();
+        seed = hash_combine(seed, out1_prim_id);
         seed = hash_combine(seed, clip);
         seed = hash_combine(seed, input_forget);
         seed = hash_range(seed, activations.begin(), activations.end());
@@ -280,6 +281,8 @@ struct lstm_seq : public primitive_base<lstm_seq> {
 protected:
     std::vector<input_info> get_dependencies() const override {
         std::vector<input_info> ret;
+        //ret.push_back(input[input.size()-2].pid);
+        //ret.push_back(input[input.size()-1].pid);
         return ret;
     }
 };
