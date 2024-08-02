@@ -21,7 +21,7 @@ JitConstants LSTMSeqKernelBase::GetJitConstants(const lstm_seq_params& params) c
     if (params.input_forget) {
         jit.AddConstants({MakeJitConstant("INPUT_FORGET", true)});
     }
-    jit.AddConstants({MakeJitConstant("DIRECTION", params.direction)});
+    jit.AddConstants({MakeJitConstant("DIRECTION", static_cast<int>(params.direction))});
 
     size_t size = params.inputs[1].Y().v;
     jit.AddConstants({
