@@ -66,7 +66,7 @@ auto available_pred = [](const program_node& input) {
         !input.is_type<activation>() && !input.is_type<deconvolution>() && !input.is_type<concatenation>() &&
         !input.is_type<crop>() && !input.is_type<eltwise>() && !input.is_type<resample>() &&
         !input.is_type<reorder>() && !(input.is_type<permute>() && !input.as<permute>().is_rotating_except_batch()) &&
-        !input.is_type<strided_slice>())
+        !input.is_type<strided_slice>() && !input.is_type<mutable_data>())
         return false;
     return true;
 };
@@ -700,7 +700,7 @@ void prepare_buffer_fusing::run(program& p) {
             return true;
         }
 
-        if (is_dynamic || node->is_output() || node->has_fused_primitives() || node->is_in_shape_of_subgraph()) {
+        if (is_dynamic || node->is_output() || node->has_fused_primitives() || node->is_in_shape_of_subgraph() || node->is_type<mutable_data>()) {
             return false;
         }
         return true;
