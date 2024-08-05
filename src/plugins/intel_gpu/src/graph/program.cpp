@@ -585,7 +585,7 @@ void program::pre_optimize_graph(bool is_internal) {
 
     // try to fuse buffers (i.e. depth_concat in bfyx format) after padding calculations
     if (optimize_data) {
-        //apply_opt_pass<prepare_buffer_fusing>();
+        apply_opt_pass<prepare_buffer_fusing>();
     }
 
     // check if there exists some layout incompatibilities and add an reorder node if required

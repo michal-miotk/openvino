@@ -182,10 +182,41 @@ struct lstm_seq : public primitive_base<lstm_seq> {
              const std::vector<activation_additional_params> activation_params = {},
              const lstm_weights_order offset_order = lstm_weights_order::iofz,
              const uint32_t direction = 0,
-             const padding& output_padding = padding())
-        : primitive_base(id, {x, initial_hidden_state, initial_cell_state, seq_lenghts, W, R, B, out1_prim_id, out2_prim_id}, {output_padding}, {}, 1),
+             const padding& output_padding = padding(),
+             const int num_outputs = 1)
+        : primitive_base(id, {x, initial_hidden_state, initial_cell_state, seq_lenghts, W, R, B, out1_prim_id, out2_prim_id}, {output_padding}, {}, \
+            num_outputs),
           out1_prim_id(out1_prim_id),
           out2_prim_id(out2_prim_id),
+          cell(cell),
+          clip(clip),
+          input_forget(input_forget),
+          activations(activations),
+          activation_params(activation_params),
+          offset_order(offset_order),
+          direction(direction) {}
+
+    lstm_seq(const primitive_id& id,
+             const input_info& x,
+             const input_info& initial_hidden_state,
+             const input_info& initial_cell_state,
+             const input_info& seq_lenghts,
+             const input_info& W,
+             const input_info& R,
+             const input_info& B,
+             const primitive_id& cell = "",
+             const float clip = 0,
+             const bool input_forget = 0,
+             const std::vector<activation_func> activations = {activation_func::logistic,
+                                                               activation_func::hyperbolic_tan,
+                                                               activation_func::hyperbolic_tan},
+             const std::vector<activation_additional_params> activation_params = {},
+             const lstm_weights_order offset_order = lstm_weights_order::iofz,
+             const uint32_t direction = 0,
+             const padding& output_padding = padding(),
+             const int num_outputs = 1)
+        : primitive_base(id, {x, initial_hidden_state, initial_cell_state, seq_lenghts, W, R, B, out1_prim_id, out2_prim_id}, {output_padding}, {}, \
+            num_outputs),
           cell(cell),
           clip(clip),
           input_forget(input_forget),

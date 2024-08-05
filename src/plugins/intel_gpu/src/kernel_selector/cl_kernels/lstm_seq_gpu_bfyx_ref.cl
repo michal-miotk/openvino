@@ -61,10 +61,10 @@ KERNEL(lstm_seq)(
                 case 0:
                 case 1:
                 case 3:
-                    gate_output[k] = ACTIVATION_F(ACTIVATION_CLIP(gate_output[k], ACTIVATION_PARAMS_CLIP), ACTIVATION_PARAMS_F);
+                    gate_output[k] = ACTIVATION_F(ACTIVATION_CLIP(TO_OUTPUT_TYPE(gate_output[k]), ACTIVATION_PARAMS_CLIP), ACTIVATION_PARAMS_F);
                     break;
                 case 2:
-                    gate_output[k] = ACTIVATION_G(ACTIVATION_CLIP(gate_output[k], ACTIVATION_PARAMS_CLIP), ACTIVATION_PARAMS_G);
+                    gate_output[k] = ACTIVATION_G(ACTIVATION_CLIP(TO_OUTPUT_TYPE(gate_output[k]), ACTIVATION_PARAMS_CLIP), ACTIVATION_PARAMS_G);
                     break;
                 default:
                     break;

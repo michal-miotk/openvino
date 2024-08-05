@@ -6,6 +6,7 @@
 #include "intel_gpu/runtime/error_handler.hpp"
 #include "json_object.h"
 #include <string>
+#include "lstm_sequence_shape_inference.hpp"
 
 namespace cldnn {
 GPU_DEFINE_PRIMITIVE_TYPE_ID(lstm_seq)
@@ -16,6 +17,18 @@ layout lstm_seq_inst::calc_output_layout(lstm_seq_node const& node, kernel_impl_
 
 template<typename ShapeType>
 std::vector<layout> lstm_seq_inst::calc_output_layouts(lstm_seq_node const& node, kernel_impl_params const& impl_param) {
+    auto desc = impl_param.typed_desc<lstm_seq>();
+
+    std::vector<ShapeType> input_shapes;
+    for (size_t i = 0; i < desc->input.size(); ++i) {
+        auto input_shape = impl_param.get_input_layout(i).get<ShapeType>();
+        input_shapes.push_back(input_shape);
+    }
+
+    ov::op::v5::LSTMSequence op;
+
+    std::vector<ShapeType> output_shapes = ov::op::v5::shape_infer(&op, input_shapes);
+
     // input partial shape [batch, input_size (= hidden_size * 4)]
     auto input_layout_x = impl_param.get_input_layout(0);
     auto input_pshape_x = input_layout_x.get_partial_shape();
@@ -54,28 +67,6 @@ std::vector<layout> lstm_seq_inst::calc_output_layouts(lstm_seq_node const& node
 }
 
 template std::vector<layout> lstm_seq_inst::calc_output_layouts<ov::PartialShape>(lstm_seq_node const& node, const kernel_impl_params& impl_param);
-
-void lstm_seq_inst::on_execute() {
-    update_output_memory();
-}
-
-void lstm_seq_inst::update_output_memory() {
-    /*
-    if (!can_be_optimized())
-        return;
-
-    for (size_t i = 1; i < 3; i++) {
-        if (node->get_program().is_new_shape_infer() && input_memory_ptr(i+6) == nullptr)
-            return;
-
-        if (output_memory_ptr(i) != nullptr && _network.get_engine().is_the_same_buffer(output_memory(i), input_memory(i+6)))
-            return;
-
-        _outputs[i] = {_network.get_engine().reinterpret_buffer(input_memory(i+6), _impl_params->get_output_layout(i))};
-    }
-    */
-}
-
 
 std::string lstm_seq_inst::to_string(lstm_seq_node const& node) {
     auto desc = node.get_primitive();

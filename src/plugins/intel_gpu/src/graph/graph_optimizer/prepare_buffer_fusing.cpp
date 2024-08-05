@@ -21,6 +21,7 @@
 #include "shape_of_inst.h"
 #include "non_max_suppression_inst.h"
 #include "experimental_detectron_roi_feature_extractor_inst.hpp"
+#include "lstm_seq_inst.h"
 #include "border_inst.h"
 
 #include "pass_manager.h"
@@ -66,7 +67,7 @@ auto available_pred = [](const program_node& input) {
         !input.is_type<activation>() && !input.is_type<deconvolution>() && !input.is_type<concatenation>() &&
         !input.is_type<crop>() && !input.is_type<eltwise>() && !input.is_type<resample>() &&
         !input.is_type<reorder>() && !(input.is_type<permute>() && !input.as<permute>().is_rotating_except_batch()) &&
-        !input.is_type<strided_slice>() && !input.is_type<mutable_data>())
+        !input.is_type<strided_slice>())
         return false;
     return true;
 };
@@ -463,7 +464,7 @@ bool crop_in_place_optimization::match(const program_node& node,
         return false;
     // if the node is marked as network output, prevent optimizations which would affect a form of its output,
     // unless debug flag is set
-    if (node.is_output() || crop_params.fused_desc.size() > 0 || node.is_in_shape_of_subgraph())
+    if (node.is_output() || crop_params.fused_desc.size() > 0 || node.is_in_shape_of_subgraph() || node.is_type<mutable_data>())
         return false;
 
     const auto& crop_layout = crop_params.get_output_layout();
@@ -475,7 +476,7 @@ bool crop_in_place_optimization::match(const program_node& node,
         // do not optimize when next node is concatenation which is not output
         if (user->is_type<concatenation>() && !user->is_output())
             return false;
-        if (user->is_type<loop>() || user->is_type<non_max_suppression>())
+        if (user->is_type<loop>() || user->is_type<non_max_suppression>() || user->is_type<mutable_data>())
             return false;
         // If the input tensor of convolution includes dynamic padding, there is an issue
         // where the total size of tensor is not properly calculated and becomes 0
@@ -493,6 +494,8 @@ bool crop_in_place_optimization::match(const program_node& node,
                 return false;
         }
         if (user->is_type<experimental_detectron_roi_feature_extractor>() && user->get_dependency_index(node) == 0)
+            return false;
+        if (user->is_type<lstm_seq>())
             return false;
     }
 

@@ -26,14 +26,16 @@ struct lstm_seq_impl : typed_primitive_impl_ocl<lstm_seq> {
 protected:
     kernel_arguments_data get_arguments(const typed_primitive_inst<lstm_seq>& instance) const override {
         kernel_arguments_data args;// = parent::get_arguments(instance);
-        for (size_t i = 0; i < instance.inputs_memory_count()-2; i++) {
+        for (size_t i = 0; i < 7; i++) {
             args.inputs.push_back(instance.input_memory_ptr(i));
         }
         for (size_t i = 0; i < instance.outputs_memory_count(); i++) {
             args.outputs.push_back(instance.output_memory_ptr(i));
         }
-        args.outputs.push_back(instance.dep_memory_ptr(instance.desc()->input_size() - 2));
-        args.outputs.push_back(instance.dep_memory_ptr(instance.desc()->input_size() - 1));
+        if (instance.inputs_memory_count() > 7) {
+            args.outputs.push_back(instance.dep_memory_ptr(instance.desc()->input_size() - 2));
+            args.outputs.push_back(instance.dep_memory_ptr(instance.desc()->input_size() - 1));
+        }
         return args;
     }
 
@@ -75,9 +77,10 @@ public:
         params.input_forget = primitive->input_forget;
         params.direction = primitive->direction;
         //Legacy multi-output
-        params.outputs.push_back(convert_data_tensor(impl_param.input_layouts[1]));
-        params.outputs.push_back(convert_data_tensor(impl_param.input_layouts[1]));
-
+        if (impl_param.input_layouts.size() > 7) {
+            params.outputs.push_back(convert_data_tensor(impl_param.input_layouts[1]));
+            params.outputs.push_back(convert_data_tensor(impl_param.input_layouts[1]));
+        }
         return params;
     }
 
