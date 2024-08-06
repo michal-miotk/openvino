@@ -215,7 +215,7 @@ struct lstm_seq : public primitive_base<lstm_seq> {
              const uint32_t direction = 0,
              const padding& output_padding = padding(),
              const int num_outputs = 1)
-        : primitive_base(id, {x, initial_hidden_state, initial_cell_state, seq_lenghts, W, R, B, out1_prim_id, out2_prim_id}, {output_padding}, {}, \
+        : primitive_base(id, {x, initial_hidden_state, initial_cell_state, seq_lenghts, W, R, B}, {output_padding}, {}, \
             num_outputs),
           cell(cell),
           clip(clip),

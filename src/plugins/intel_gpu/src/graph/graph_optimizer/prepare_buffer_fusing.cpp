@@ -464,7 +464,7 @@ bool crop_in_place_optimization::match(const program_node& node,
         return false;
     // if the node is marked as network output, prevent optimizations which would affect a form of its output,
     // unless debug flag is set
-    if (node.is_output() || crop_params.fused_desc.size() > 0 || node.is_in_shape_of_subgraph() || node.is_type<mutable_data>())
+    if (node.is_output() || crop_params.fused_desc.size() > 0 || node.is_in_shape_of_subgraph())
         return false;
 
     const auto& crop_layout = crop_params.get_output_layout();
@@ -476,7 +476,7 @@ bool crop_in_place_optimization::match(const program_node& node,
         // do not optimize when next node is concatenation which is not output
         if (user->is_type<concatenation>() && !user->is_output())
             return false;
-        if (user->is_type<loop>() || user->is_type<non_max_suppression>() || user->is_type<mutable_data>())
+        if (user->is_type<loop>() || user->is_type<non_max_suppression>())
             return false;
         // If the input tensor of convolution includes dynamic padding, there is an issue
         // where the total size of tensor is not properly calculated and becomes 0

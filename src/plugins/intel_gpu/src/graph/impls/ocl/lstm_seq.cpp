@@ -77,10 +77,10 @@ public:
         params.input_forget = primitive->input_forget;
         params.direction = primitive->direction;
         //Legacy multi-output
-        if (impl_param.input_layouts.size() > 7) {
-            params.outputs.push_back(convert_data_tensor(impl_param.input_layouts[1]));
-            params.outputs.push_back(convert_data_tensor(impl_param.input_layouts[1]));
-        }
+
+        params.outputs.push_back(convert_data_tensor(impl_param.input_layouts[1]));
+        params.outputs.push_back(convert_data_tensor(impl_param.input_layouts[1]));
+
         return params;
     }
 
