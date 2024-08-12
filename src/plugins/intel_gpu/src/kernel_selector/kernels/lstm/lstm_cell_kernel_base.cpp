@@ -16,7 +16,7 @@ JitConstants LSTMCellKernelBase::GetJitConstants(const lstm_cell_params& params)
         jit.AddConstants({MakeJitConstant("INPUT_FORGET", true)});
     }
     jit.AddConstants({MakeJitConstant("DIRECTION", static_cast<int>(params.direction))});
-    size_t size = params.inputs[1].Y().v;
+    size_t size = params.inputs[1].Feature().v;
     jit.AddConstants({
         MakeJitConstant("GEMM_OFFSET_I", params.GetOffsetIndexI() * size),
         MakeJitConstant("GEMM_OFFSET_O", params.GetOffsetIndexO() * size),
@@ -24,12 +24,11 @@ JitConstants LSTMCellKernelBase::GetJitConstants(const lstm_cell_params& params)
         MakeJitConstant("GEMM_OFFSET_Z", params.GetOffsetIndexZ() * size),
     });
     jit.AddConstants({MakeJitConstant("BATCH_SIZE", params.inputs[1].Batch().v)});
-    jit.AddConstants({MakeJitConstant("MAX_SEQ_LENGTH", params.inputs[0].Feature().v)});
-    jit.AddConstants({MakeJitConstant("INPUT_SIZE", params.inputs[0].Y().v)});
-    auto hidden_size = static_cast<const int>(params.inputs[1].Y().v);
+    jit.AddConstants({MakeJitConstant("INPUT_SIZE", params.inputs[0].Feature().v)});
+    auto hidden_size = static_cast<const int>(params.inputs[1].Feature().v);
     jit.AddConstants({MakeJitConstant("HIDDEN_SIZE", hidden_size)});
     auto out =  params.outputs[0];
-    auto num_hidden_kernels = std::min({static_cast<int>(params.engineInfo.maxWorkGroupSize), static_cast<int>(out.X().v), 8});
+    auto num_hidden_kernels = std::min({static_cast<int>(params.engineInfo.maxWorkGroupSize), static_cast<int>(out.Feature().v), 8});
     int num_hidden_to_do = hidden_size/num_hidden_kernels + (hidden_size % num_hidden_kernels  ? 1 : 0);
     jit.AddConstant({MakeJitConstant("NUM_HIDDEN_TO_DO", num_hidden_to_do)});
     auto ftype = params.inputs[0].GetDType();
@@ -82,7 +81,7 @@ KernelsData LSTMCellKernelBase::GetCommonKernelsData(const Params& params) const
     auto cldnnJit = GetJitConstants(orgParams);
     auto entryPoint = GetEntryPoint(kernelName, orgParams.layerID, params);
     auto jit = CreateJit(kernelName, cldnnJit, entryPoint);
-    auto num_hidden_kernels = static_cast<size_t>(std::min({params.engineInfo.maxWorkGroupSize, out.X().v, \
+    auto num_hidden_kernels = static_cast<size_t>(std::min({params.engineInfo.maxWorkGroupSize, out.Feature().v, \
     static_cast<size_t>(8)}));
     kernel.params.workGroups.global = {num_hidden_kernels, out.Batch().v, 1};
     kernel.params.workGroups.local = {num_hidden_kernels, 1, 1};
