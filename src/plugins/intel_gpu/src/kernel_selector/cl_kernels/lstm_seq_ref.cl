@@ -34,7 +34,11 @@ KERNEL(lstm_seq)(
             gate_output[k][HIDDEN_SIZE] = 0;
         }
     }
+#ifdef SEQUENCE
     const int real_seq_length = sequence_lengths[INPUT6_GET_INDEX_SAFE(b, 0, 0, 0)];
+#else
+    const int real_seq_length = 1;
+#endif
     for(int i=0;i<real_seq_length;i++){
         for(int l=0;l<HIDDEN_SIZE;l++){
             for(int k=0;k<gate_num;k++){
@@ -97,12 +101,22 @@ KERNEL(lstm_seq)(
             if(DIRECTION == 1){ //reverse
                 cur_history_idx = real_seq_length - 1 - i ;
             }
+        #ifdef SEQUENCE
             hidden_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] = gate_output[3][l]*ACTIVATION_H(temp_cell_state[l], ACTIVATION_PARAMS_H);
+        #else
+            hidden_state[OUTPUT_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] = gate_output[3][l]*ACTIVATION_H(temp_cell_state[l], ACTIVATION_PARAMS_H);
+        #endif
+        #ifdef SEQUENCE
             barrier(CLK_LOCAL_MEM_FENCE);
             hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, cur_history_idx, hidden_idx)] = hidden_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)];
+        #endif
             barrier(CLK_LOCAL_MEM_FENCE);
             if(i==real_seq_length-1){
-                cell_state[OUTPUT2_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] = temp_cell_state[l];
+                #ifdef SEQUENCE
+                    cell_state[OUTPUT2_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] = temp_cell_state[l];
+                #else
+                    cell_state[OUTPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] = temp_cell_state[l];
+                #endif
             }
         }
     }   
