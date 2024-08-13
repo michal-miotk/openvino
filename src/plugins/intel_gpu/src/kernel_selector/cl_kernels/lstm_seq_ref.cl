@@ -26,8 +26,6 @@ KERNEL(lstm_seq)(
 #endif
 )
 {
-    printf("run he \n");
-    //printf("INPUT0_TYPE is %s %s %s %s %s %s  and %s %s \n", TOSTRING(INPUT0_TYPE), TOSTRING(INPUT1_TYPE), TOSTRING(INPUT2_TYPE), TOSTRING(INPUT3_TYPE), TOSTRING(INPUT4_TYPE),  TOSTRING(INPUT5_TYPE), TOSTRING(OUTPUT_TYPE), TOSTRING(OUTPUT1_TYPE) );
     const uint b = get_global_id(1);
     const uint local_idx = get_local_id(0);
     const uint local_hidden_size = get_local_size(0);
