@@ -16,7 +16,7 @@
 namespace cldnn {
 namespace onednn {
 
-struct lstm_onednn : typed_primitive_onednn_impl<lstm_cell, dnnl::lstm_forward::primitive_desc, dnnl::lstm_forward> {
+struct lstm_cell_onednn : typed_primitive_onednn_impl<lstm_cell, dnnl::lstm_forward::primitive_desc, dnnl::lstm_forward> {
     using parent = typed_primitive_onednn_impl<lstm_cell, dnnl::lstm_forward::primitive_desc, dnnl::lstm_forward>;
     using parent::parent;
 
@@ -24,7 +24,7 @@ struct lstm_onednn : typed_primitive_onednn_impl<lstm_cell, dnnl::lstm_forward::
 
 protected:
     std::unique_ptr<primitive_impl> clone() const override {
-        return make_unique<lstm_onednn>(*this);
+        return make_unique<lstm_cell_onednn>(*this);
     }
 
     std::unordered_map<int, dnnl::memory> get_arguments(lstm_cell_inst& instance) const override {
@@ -52,11 +52,14 @@ protected:
         auto& engine = impl_params.prog->get_engine();
         auto prim = impl_params.typed_desc<reorder>();
 
-        auto input_layout = impl_params.get_input_layout(0);
-        auto output_layout = impl_params.get_output_layout();
-
-        auto input_md = onednn::layout_to_memory_desc(input_layout);
-        auto output_md = onednn::layout_to_memory_desc(output_layout);
+        auto input_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(0));
+        auto initial_hidden_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(1));
+        auto initial_cell_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(2));
+        auto W_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(3));
+        auto R_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(4));
+        auto B_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(5));
+        auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout());
+        auto output2_md = onednn::layout_to_memory_desc(impl_params.get_output_layout());
 
         OPENVINO_ASSERT(input_md.get_format_kind() != dnnl::memory::format_kind::any,
                         "[GPU] The format kind of the input memory descriptor of onednn reorder cannot be 'any'.");
@@ -65,9 +68,19 @@ protected:
 
         return std::make_shared<dnnl::lstm_forward::primitive_desc>(
             engine.get_onednn_engine(),
+            dnnl::prop_kind::forward_inference,
+            dnnl::rnn_direction::undef,
             input_md,
-            engine.get_onednn_engine(),
+            initial_hidden_md,
+            initial_cell_md,
+            W_md,
+            R_md,
+            W_md,
+            W_md,
+            B_md,
             output_md,
+            output_md,
+            output2_md,
             attr);
     }
 
@@ -89,13 +102,29 @@ public:
         const kernel_impl_params* impl_params = reinterpret_cast<kernel_impl_params*>(ib.getKernelImplParams());
 
         auto input_md = onednn::layout_to_memory_desc(impl_params->get_input_layout(0));
+        auto initial_hidden_md = onednn::layout_to_memory_desc(impl_params->get_input_layout(1));
+        auto initial_cell_md = onednn::layout_to_memory_desc(impl_params->get_input_layout(2));
+        auto W_md = onednn::layout_to_memory_desc(impl_params->get_input_layout(3));
+        auto R_md = onednn::layout_to_memory_desc(impl_params->get_input_layout(4));
+        auto B_md = onednn::layout_to_memory_desc(impl_params->get_input_layout(5));
         auto output_md = onednn::layout_to_memory_desc(impl_params->get_output_layout());
+        auto output2_md = onednn::layout_to_memory_desc(impl_params->get_output_layout());
 
         auto prim_desc = std::make_shared<dnnl::lstm_forward::primitive_desc>(
             ib.get_engine().get_onednn_engine(),
+            dnnl::prop_kind::forward_inference,
+            dnnl::rnn_direction::undef,
             input_md,
-            ib.get_engine().get_onednn_engine(),
+            initial_hidden_md,
+            initial_cell_md,
+            W_md,
+            R_md,
+            W_md,
+            W_md,
+            B_md,
             output_md,
+            output_md,
+            output2_md,
             *_attrs.get());
         _pd = *prim_desc;
 
@@ -115,18 +144,18 @@ public:
             auto& config = impl_params.prog->get_config();
             auto attr = impl_params.attrs_onednn;
             auto prim_desc = get_lstm_primitive_descriptor(impl_params, *attr);
-            return cldnn::make_unique<lstm_onednn>(engine, config, attr, *prim_desc);
+            return cldnn::make_unique<lstm_cell_onednn>(engine, config, attr, *prim_desc);
     }
 };
 
 namespace detail {
 
-attach_lstm_onednn::attach_lstm_onednn() {
-    implementation_map<lstm_cell>::add(impl_types::onednn, lstm_onednn::create, {});
+attach_lstm_cell_onednn::attach_lstm_cell_onednn() {
+    implementation_map<lstm_cell>::add(impl_types::onednn, lstm_cell_onednn::create, {});
 }
 
 }  // namespace detail
 }  // namespace onednn
 }  // namespace cldnn
 
-BIND_BINARY_BUFFER_WITH_TYPE(cldnn::onednn::lstm_onednn)
+BIND_BINARY_BUFFER_WITH_TYPE(cldnn::onednn::lstm_cell_onednn)
