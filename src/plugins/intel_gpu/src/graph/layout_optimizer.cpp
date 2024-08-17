@@ -36,6 +36,7 @@
 #include "broadcast_inst.h"
 #include "loop_inst.h"
 #include "dft_inst.h"
+#include "lstm_seq_inst.h"
 #include "to_string_utils.h"
 #include <vector>
 #include <memory>
@@ -1381,6 +1382,8 @@ bool layout_optimizer::are_data_types_suitable_for_onednn(program_node& node) {
             return false;
 
         return true;
+    } else if (node.is_type<lstm_seq>()) {
+        return true;
     }
     return false;
 }
@@ -1757,8 +1760,9 @@ impl_types layout_optimizer::get_preferred_impl_type(program_node& node, format 
         preferred_impl = impl_candidate;
     } else if (node.is_type<prior_box>()) {
         preferred_impl = impl_types::ocl;
+    } else if (node.is_type<lstm_seq>()) {
+        preferred_impl = impl_types::onednn;
     }
-
     return preferred_impl;
 }
 
