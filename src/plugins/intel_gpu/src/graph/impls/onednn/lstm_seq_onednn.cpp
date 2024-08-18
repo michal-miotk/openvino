@@ -59,7 +59,8 @@ protected:
         auto R_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(4));
         auto B_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(5));
         auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout());
-        auto output2_md = onednn::layout_to_memory_desc(impl_params.get_output_layout());
+        auto output1_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7));
+        auto output2_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(8));
 
         OPENVINO_ASSERT(input_md.get_format_kind() != dnnl::memory::format_kind::any,
                         "[GPU] The format kind of the input memory descriptor of onednn lstm_seq cannot be 'any'.");
@@ -67,21 +68,21 @@ protected:
                         "[GPU] The format kind of the output memory descriptor of onednn lstm_seq cannot be 'any'.");
 
         ExecutionConfig config;
+        dnnl::memory::desc emptyMemDescriptorForPeephole;
         engine.create_onednn_engine(config);
         return std::make_shared<dnnl::lstm_forward::primitive_desc>(
             engine.get_onednn_engine(),
             dnnl::prop_kind::forward_inference,
-            dnnl::rnn_direction::undef,
+            dnnl::rnn_direction::bidirectional_concat,
             input_md,
             initial_hidden_md,
             initial_cell_md,
             W_md,
             R_md,
-            W_md,
-            W_md,
+            emptyMemDescriptorForPeephole,
             B_md,
             output_md,
-            output_md,
+            output1_md,
             output2_md,
             attr);
     }
@@ -115,7 +116,7 @@ public:
         auto prim_desc = std::make_shared<dnnl::lstm_forward::primitive_desc>(
             ib.get_engine().get_onednn_engine(),
             dnnl::prop_kind::forward_inference,
-            dnnl::rnn_direction::undef,
+            dnnl::rnn_direction::unidirectional_left2right,
             input_md,
             initial_hidden_md,
             initial_cell_md,
