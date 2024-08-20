@@ -29,6 +29,6 @@ KernelsData LSTMSeqKernelRef::GetKernelsData(const Params& params) const {
 }
 
 KernelsPriority LSTMSeqKernelRef::GetKernelsPriority(const Params& /*params*/) const {
-    return DONT_USE_IF_HAVE_SOMETHING_ELSE;
+    return FORCE_PRIORITY_1;
 }
 }  // namespace kernel_selector

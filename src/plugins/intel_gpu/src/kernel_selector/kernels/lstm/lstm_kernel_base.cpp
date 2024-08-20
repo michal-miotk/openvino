@@ -98,10 +98,8 @@ KernelsData LSTMKernelBase::GetCommonKernelsData(const Params& params, bool sequ
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 1});
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 2});
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 3});
-    kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 4});
-    kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 5});
     if (sequential) {
-        kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 6});
+        kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 4});
     }
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::OUTPUT, 0});
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::OUTPUT, 1});
