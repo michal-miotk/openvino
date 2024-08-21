@@ -74,10 +74,8 @@ static void CreateLSTMCellOp(ProgramBuilder& p, const std::shared_ptr<ov::op::v4
     float clip = op->get_clip();
     unsigned int direction = 0;
     assert(!inputs[5].pid.empty());
-    cldnn::primitive_id lstm_fc_id = layerName + "_fully_connected";
-    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_id, inputs[0], inputs[3].pid));//, inputs[5].pid));
     if (p.use_new_shape_infer()) {
-        auto prim =  cldnn::lstm_cell({layerName+".out0", cldnn::input_info(lstm_fc_id), inputs[1], inputs[2], inputs[4], \
+        auto prim =  cldnn::lstm_cell({layerName+".out0", cldnn::input_info(inputs[0]), inputs[1], inputs[2], inputs[4], \
         cldnn::input_info(), "", "", clip, activations, \
         activation_params, cldnn::lstm_weights_order::fizo, direction, cldnn::padding(), \
         static_cast<int>(op->get_output_size())}, 0);
@@ -85,6 +83,21 @@ static void CreateLSTMCellOp(ProgramBuilder& p, const std::shared_ptr<ov::op::v4
         p.add_primitive(*op, prim);
         return;
     }
+    cldnn::primitive_id lstm_fc_id = layerName + "_fully_connected";
+    const auto in_dims0 = op->get_input_shape(0);
+    const auto out_dims0 = op->get_output_shape(0);
+    int lstm_input_size = static_cast<int>(in_dims0.back());
+    int lstm_hidden_size = static_cast<int>(out_dims0.back());
+    cldnn::primitive_id crop_id = layerName + "_crop";
+    cldnn::primitive_id reorder_id = layerName + "_some_reorder";
+    //cldnn::tensor crop_tensor{ 1, 4 * lstm_hidden_size, 1, lstm_input_size};
+    //cldnn::tensor offset_tensor{ 0, 0, 0, 0 };
+    cldnn::tensor reorder_tensor{ lstm_input_size, 4 * lstm_hidden_size, 1, 1};
+    auto lstm_dtype = cldnn::element_type_to_data_type(op->get_output_element_type(0));
+    cldnn::layout reorderLayout = cldnn::layout(lstm_dtype, cldnn::format::bfyx, reorder_tensor);
+    //p.add_primitive(*op, cldnn::crop(crop_id, inputs[3], crop_tensor, offset_tensor));
+    p.add_primitive(*op, cldnn::reorder(reorder_id, inputs[3], reorderLayout));
+    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_id, inputs[0], reorder_id, inputs[5].pid, 3));
     auto mutable_precision_first = op->get_output_element_type(1);
     cldnn::layout outLayout = cldnn::layout(
             cldnn::element_type_to_data_type(mutable_precision_first),
@@ -120,8 +133,8 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     cldnn::primitive_id lstm_fc_id = layerName + "_fully_connected";
     const auto in_dims0 = op->get_input_shape(0);
     const auto out_dims0 = op->get_output_shape(0);
-    int batch_size = static_cast<int>(in_dims0.front());
-    int lstm_seq_len = static_cast<int>(in_dims0[1]);
+    //int batch_size = static_cast<int>(in_dims0.front());
+    //int lstm_seq_len = static_cast<int>(in_dims0[1]);
     int lstm_input_size = static_cast<int>(in_dims0.back());
     int lstm_hidden_size = static_cast<int>(out_dims0.back());
 
@@ -143,13 +156,7 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     cldnn::layout reorderLayout = cldnn::layout(lstm_dtype, cldnn::format::bfyx, reorder_tensor);
     p.add_primitive(*op, cldnn::crop(crop_id, inputs[4], crop_tensor, offset_tensor));
     p.add_primitive(*op, cldnn::reorder(reorder_id, crop_id, reorderLayout));
-    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_id, inputs[0], reorder_id, inputs[6].pid, 3));//,, ));
-
-    cldnn::primitive_id treorder_id = layerName + "_ttsome_reorder";
-    cldnn::tensor treorder_tensor{ batch_size, lstm_seq_len, 4*lstm_hidden_size, 1};
-    cldnn::layout treorderLayout = cldnn::layout(lstm_dtype, cldnn::format::bfyx, reorder_tensor);
-    p.add_primitive(*op, cldnn::reorder(treorder_id, lstm_fc_id, treorderLayout));
-
+    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_id, inputs[0], reorder_id, inputs[6].pid, 3));
     cldnn::layout out12Layout = cldnn::layout(
                 cldnn::element_type_to_data_type(mutable_precision_firstsecond),
                 cldnn::format::bfyx,

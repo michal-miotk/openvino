@@ -45,11 +45,9 @@ public:
     static kernel_params_t get_kernel_params(const kernel_impl_params& impl_param) {
         const auto& primitive = impl_param.typed_desc<lstm_seq>();
         auto params = get_default_params<kernel_selector::lstm_params>(impl_param);
-        params.inputs.push_back(convert_data_tensor(impl_param.get_input_layout(1)));
-        params.inputs.push_back(convert_data_tensor(impl_param.get_input_layout(2)));
-        params.inputs.push_back(convert_data_tensor(impl_param.get_input_layout(4)));
-        params.inputs.push_back(convert_data_tensor(impl_param.get_input_layout(6)));
-
+        for (size_t i = 1; i < 5; ++i) {
+            params.inputs.push_back(convert_data_tensor(impl_param.get_input_layout(i)));
+        }
         if (!primitive->params.activations.empty()) {
             auto a_sz = primitive->params.activations.size();
             auto param_sz = primitive->params.activation_params.size();

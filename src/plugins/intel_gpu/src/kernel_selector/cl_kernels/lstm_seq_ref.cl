@@ -64,12 +64,15 @@ KERNEL(lstm_seq)(
                         #endif
                     }
                 }
-
-                #ifdef SEQUENCE
-                    gate_output[k] = hidden_result + xWB[INPUT0_GET_INDEX_SAFE(b, i, weight_idx, 0)];
-                #else
-                    gate_output[k] = hidden_result + xWB[INPUT0_GET_INDEX_SAFE(i, weight_idx, 0)];
-                #endif
+                #if DIRECTION == 1 //reverse
+                        gate_output[k] = hidden_result + xWB[INPUT0_GET_INDEX_SAFE(b, real_seq_length-1-i, weight_idx, 0)];
+                    #else
+                        #ifdef SEQUENCE
+                            gate_output[k] = hidden_result + xWB[INPUT0_GET_INDEX_SAFE(b, i, weight_idx, 0)];
+                        #else
+                            gate_output[k] = hidden_result + xWB[INPUT0_GET_INDEX_SAFE(i, weight_idx, 0, 0)];
+                        #endif
+                #endif //DIRECTION
                 switch(k){
                     case 0:
                     case 1:

@@ -26,7 +26,6 @@ JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool seq
     int num_hidden_kernels;
     int hidden_size;
     if (sequential) {
-        jit.AddConstants({MakeJitConstant("INPUT_SIZE", params.inputs[0].Y().v)});
         hidden_size = static_cast<int>(params.inputs[1].Y().v);
         if (divide_gates) {
             num_hidden_kernels = std::min({static_cast<int>(params.engineInfo.maxWorkGroupSize/gate_num), static_cast<int>(out.X().v)});
@@ -34,7 +33,6 @@ JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool seq
             num_hidden_kernels = std::min({static_cast<int>(params.engineInfo.maxWorkGroupSize), static_cast<int>(out.X().v)});
         }
     } else {
-        jit.AddConstants({MakeJitConstant("INPUT_SIZE", params.inputs[0].Feature().v)});
         hidden_size = static_cast<int>(params.inputs[1].Feature().v);
         assert(!divide_gates);
         num_hidden_kernels = std::min({static_cast<int>(params.engineInfo.maxWorkGroupSize), static_cast<int>(out.Feature().v)});

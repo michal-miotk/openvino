@@ -144,15 +144,7 @@ public:
         auto& kernel_selector = kernel_selector::ReorderWeightsKernelSelector::Instance();
 
         OPENVINO_ASSERT(weights_params != nullptr, "[GPU] Attempt to create reorder weights without weights params");
-        if (impl_param.get_input_layout().bytes_count() != weights_params->get_input_layout().bytes_count()) {
-            auto x = impl_param.get_input_layout();
-            auto y = weights_params->get_input_layout();
-            auto b = x.bytes_count();
-            auto c = y.bytes_count();
-            int a = 4;
-            std::cout << a << b << c << std::endl;
-            a++;
-        }
+
         OPENVINO_ASSERT(impl_param.get_input_layout().bytes_count() == weights_params->get_input_layout().bytes_count(),
                         "[GPU] Input layout doesn't match required reorder weights layout");
 
