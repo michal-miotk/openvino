@@ -131,15 +131,9 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     auto mutable_precision_firstsecond = op->get_output_element_type(1);
     unsigned int direction = op->get_direction() == ov::op::RecurrentSequenceDirection::REVERSE ? 1 : 0;
     cldnn::primitive_id lstm_fc_id = layerName + "_fully_connected";
-    const auto in_dims0 = op->get_input_shape(0);
-    const auto out_dims0 = op->get_output_shape(0);
-    //int batch_size = static_cast<int>(in_dims0.front());
-    //int lstm_seq_len = static_cast<int>(in_dims0[1]);
-    int lstm_input_size = static_cast<int>(in_dims0.back());
-    int lstm_hidden_size = static_cast<int>(out_dims0.back());
-
+    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_id, inputs[0], inputs[4].pid, inputs[6].pid, 3));
     if (p.use_new_shape_infer()) {
-        cldnn::lstm_seq prim({layerName, inputs[0], inputs[1], \
+        cldnn::lstm_seq prim({layerName, lstm_fc_id, inputs[1], \
             inputs[2], inputs[5], inputs[3], "", "", \
             clip, activations, activation_params, cldnn::lstm_weights_order::fizo, direction, cldnn::padding(), \
             static_cast<int>(op->get_output_size())});
@@ -147,16 +141,7 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
         p.add_primitive(*op, prim);
         return;
     }
-    cldnn::primitive_id crop_id = layerName + "_crop";
-    cldnn::primitive_id reorder_id = layerName + "_some_reorder";
-    cldnn::tensor crop_tensor{ 1, 4 * lstm_hidden_size, 1, lstm_input_size};
-    cldnn::tensor offset_tensor{ 0, 0, 0, 0 };
-    cldnn::tensor reorder_tensor{ lstm_input_size, 4 * lstm_hidden_size, 1, 1};
-    auto lstm_dtype = cldnn::element_type_to_data_type(op->get_output_element_type(0));
-    cldnn::layout reorderLayout = cldnn::layout(lstm_dtype, cldnn::format::bfyx, reorder_tensor);
-    p.add_primitive(*op, cldnn::crop(crop_id, inputs[4], crop_tensor, offset_tensor));
-    p.add_primitive(*op, cldnn::reorder(reorder_id, crop_id, reorderLayout));
-    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_id, inputs[0], reorder_id, inputs[6].pid, 3));
+
     cldnn::layout out12Layout = cldnn::layout(
                 cldnn::element_type_to_data_type(mutable_precision_firstsecond),
                 cldnn::format::bfyx,

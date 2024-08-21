@@ -24,8 +24,14 @@ KERNEL(lstm_seq)(
     const uint local_idx = get_local_id(0);
     const uint weight_offsets[4] = {GEMM_OFFSET_F, GEMM_OFFSET_I, GEMM_OFFSET_Z, GEMM_OFFSET_O};
     #ifdef SEQUENCE
+        //printf("seqential \n");
+        
         const uint real_seq_length = sequence_lengths[INPUT4_GET_INDEX_SAFE(b, 0, 0, 0)];
+        if ( MAX_SEQ_LEN != real_seq_length ) {
+            //printf("not full %d vs %u \n", MAX_SEQ_LEN, real_seq_length);
+        }
     #else
+        //printf("NOT seqential \n");
         const uint real_seq_length = 1;
     #endif
 
@@ -65,13 +71,15 @@ KERNEL(lstm_seq)(
                     }
                 }
                 #if DIRECTION == 1 //reverse
-                        gate_output[k] = hidden_result + xWB[INPUT0_GET_INDEX_SAFE(b, real_seq_length-1-i, weight_idx, 0)];
+                    //printf("direction is reverse \n");
+                    gate_output[k] = hidden_result + xWB[INPUT0_GET_INDEX_SAFE(b, real_seq_length-1-i, weight_idx, 0)];
+                #else
+                    //printf("direction is forward \n");
+                    #ifdef SEQUENCE
+                        gate_output[k] = hidden_result + xWB[INPUT0_GET_INDEX_SAFE(b, i, weight_idx, 0)];
                     #else
-                        #ifdef SEQUENCE
-                            gate_output[k] = hidden_result + xWB[INPUT0_GET_INDEX_SAFE(b, i, weight_idx, 0)];
-                        #else
-                            gate_output[k] = hidden_result + xWB[INPUT0_GET_INDEX_SAFE(i, weight_idx, 0, 0)];
-                        #endif
+                        gate_output[k] = hidden_result + xWB[INPUT0_GET_INDEX_SAFE(b, weight_idx, 0, 0)];
+                    #endif
                 #endif //DIRECTION
                 switch(k){
                     case 0:
