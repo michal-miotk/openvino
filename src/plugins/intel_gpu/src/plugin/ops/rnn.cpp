@@ -141,25 +141,22 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
         p.add_primitive(*op, prim);
         return;
     }
-
     cldnn::layout out12Layout = cldnn::layout(
                 cldnn::element_type_to_data_type(mutable_precision_firstsecond),
-                cldnn::format::bfyx,
+                cldnn::format::get_default_format(op->get_output_shape(1).size()),
                 tensor_from_dims(op->get_output_shape(1)));
-
     std::vector<cldnn::memory::ptr> shared_memories;
     shared_memories.push_back(p.get_engine().allocate_memory(out12Layout));
-    const cldnn::primitive_id mutable_id_1 = layerName + "_md_write1";
+    const cldnn::primitive_id mutable_id_1 = layerName + "_md_write.1";
     const cldnn::mutable_data mutable_prim_1{mutable_id_1, shared_memories.front()};
     p.add_primitive(*op, mutable_prim_1);
     shared_memories.push_back(p.get_engine().allocate_memory(out12Layout));
-    const cldnn::primitive_id mutable_id_2 = layerName + "_md_write2";
+    const cldnn::primitive_id mutable_id_2 = layerName + "_md_write.2";
     const cldnn::mutable_data mutable_prim_2{mutable_id_2, shared_memories.back()};
     p.add_primitive(*op, mutable_prim_2);
-    cldnn::lstm_seq prim({lstm_seq_id + ".out0", cldnn::input_info(lstm_fc_id), inputs[1], \
+    p.add_primitive(*op, cldnn::lstm_seq({lstm_seq_id + ".out0", cldnn::input_info(lstm_fc_id), inputs[1], \
         inputs[2], inputs[5], inputs[3], mutable_id_1, mutable_id_2, \
-        clip, activations, activation_params, cldnn::lstm_weights_order::fizo, direction});
-    p.add_primitive(*op, prim);
+        clip, activations, activation_params, cldnn::lstm_weights_order::fizo, direction}));
     p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out1", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memories.front()));
     p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out2", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memories.back()));
 }
