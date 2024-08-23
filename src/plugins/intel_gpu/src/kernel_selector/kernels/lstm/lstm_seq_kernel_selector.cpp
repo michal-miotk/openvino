@@ -9,7 +9,7 @@
 namespace kernel_selector {
 lstm_seq_kernel_selector::lstm_seq_kernel_selector() {
     Attach<LSTMSeqKernelRef>();
-    //Attach<LSTMSeqKernel_bfyx>();
+    Attach<LSTMSeqKernel_bfyx>();
 }
 
 KernelsData lstm_seq_kernel_selector::GetBestKernels(const Params& params) const {

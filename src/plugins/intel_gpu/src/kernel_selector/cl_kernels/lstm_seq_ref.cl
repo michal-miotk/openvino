@@ -71,10 +71,8 @@ KERNEL(lstm_seq)(
                     }
                 }
                 #if DIRECTION == 1 //reverse
-                    //printf("direction is reverse \n");
                     gate_output[k] = hidden_result + xWB[INPUT0_GET_INDEX_SAFE(b, real_seq_length-1-i, weight_idx, 0)];
                 #else
-                    //printf("direction is forward \n");
                     #ifdef SEQUENCE
                         gate_output[k] = hidden_result + xWB[INPUT0_GET_INDEX_SAFE(b, i, weight_idx, 0)];
                     #else
