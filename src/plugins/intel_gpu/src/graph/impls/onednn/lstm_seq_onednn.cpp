@@ -28,10 +28,12 @@ protected:
     }
 
     std::unordered_map<int, dnnl::memory> get_arguments(lstm_seq_inst& instance) const override {
+        std::cout << "getting args" << std::endl;
         std::unordered_map<int, dnnl::memory> args;
 
         int input_idx = DNNL_ARG_FROM;
-        for (size_t i = 0; i < instance.inputs_memory_count(); i++) {
+        std::cout << instance.inputs_memory_count() << "instance.inputs_memory_count() ff" << std::endl;
+        for (size_t i = 0; i < instance.inputs_memory_count()-3; i++) {
             auto& input = instance.input_memory(i);
             auto offset = onednn::get_offset(instance.get_input_layout(i),
                                              _pd.dnnl::primitive_desc_base::src_desc(static_cast<int>(i)));
@@ -43,7 +45,16 @@ protected:
             auto offset = onednn::get_offset(instance.get_output_layout(), _pd.dnnl::primitive_desc_base::dst_desc(0));
             args.insert({DNNL_ARG_DST, output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(0), offset)});
         }
-
+        {
+            auto& output = instance.input_memory(7);
+            auto offset = onednn::get_offset(instance.get_output_layout(), _pd.dnnl::primitive_desc_base::dst_desc(0));
+            args.insert({DNNL_ARG_DST+1, output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(0), offset)});
+        }
+        {
+            auto& output = instance.input_memory(8);
+            auto offset = onednn::get_offset(instance.get_output_layout(), _pd.dnnl::primitive_desc_base::dst_desc(0));
+            args.insert({DNNL_ARG_DST+2, output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(0), offset)});
+        }
         return args;
     }
 
@@ -55,10 +66,10 @@ protected:
         auto input_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(0));
         auto initial_hidden_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(1));
         auto initial_cell_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(2));
-        auto W_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(3));
-        auto R_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(4));
+        auto W_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(3), dnnl::memory::format_tag::any);
+        auto R_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(4), dnnl::memory::format_tag::any);
         auto B_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(5));
-        auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout());
+        auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout(), dnnl::memory::format_tag::undef);
         auto output1_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7));
         auto output2_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(8));
 
@@ -69,21 +80,21 @@ protected:
 
         ExecutionConfig config;
         dnnl::memory::desc emptyMemDescriptorForPeephole;
-        engine.create_onednn_engine(config);
+        //engine.create_onednn_engine(config);
         return std::make_shared<dnnl::lstm_forward::primitive_desc>(
             engine.get_onednn_engine(),
             dnnl::prop_kind::forward_inference,
             dnnl::rnn_direction::bidirectional_concat,
             input_md,
-            initial_hidden_md,
-            initial_cell_md,
+            emptyMemDescriptorForPeephole,
+            emptyMemDescriptorForPeephole,
             W_md,
             R_md,
             emptyMemDescriptorForPeephole,
-            B_md,
+            emptyMemDescriptorForPeephole,
             output_md,
-            output1_md,
-            output2_md,
+            emptyMemDescriptorForPeephole,
+            emptyMemDescriptorForPeephole,
             attr);
     }
 
@@ -112,7 +123,7 @@ public:
         auto B_md = onednn::layout_to_memory_desc(impl_params->get_input_layout(5));
         auto output_md = onednn::layout_to_memory_desc(impl_params->get_output_layout());
         auto output2_md = onednn::layout_to_memory_desc(impl_params->get_output_layout());
-
+        std::cout << "LOAD IB" << std::endl;
         auto prim_desc = std::make_shared<dnnl::lstm_forward::primitive_desc>(
             ib.get_engine().get_onednn_engine(),
             dnnl::prop_kind::forward_inference,

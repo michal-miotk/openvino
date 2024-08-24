@@ -967,6 +967,10 @@ static bool is_node_for_onednn(gemm_node const& node) {
     return true;
 }
 
+static bool is_node_for_onednn(lstm_seq_node const& node) {
+    return true;
+}
+
 // This function is needed to avoid performance regressions for the convolutions with byxf layout
 // Previously some topologies had scale operations which prevented byxf usage
 // Now instead of scale we have eltwise + fused_ops which might enable byxf convolution in unexpected cases
@@ -1331,6 +1335,8 @@ bool layout_optimizer::is_node_suitable_for_onednn(program_node& node) {
         return is_node_for_onednn(node.as<fully_connected>());
     } else if (node.is_type<gemm>()) {
         return is_node_for_onednn(node.as<gemm>());
+    } else if (node.is_type<lstm_seq>()) {
+        return is_node_for_onednn(node.as<lstm_seq>());
     }
 
     return false;
@@ -1435,7 +1441,7 @@ bool layout_optimizer::are_layouts_suitable_for_onednn(program_node& node) {
 bool layout_optimizer::is_primitive_implemented_for_onednn(program_node& node) {
     if (node.is_type<fully_connected>() || node.is_type<gemm>() || node.is_type<pooling>() ||
         node.is_type<convolution>() || node.is_type<deconvolution>() ||
-        node.is_type<reduce>() || node.is_type<reorder>() || node.is_type<concatenation>()) {
+        node.is_type<reduce>() || node.is_type<reorder>() || node.is_type<concatenation>() || node.is_type<lstm_seq>()) {
         return true;
     }
 
@@ -1911,6 +1917,8 @@ format layout_optimizer::get_preferred_format(program_node& node) {
             node.as<dft>().get_primitive()->direction == dft_direction::forward) {
             node.set_preferred_input_fmt(0, format::get_default_format(node.get_input_layouts()[0].get_rank()));
         }
+    } else if (node.is_type<lstm_seq>()) {
+        expected = format::get_default_format(node.get_output_layout().get_rank());
     }
 
     if (allow_new_shape_infer && node.get_preferred_input_fmt() != format::any) {
