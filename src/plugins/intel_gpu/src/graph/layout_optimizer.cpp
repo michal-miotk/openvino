@@ -1767,6 +1767,8 @@ impl_types layout_optimizer::get_preferred_impl_type(program_node& node, format 
     } else if (node.is_type<prior_box>()) {
         preferred_impl = impl_types::ocl;
     } else if (node.is_type<lstm_seq>()) {
+        if (!_optimization_attributes.use_onednn_impls)
+            return impl_types::ocl;
         preferred_impl = impl_types::onednn;
     }
     return preferred_impl;
