@@ -67,9 +67,9 @@ public:
         params.clip = primitive->params.clip;
         params.direction = primitive->params.direction;
         //Legacy multi-output
-        params.outputs.push_back(convert_data_tensor(impl_param.input_layouts[1]));
+        params.outputs.push_back(convert_data_tensor(impl_param.input_layouts[2]));
         if (!primitive->params.initial_cell_state.pid.empty()) {
-            params.outputs.push_back(convert_data_tensor(impl_param.input_layouts[1]));
+            params.outputs.push_back(convert_data_tensor(impl_param.input_layouts[2]));
         }
         return params;
     }

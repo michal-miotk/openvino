@@ -25,18 +25,18 @@ JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool seq
     int num_hidden_kernels;
     int hidden_size;
     if (sequential) {
-        hidden_size = static_cast<int>(params.inputs[1].Y().v);
+        hidden_size = static_cast<int>(params.inputs[2].Y().v);
 
         num_hidden_kernels = std::min({static_cast<int>(params.engineInfo.maxWorkGroupSize), static_cast<int>(out.X().v)});
     } else {
-        hidden_size = static_cast<int>(params.inputs[1].Feature().v);
+        hidden_size = static_cast<int>(params.inputs[2].Feature().v);
         num_hidden_kernels = std::min({static_cast<int>(params.engineInfo.maxWorkGroupSize), static_cast<int>(out.Feature().v)});
     }
     size_t size;
     if (sequential) {
-        size = params.inputs[1].Y().v;
+        size = params.inputs[2].Y().v;
     } else {
-        size = params.inputs[1].Feature().v;
+        size = params.inputs[2].Feature().v;
     }
     jit.AddConstants({
         MakeJitConstant("GEMM_OFFSET_I", params.GetOffsetIndexI() * size),
@@ -44,7 +44,7 @@ JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool seq
         MakeJitConstant("GEMM_OFFSET_F", params.GetOffsetIndexF() * size),
         MakeJitConstant("GEMM_OFFSET_Z", params.GetOffsetIndexZ() * size),
     });
-    jit.AddConstants({MakeJitConstant("BATCH_SIZE", params.inputs[1].Batch().v)});
+    jit.AddConstants({MakeJitConstant("BATCH_SIZE", params.inputs[2].Batch().v)});
     jit.AddConstants({MakeJitConstant("HIDDEN_SIZE", hidden_size)});
     const int vec_size = vec_size_selector(hidden_size);
     jit.AddConstants({MakeJitConstant("VEC_SIZE", vec_size)});
