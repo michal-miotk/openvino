@@ -6,7 +6,7 @@
 
 KERNEL(lstm_seq)(
     const __global INPUT0_TYPE* xWB,
-    const __global INPUT1_TYPE* initial_hidden_state,
+    const __global INPUT1_TYPE* initial_hidden_stateR,
     const __global INPUT2_TYPE* initial_cell_state,
     const __global INPUT3_TYPE* R,
 #ifdef SEQUENCE
@@ -54,17 +54,21 @@ KERNEL(lstm_seq)(
                 const uint weight_idx = hidden_idx+weight_offsets[k];
                 unroll_for(uint j=0;j<HIDDEN_SIZE;++j) {
                     if(i==0){
-                        #ifdef SEQUENCE
+                        #ifdef SEQUENCE && MAX_SEQ_LEN > 1
                             R_copy[l][k][j] = R[INPUT3_GET_INDEX(0, weight_idx, j, 0)];
-                            hidden_result += initial_hidden_state[INPUT1_GET_INDEX(b, 0, j, 0)]*R_copy[l][k][j];
-                        #else
-                            hidden_result += initial_hidden_state[INPUT1_GET_INDEX(b, j, 0, 0)]*R[INPUT3_GET_INDEX(weight_idx, j, 0, 0)];
                         #endif
                     }else{
                         #ifdef SEQUENCE
                             hidden_result += hidden_history[OUTPUT_GET_INDEX(b, 0, prev_idx, j)]*R_copy[l][k][j];
                         #endif
                     }
+                }
+                if(i==0){
+                    #ifdef SEQUENCE
+                        hidden_result = initial_hidden_stateR[INPUT1_GET_INDEX(b, 0, weight_idx, 0)];
+                    #else
+                        hidden_result = initial_hidden_stateR[INPUT1_GET_INDEX(b, weight_idx, 0, 0)];
+                    #endif
                 }
                 #if DIRECTION == 1 //reverse
                     gate_output[k] = hidden_result + xWB[INPUT0_GET_INDEX(b, real_seq_length-1-i, weight_idx, 0)];
