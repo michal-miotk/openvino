@@ -119,13 +119,9 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     auto mutable_precision_firstsecond = op->get_output_element_type(1);
     unsigned int direction = op->get_direction() == ov::op::RecurrentSequenceDirection::REVERSE ? 1 : 0;
     cldnn::primitive_id lstm_fc_id = layerName + "_fully_connected";
-    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_id, inputs[0], inputs[4].pid, inputs[6].pid, 3));
+    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_id, inputs[0], inputs[4].pid, inputs[6].pid, 3, 3));
     cldnn::primitive_id lstm_fc_initial_hidden_id = layerName + "_fully_connected_initial_hidden";
-<<<<<<< HEAD
-    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_initial_hidden_id, inputs[1],  inputs[5].pid, "", 3));
-=======
-    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_initial_hidden_id, inputs[1], inputs[5].pid));
->>>>>>> 7aecf381e4 (slow)
+    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_initial_hidden_id, inputs[1], inputs[5].pid, "", 3, 3));
     if (p.use_new_shape_infer()) {
         cldnn::lstm_seq prim({layerName, lstm_fc_id, lstm_fc_initial_hidden_id, \
             inputs[2], inputs[5], inputs[3], "", "", \
