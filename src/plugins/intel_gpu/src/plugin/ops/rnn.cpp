@@ -75,8 +75,10 @@ static void CreateLSTMCellOp(ProgramBuilder& p, const std::shared_ptr<ov::op::v4
     assert(!inputs[5].pid.empty());
     cldnn::primitive_id lstm_fc_id = layerName + "_fully_connected";
     p.add_primitive(*op, cldnn::fully_connected(lstm_fc_id, inputs[0], inputs[3].pid, inputs[5].pid));
+    cldnn::primitive_id lstm_fc_initial_hidden_id = layerName + "_fully_connected_initial_hidden";
+    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_initial_hidden_id, inputs[1], inputs[4].pid));
     if (p.use_new_shape_infer()) {
-        auto prim =  cldnn::lstm_cell({layerName+".out0", cldnn::input_info(lstm_fc_id), cldnn::input_info(lstm_fc_initial_hidden_id), lstm_fc_initial_hidden_id, inputs[4], \
+        auto prim =  cldnn::lstm_cell({layerName+".out0", cldnn::input_info(lstm_fc_id), inputs[1], lstm_fc_initial_hidden_id, inputs[4], \
         cldnn::input_info(), "", "", clip, activations, \
         activation_params, cldnn::lstm_weights_order::fizo, direction, cldnn::padding(), \
         static_cast<int>(op->get_output_size())}, 0);
@@ -119,9 +121,13 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     cldnn::primitive_id lstm_fc_id = layerName + "_fully_connected";
     p.add_primitive(*op, cldnn::fully_connected(lstm_fc_id, inputs[0], inputs[4].pid, inputs[6].pid, 3));
     cldnn::primitive_id lstm_fc_initial_hidden_id = layerName + "_fully_connected_initial_hidden";
+<<<<<<< HEAD
     p.add_primitive(*op, cldnn::fully_connected(lstm_fc_initial_hidden_id, inputs[1],  inputs[5].pid, "", 3));
+=======
+    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_initial_hidden_id, inputs[1], inputs[5].pid));
+>>>>>>> 7aecf381e4 (slow)
     if (p.use_new_shape_infer()) {
-        cldnn::lstm_seq prim({layerName, lstm_fc_id, inputs[1], \
+        cldnn::lstm_seq prim({layerName, lstm_fc_id, lstm_fc_initial_hidden_id, \
             inputs[2], inputs[5], inputs[3], "", "", \
             clip, activations, activation_params, cldnn::lstm_weights_order::fizo, direction, cldnn::padding(), \
             static_cast<int>(op->get_output_size())});

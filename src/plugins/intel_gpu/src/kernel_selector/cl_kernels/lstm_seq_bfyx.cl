@@ -13,7 +13,7 @@
 
 KERNEL(lstm_seq)(
     const __global INPUT0_TYPE* xWB,
-    const __global INPUT1_TYPE* initial_hidden_state,
+    const __global INPUT1_TYPE* initial_hidden_stateR,
     const __global INPUT2_TYPE* initial_cell_state,
     const __global INPUT3_TYPE* R,
 #ifdef SEQUENCE
