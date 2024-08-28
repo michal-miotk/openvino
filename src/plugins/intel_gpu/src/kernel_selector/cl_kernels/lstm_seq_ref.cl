@@ -52,13 +52,19 @@ KERNEL(lstm_seq)(
             unroll_for(uint k=0;k<GATE_NUM;++k){
                 INPUT3_TYPE hidden_result = 0;
                 const uint weight_idx = hidden_idx+weight_offsets[k];
-                unroll_for(uint j=0;j<HIDDEN_SIZE;++j) {
-                    if(i>0){
-                        #ifdef SEQUENCE
-                            hidden_result += hidden_history[OUTPUT_GET_INDEX(b, 0, prev_idx, j)]*R_copy[l][k][j];
-                        #endif
+                #ifdef SEQUENCE
+                    if(i==1){
+                        unroll_for(uint j=0;j<HIDDEN_SIZE;++j) {
+                            R_copy[l][k][j] = R[INPUT3_GET_INDEX(0, weight_idx, j, 0)];
+                        }
                     }
-                }
+
+                    unroll_for(uint j=0;j<HIDDEN_SIZE;++j) {
+                        if(i>0){
+                            hidden_result += hidden_history[OUTPUT_GET_INDEX(b, 0, prev_idx, j)]*R_copy[l][k][j];
+                        }
+                    }
+                #endif //SEQUENCE
                 if(i==0){
                     #ifdef SEQUENCE
                         hidden_result = initial_hidden_stateR[INPUT1_GET_INDEX(b, 0, weight_idx, 0)];
