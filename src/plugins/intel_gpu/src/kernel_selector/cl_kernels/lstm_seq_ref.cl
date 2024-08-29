@@ -114,6 +114,7 @@ KERNEL(lstm_seq)(
             #endif
             #ifdef SEQUENCE
                 hidden_state[OUTPUT1_GET_INDEX(b, 0, hidden_idx, 0)] = gate_output[3]*ACTIVATION_H(temp_cell_state, ACTIVATION_PARAMS_H);
+                printf("I will write idden_state to batch %d idx %d %f \n", b, OUTPUT1_GET_INDEX(b, 0, hidden_idx, 0), hidden_state[OUTPUT1_GET_INDEX(b, 0, hidden_idx, 0)]);
             #else
                 hidden_state[OUTPUT_GET_INDEX(b, hidden_idx, 0, 0)] = gate_output[3]*ACTIVATION_H(temp_cell_state, ACTIVATION_PARAMS_H);
             #endif
@@ -124,6 +125,7 @@ KERNEL(lstm_seq)(
             if(i==real_seq_length-1){
                 #ifdef SEQUENCE
                     cell_state[OUTPUT2_GET_INDEX(b, 0, hidden_idx, 0)] = temp_cell_state;
+                    printf("I will write cell to batch %d idx %d %f \n", b, OUTPUT2_GET_INDEX(b, 0, hidden_idx, 0), temp_cell_state);
                 #else
                     cell_state[OUTPUT1_GET_INDEX(b, hidden_idx, 0, 0)] = temp_cell_state;
                 #endif

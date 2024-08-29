@@ -123,10 +123,10 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     unsigned int direction = op->get_direction() == ov::op::RecurrentSequenceDirection::REVERSE ? 1 : 0;
     cldnn::primitive_id lstm_fc_id = layerName + "_fully_connected";
     p.add_primitive(*op, cldnn::fully_connected(lstm_fc_id, inputs[0], inputs[4].pid, inputs[6].pid, 3));
-    p.add_primitive(*op, cldnn::permute(layerName+"xxx", inputs[1],  {0, 2, 1, 3}));
-    p.add_primitive(*op, cldnn::permute(layerName+"sss", inputs[5],  {2, 1, 0, 3}));
+    //p.add_primitive(*op, cldnn::permute(layerName+"xxx", inputs[1],  {0, 2, 1, 3}));
+    //p.add_primitive(*op, cldnn::permute(layerName+"sss", inputs[5],  {2, 1, 0, 3}));
     cldnn::primitive_id lstm_fc_initial_hidden_id = layerName + "_fully_connected_initial_hidden";
-    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_initial_hidden_id, layerName+"xxx",  layerName+"sss"));
+    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_initial_hidden_id, inputs[1],  inputs[5].pid, "", 3, 3));
     
     if (p.use_new_shape_infer()) {
         cldnn::lstm_seq prim({layerName, lstm_fc_id, lstm_fc_initial_hidden_id, \
