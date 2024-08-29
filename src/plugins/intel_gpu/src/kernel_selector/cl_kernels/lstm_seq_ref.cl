@@ -39,37 +39,38 @@ KERNEL(lstm_seq)(
             #else
                 const uint prev_idx = i-1;
             #endif
-            if(i>0){
-                barrier(CLK_LOCAL_MEM_FENCE);
-            }
+            barrier(CLK_LOCAL_MEM_FENCE);
         #endif
-        unroll_for(uint l=0;l<NUM_HIDDEN_TO_DO;++l) { //kernel responsible for HIDDEN_SIZE
-            const uint hidden_idx = local_idx*NUM_HIDDEN_TO_DO + l;
+        unroll_for(uint n=0;n<NUM_HIDDEN_TO_DO;++n) { //kernel responsible for HIDDEN_SIZE
+            const uint hidden_idx = local_idx*NUM_HIDDEN_TO_DO + n;
             if (hidden_idx >= HIDDEN_SIZE) {
                 continue;
             }
             ACCUMULATOR_TYPE gate_output[GATE_NUM];
             unroll_for(uint k=0;k<GATE_NUM;++k){
-                INPUT3_TYPE hidden_result = 0;
+                INPUT1_TYPE hidden_result = 0;
                 const uint weight_idx = hidden_idx+weight_offsets[k];
                 #ifdef SEQUENCE
                     if(i==1){
                         unroll_for(uint j=0;j<HIDDEN_SIZE;++j) {
-                            R_copy[l][k][j] = R[INPUT3_GET_INDEX(0, weight_idx, j, 0)];
+                            R_copy[n][k][j] = R[INPUT3_GET_INDEX(0, weight_idx, j, 0)];
                         }
                     }
 
                     unroll_for(uint j=0;j<HIDDEN_SIZE;++j) {
                         if(i>0){
-                            hidden_result += hidden_history[OUTPUT_GET_INDEX(b, 0, prev_idx, j)]*R_copy[l][k][j];
+                            hidden_result += hidden_history[OUTPUT_GET_INDEX(b, 0, prev_idx, j)]*R_copy[n][k][j];
                         }
                     }
                 #endif //SEQUENCE
                 if(i==0){
                     #ifdef SEQUENCE
-                        hidden_result = initial_hidden_stateR[INPUT1_GET_INDEX(b, 0, weight_idx, 0)];
+                        //printf("SEQinput sizes %d %d %d %d \n", INPUT1_BATCH_NUM, INPUT1_FEATURE_NUM, INPUT1_SIZE_Y, INPUT1_SIZE_X);
+                        hidden_result = initial_hidden_stateR[INPUT1_GET_INDEX(b, weight_idx, 0, 0)];
+                        //printf("%d setting hidden b |%d idx %d calc idx to %d initial cell is  %f R is %f hidden_result %f\n", 0, b, weight_idx, INPUT1_GET_INDEX(b, weight_idx, 0, 0), initial_cell_state[INPUT2_GET_INDEX(b, 0, hidden_idx, 0)],  R[INPUT3_GET_INDEX(0, weight_idx, 0, 0)], hidden_result);
                     #else
                         hidden_result = initial_hidden_stateR[INPUT1_GET_INDEX(b, weight_idx, 0, 0)];
+                        printf("NON SEQinput sizes %d %d %d %d \n", INPUT1_BATCH_NUM, INPUT1_FEATURE_NUM, INPUT1_SIZE_Y, INPUT1_SIZE_X);
                     #endif
                 }
                 #if DIRECTION == 1 //reverse
@@ -117,6 +118,7 @@ KERNEL(lstm_seq)(
                 hidden_state[OUTPUT_GET_INDEX(b, hidden_idx, 0, 0)] = gate_output[3]*ACTIVATION_H(temp_cell_state, ACTIVATION_PARAMS_H);
             #endif
             #ifdef SEQUENCE
+                printf("I will write to batch %d idx %d %f \n", b, OUTPUT_GET_INDEX(b, 0, cur_history_idx, hidden_idx), hidden_state[OUTPUT1_GET_INDEX(b, 0, hidden_idx, 0)]);
                 hidden_history[OUTPUT_GET_INDEX(b, 0, cur_history_idx, hidden_idx)] = hidden_state[OUTPUT1_GET_INDEX(b, 0, hidden_idx, 0)];
             #endif
             if(i==real_seq_length-1){

@@ -17,6 +17,7 @@
 #include "intel_gpu/primitives/crop.hpp"
 #include "intel_gpu/primitives/concatenation.hpp"
 #include "intel_gpu/primitives/data.hpp"
+#include "intel_gpu/primitives/permute.hpp"
 
 namespace ov {
 namespace intel_gpu {
@@ -76,8 +77,9 @@ static void CreateLSTMCellOp(ProgramBuilder& p, const std::shared_ptr<ov::op::v4
     assert(!inputs[5].pid.empty());
     cldnn::primitive_id lstm_fc_id = layerName + "_fully_connected";
     p.add_primitive(*op, cldnn::fully_connected(lstm_fc_id, inputs[0], inputs[3].pid, inputs[5].pid));
+    p.add_primitive(*op, cldnn::permute(layerName+"sss", inputs[1],  {0, 2, 1, 3}));
     cldnn::primitive_id lstm_fc_initial_hidden_id = layerName + "_fully_connected_initial_hidden";
-    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_initial_hidden_id, inputs[1], inputs[4].pid));
+    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_initial_hidden_id, layerName+"sss", inputs[4].pid));
     if (p.use_new_shape_infer()) {
         auto prim =  cldnn::lstm_cell({layerName+".out0", cldnn::input_info(lstm_fc_id), cldnn::input_info(lstm_fc_initial_hidden_id), inputs[2], inputs[4], \
         cldnn::input_info(), "", "", clip, activations, \
@@ -121,8 +123,11 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     unsigned int direction = op->get_direction() == ov::op::RecurrentSequenceDirection::REVERSE ? 1 : 0;
     cldnn::primitive_id lstm_fc_id = layerName + "_fully_connected";
     p.add_primitive(*op, cldnn::fully_connected(lstm_fc_id, inputs[0], inputs[4].pid, inputs[6].pid, 3));
+    p.add_primitive(*op, cldnn::permute(layerName+"xxx", inputs[1],  {0, 2, 1, 3}));
+    p.add_primitive(*op, cldnn::permute(layerName+"sss", inputs[5],  {2, 1, 0, 3}));
     cldnn::primitive_id lstm_fc_initial_hidden_id = layerName + "_fully_connected_initial_hidden";
-    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_initial_hidden_id, inputs[1],  inputs[5].pid, "", 3));
+    p.add_primitive(*op, cldnn::fully_connected(lstm_fc_initial_hidden_id, layerName+"xxx",  layerName+"sss"));
+    
     if (p.use_new_shape_infer()) {
         cldnn::lstm_seq prim({layerName, lstm_fc_id, lstm_fc_initial_hidden_id, \
             inputs[2], inputs[5], inputs[3], "", "", \
