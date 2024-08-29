@@ -65,8 +65,8 @@ KERNEL(lstm_seq)(
                         }
                     }
                     if(i>0){
-                        OUTPUT_TYPE_VEC h_block = READ_VEC(0, &hidden_history[OUTPUT_GET_INDEX(b, 0, prev_idx, j*VEC_SIZE)]);
                         unroll_for(uint j=0;j<HBLOCK_NUM;++j) {
+                            OUTPUT_TYPE_VEC h_block = READ_VEC(0, &hidden_history[OUTPUT_GET_INDEX(b, 0, prev_idx, j*VEC_SIZE)]);
                             unroll_for(int s=0;s<VEC_SIZE;s++){
                                 hidden_result = mad(h_block[s], r_block[l][k][j][s], hidden_result);
                             }
