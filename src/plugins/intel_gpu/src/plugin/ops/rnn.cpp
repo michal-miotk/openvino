@@ -97,7 +97,8 @@ static void CreateLSTMCellOp(ProgramBuilder& p, const std::shared_ptr<ov::op::v4
     const cldnn::mutable_data mutable_prim_1{mutable_id_1, shared_memory};
     p.add_primitive(*op, mutable_prim_1);
 
-    p.add_primitive(*op, cldnn::lstm_cell({layerName+".out0", cldnn::input_info(lstm_fc_id), cldnn::input_info(lstm_fc_initial_hidden_id), inputs[2], inputs[4], \
+    p.add_primitive(*op, cldnn::lstm_cell({layerName+".out0", cldnn::input_info(lstm_fc_id), cldnn::input_info(lstm_fc_initial_hidden_id), \
+    inputs[2], inputs[4], \
     cldnn::input_info(), layerName + "_md_write.1", "", clip, activations, \
                                         activation_params, cldnn::lstm_weights_order::fizo}, 0));
 

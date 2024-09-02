@@ -58,13 +58,9 @@ KERNEL(lstm_seq)(
             if(hidden_idx % VEC_SIZE == 0)
             {
                 #ifdef SEQUENCE
-                    if(i==0){
-                        hiddencache[hidden_idx / VEC_SIZE] = READ_VEC(0, &initial_hidden_state[INPUT1_GET_INDEX(b, 0, hidden_idx, 0)]);
-                    } else {
+                    if(i>0){
                         hiddencache[hidden_idx / VEC_SIZE] = READ_VEC(0, &hidden_history[OUTPUT_GET_INDEX(b, 0, prev_idx, hidden_idx)]);
                     }
-                #else
-                    hiddencache[hidden_idx / VEC_SIZE] = READ_VEC(0, &initial_hidden_state[INPUT1_GET_INDEX(b, hidden_idx, 0)]);
                 #endif
             }
         }
@@ -89,20 +85,8 @@ KERNEL(lstm_seq)(
                         #ifdef SEQUENCE
                             #if MAX_SEQ_LEN > 1
                                 r_block[l][k][j] = READ_VEC(0, &R[rindex]);
-                            #else 
-                                INPUT3_TYPE_VEC r_block = READ_VEC(0, &R[rindex]); 
                             #endif
                             rindex += VEC_SIZE;
-                            #if MAX_SEQ_LEN > 1
-                                hidden_result += dot(hiddencache[j], r_block[l][k][j]);
-                            #else
-                                hidden_result += dot(hiddencache[j], r_block);
-                            #endif
-                        #else
-                            INPUT3_TYPE_VEC r_block = READ_VEC(0, &R[r_index]);
-                            r_index += VEC_SIZE;
-                            hidden_result += dot(hiddencache[j], r_block);
-
                         #endif
                     }else{
                         #ifdef SEQUENCE
@@ -111,6 +95,13 @@ KERNEL(lstm_seq)(
                             #endif
                         #endif
                     }
+                }
+                if(i==0){
+                    #ifdef SEQUENCE
+                        hidden_result = initial_hidden_stateR[INPUT1_GET_INDEX(b, 0, weight_idx, 0)];
+                    #else
+                        hidden_result = initial_hidden_stateR[INPUT1_GET_INDEX(b, weight_idx, 0, 0)];
+                    #endif
                 }
                 #if DIRECTION == 1 //reverse
                     gate_output[k] = hidden_result + xWB[INPUT0_GET_INDEX(b, real_seq_length-1-i, weight_idx, 0)];
