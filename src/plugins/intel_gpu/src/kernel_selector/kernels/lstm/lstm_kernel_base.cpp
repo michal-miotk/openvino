@@ -74,6 +74,11 @@ JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool seq
                 MakeJitConstant("ACTIVATION_CLIP(x, p)", "(x)"),
             });
     }
+    if (sequential) {
+        jit.AddConstants({MakeJitConstant("MAX_SEQ_LEN", static_cast<int>(params.inputs[0].Feature().v))});
+    } else {
+        jit.AddConstants({MakeJitConstant("MAX_SEQ_LEN", 1)});
+    }
 
     return jit;
 }
