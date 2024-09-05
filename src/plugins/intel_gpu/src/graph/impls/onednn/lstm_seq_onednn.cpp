@@ -72,7 +72,10 @@ protected:
         auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout(), dnnl::memory::format_tag::undef);
         auto output1_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7));
         auto output2_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(8));
-
+        std::cout << impl_params.get_input_layout(7) << " vs " << impl_params.get_input_layout(2);
+        if ( impl_params.get_input_layout(7) != impl_params.get_input_layout(2) ) {
+            std::cout << "layouts are different " << std::endl;
+        }
         OPENVINO_ASSERT(input_md.get_format_kind() != dnnl::memory::format_kind::any,
                         "[GPU] The format kind of the input memory descriptor of onednn lstm_seq cannot be 'any'.");
         OPENVINO_ASSERT(output_md.get_format_kind() != dnnl::memory::format_kind::any,
