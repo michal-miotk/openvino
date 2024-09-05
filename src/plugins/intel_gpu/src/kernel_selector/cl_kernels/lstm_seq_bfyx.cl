@@ -75,11 +75,13 @@ KERNEL(lstm_seq)(
 
                         #endif
                     }else{
-                        #ifdef SEQUENCE
-                            OUTPUT_TYPE_VEC h_block = READ_VEC(0, &hidden_history[OUTPUT_GET_INDEX(b, 0, prev_idx, j*VEC_SIZE)]);
-                            unroll_for(int s=0;s<VEC_SIZE;s++){
-                                hidden_result = mad(h_block[s], r_block[l][k][j][s], hidden_result);
-                            }
+                        #ifdef SEQUENCE 
+                            #if MAX_SEQ_LEN > 1
+                                OUTPUT_TYPE_VEC h_block = READ_VEC(0, &hidden_history[OUTPUT_GET_INDEX(b, 0, prev_idx, j*VEC_SIZE)]);
+                                unroll_for(int s=0;s<VEC_SIZE;s++){
+                                    hidden_result = mad(h_block[s], r_block[l][k][j][s], hidden_result);
+                                }
+                            #endif
                         #endif
                     }
                 }
