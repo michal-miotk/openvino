@@ -90,11 +90,10 @@ protected:
             emptyMemDescriptorForPeephole,
             W_md,
             R_md,
-            emptyMemDescriptorForPeephole,
-            emptyMemDescriptorForPeephole,
+            B_md,
             output_md,
-            emptyMemDescriptorForPeephole,
-            emptyMemDescriptorForPeephole,
+            initial_cell_md,
+            initial_cell_md,
             attr);
     }
 
