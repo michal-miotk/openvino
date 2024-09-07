@@ -66,9 +66,27 @@ protected:
         auto input_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(0));
         auto initial_hidden_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(1));
         auto initial_cell_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(2));
-        auto W_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(3), dnnl::memory::format_tag::any);
-        auto R_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(4), dnnl::memory::format_tag::any);
-        auto B_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(5));
+        auto shape = impl_params.get_input_layout(3).get_shape();
+        shape[1] = 1;
+        shape.push_back(shape[2]);
+        shape[3] = 4;
+        auto l = impl_params.get_input_layout(3).clone_with_other_shape(shape);
+        l.format = cldnn::format::bfzyx;
+        auto W_md = onednn::layout_to_memory_desc(l, dnnl::memory::format_tag::any);
+        auto shapeR = impl_params.get_input_layout(4).get_shape();
+        shapeR[1] = 1;
+        shapeR.push_back(shapeR[2]);
+        shapeR[3] = 4;
+        auto lR = impl_params.get_input_layout(4).clone_with_other_shape(shapeR);
+        lR.format = cldnn::format::bfzyx;
+        auto R_md = onednn::layout_to_memory_desc(lR, dnnl::memory::format_tag::any);
+        auto shapeB = impl_params.get_input_layout(5).get_shape();
+        shapeB[3] = shapeB[1]/4;
+        shapeB[1] = 1;
+        shapeB[2] = 4;
+        auto lB = impl_params.get_input_layout(3).clone_with_other_shape(shapeB);
+        lB.format = cldnn::format::bfyx;
+        auto B_md = onednn::layout_to_memory_desc(lB);
         auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout(), dnnl::memory::format_tag::undef);
         auto output1_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7));
         auto output2_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(8));
@@ -84,7 +102,7 @@ protected:
         return std::make_shared<dnnl::lstm_forward::primitive_desc>(
             engine.get_onednn_engine(),
             dnnl::prop_kind::forward_inference,
-            dnnl::rnn_direction::bidirectional_concat,
+            dnnl::rnn_direction::unidirectional_left2right,
             input_md,
             emptyMemDescriptorForPeephole,
             emptyMemDescriptorForPeephole,
@@ -92,9 +110,8 @@ protected:
             R_md,
             B_md,
             output_md,
-            initial_cell_md,
-            initial_cell_md,
-            attr);
+            emptyMemDescriptorForPeephole,
+            emptyMemDescriptorForPeephole);
     }
 
 public:
