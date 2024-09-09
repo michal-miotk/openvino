@@ -271,6 +271,10 @@ ov::Shape layout::get_shape() const {
 tensor layout::get_tensor() const {
     OPENVINO_ASSERT(!is_dynamic() || has_upper_bound(), "[GPU] get_tensor() is called for dynamic shape without upper bound");
     ov::Shape shape;
+    if (format == cldnn::format::bfx) {
+        int x = 0;
+        x++;
+    }
     if (is_dynamic() && has_upper_bound()) {
         for (const auto& dim : size) {
             shape.push_back(dim.get_max_length());

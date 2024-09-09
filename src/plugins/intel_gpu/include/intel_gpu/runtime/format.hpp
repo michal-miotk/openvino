@@ -76,6 +76,7 @@ struct format {
     enum type : int32_t {
         // Data formats
         bfyx,                                   ///< the most common format for activations in clDNN.
+        bfx,
         bfxy,
         bfzyx,                                  ///< format for 5d data tensors
         bfwzyx,                                 ///< batch, feature, 4D spatial
@@ -295,7 +296,7 @@ struct format {
     static bool is_simple_data_format(const format& fmt) {
         return (fmt == yxfb || fmt == byxf || fmt == byfx || fmt == bxfy || fmt == bfyx || fmt == fyxb || fmt == fybx ||
                 fmt == bfxy ||fmt == xbfy || fmt == ybfx || fmt == fbyx || fmt == bfzyx || fmt == bfwzyx || fmt == bfuwzyx ||
-                fmt == bfvuwzyx);
+                fmt == bfvuwzyx || fmt == bfx);
     }
 
     static format get_default_format(size_t rank, bool is_weights = false, bool is_grouped = false);

@@ -19,6 +19,6 @@ void register_implementations() {
     REGISTER_ONEDNN_IMPL(reduction);
     REGISTER_ONEDNN_IMPL(reorder);
     REGISTER_ONEDNN_IMPL(fully_connected);
-    REGISTER_ONEDNN_IMPL(lstm_seq);}
+    REGISTER_ONEDNN_IMPL(rnn);}
 }  // namespace onednn
 }  // namespace cldnn

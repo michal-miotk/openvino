@@ -16,15 +16,15 @@
 namespace cldnn {
 namespace onednn {
 
-struct lstm_seq_onednn : typed_primitive_onednn_impl<lstm_seq, dnnl::lstm_forward::primitive_desc, dnnl::lstm_forward> {
+struct rnn_onednn : typed_primitive_onednn_impl<lstm_seq, dnnl::lstm_forward::primitive_desc, dnnl::lstm_forward> {
     using parent = typed_primitive_onednn_impl<lstm_seq, dnnl::lstm_forward::primitive_desc, dnnl::lstm_forward>;
     using parent::parent;
 
-    DECLARE_OBJECT_TYPE_SERIALIZATION(cldnn::onednn::lstm_seq_onednn)
+    DECLARE_OBJECT_TYPE_SERIALIZATION(cldnn::onednn::rnn_onednn)
 
 protected:
     std::unique_ptr<primitive_impl> clone() const override {
-        return make_unique<lstm_seq_onednn>(*this);
+        return make_unique<rnn_onednn>(*this);
     }
 
     std::unordered_map<int, dnnl::memory> get_arguments(lstm_seq_inst& instance) const override {
@@ -61,8 +61,12 @@ protected:
     static std::shared_ptr<dnnl::lstm_forward::primitive_desc> get_lstm_primitive_descriptor(const kernel_impl_params& impl_params, cldnn::engine& engine,
                                                                                            const dnnl::primitive_attr& attr) {
         auto prim = impl_params.typed_desc<lstm_seq>();
-
-        auto input_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(0));
+        auto input_layout = impl_params.get_input_layout(0);
+        auto in_shape = impl_params.get_input_layout(0).get_shape();
+        in_shape.pop_back();
+        auto input_lay = cldnn::layout{ov::PartialShape{static_cast<long int>(in_shape[0]), static_cast<long int>(in_shape[1]), \
+        static_cast<long int>(in_shape[2])}, input_layout.data_type, cldnn::format::bfx};
+        auto input_md = onednn::layout_to_memory_desc(input_lay);
         auto initial_hidden_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(1));
         auto initial_cell_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(2));
         auto shape = impl_params.get_input_layout(3).get_shape();
@@ -86,15 +90,10 @@ protected:
         auto lB = impl_params.get_input_layout(3).clone_with_other_shape(shapeB);
         lB.format = cldnn::format::bfyx;
         auto B_md = onednn::layout_to_memory_desc(lB);
-        auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout(), dnnl::memory::format_tag::undef);
-        auto output1_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7));
-        auto output2_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(8));
-
-        OPENVINO_ASSERT(input_md.get_format_kind() != dnnl::memory::format_kind::any,
-                        "[GPU] The format kind of the input memory descriptor of onednn lstm_seq cannot be 'any'.");
-        OPENVINO_ASSERT(output_md.get_format_kind() != dnnl::memory::format_kind::any,
-                        "[GPU] The format kind of the output memory descriptor of onednn lstm_seq cannot be 'any'.");
-
+        auto out_shape = impl_params.get_output_layout().get_shape();
+        auto output_lay = cldnn::layout{ov::PartialShape{static_cast<long int>(out_shape[0]), static_cast<long int>(out_shape[1]), \
+        static_cast<long int>(out_shape[2])}, input_layout.data_type, cldnn::format::bfx};
+        auto output_md = onednn::layout_to_memory_desc(output_lay, dnnl::memory::format_tag::abc);
         dnnl::memory::desc emptyMemDescriptorForPeephole;
         //engine.create_onednn_engine(config);
         auto eng = engine.get_onednn_engine();
@@ -176,13 +175,13 @@ public:
             auto& config = impl_params.prog->get_config();
             auto attr = impl_params.attrs_onednn;
             auto prim_desc = get_lstm_primitive_descriptor(impl_params, engine, *attr);
-            return cldnn::make_unique<lstm_seq_onednn>(engine, config, attr, *prim_desc);
+            return cldnn::make_unique<rnn_onednn>(engine, config, attr, *prim_desc);
     }
 };
 
 namespace detail {
 
-attach_lstm_seq_onednn::attach_lstm_seq_onednn() {
+attach_rnn_onednn::attach_rnn_onednn() {
     std::vector<data_types> dt = {
         data_types::f32,
         data_types::f16,
@@ -226,11 +225,11 @@ attach_lstm_seq_onednn::attach_lstm_seq_onednn() {
         format::bs_fs_zyx_bsv8_fsv2,
         format::bs_fs_yx_bsv4_fsv2,
     };
-    implementation_map<lstm_seq>::add(impl_types::onednn, lstm_seq_onednn::create, dt, fmt);
+    implementation_map<lstm_seq>::add(impl_types::onednn, rnn_onednn::create, dt, fmt);
 }
 
 }  // namespace detail
 }  // namespace onednn
 }  // namespace cldnn
 
-BIND_BINARY_BUFFER_WITH_TYPE(cldnn::onednn::lstm_seq_onednn)
+BIND_BINARY_BUFFER_WITH_TYPE(cldnn::onednn::rnn_onednn)

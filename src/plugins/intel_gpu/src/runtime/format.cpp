@@ -24,6 +24,7 @@ static const std::map<format::type, format_traits> format_traits_map {
         //         Format                 B  F  S  G   Dims order               Order     Inner order   Block sizes     Block Sizes (in logical order)
         FMT_TRAITS(yxfb,                  1, 1, 2, 0, {2, 3, 1, 0},             "yxfb",     "bfxy",     {},                     {}),  // NOLINT
         FMT_TRAITS(byxf,                  1, 1, 2, 0, {0, 2, 3, 1},             "byxf",     "bfxy",     {},                     {}),  // NOLINT
+        FMT_TRAITS(bfx,                   1, 1, 1, 0, {0, 1, 2},                "bfx",      "bfx",      {},                     {}),  // NOLINT
         FMT_TRAITS(bfyx,                  1, 1, 2, 0, {0, 1, 2, 3},             "bfyx",     "bfxy",     {},                     {}),  // NOLINT
         FMT_TRAITS(bfxy,                  1, 1, 2, 0, {0, 1, 3, 2},             "bfxy",     "bfxy",     {},                     {}),  // NOLINT
         FMT_TRAITS(fbyx,                  1, 1, 2, 0, {1, 0, 2, 3},             "fbyx",     "bfxy",     {},                     {}),  // NOLINT
@@ -218,6 +219,9 @@ format format::get_default_format(size_t rank, bool is_weights, bool is_grouped)
         } else if (rank == 8) {
             default_fmt = cldnn::format::bfvuwzyx;
         }
+    }
+    if (rank == 3) {
+        return cldnn::format::bfx;
     }
     return default_fmt;
 }

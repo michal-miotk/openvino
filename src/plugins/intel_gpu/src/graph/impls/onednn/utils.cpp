@@ -35,6 +35,7 @@ cldnn::format default_fmt_for_dims(size_t dims, bool is_grouped) {
     switch (dims) {
     case 6: return is_grouped ? cldnn::format::goizyx : cldnn::format::bfwzyx;
     case 5: return is_grouped ? cldnn::format::goiyx : cldnn::format::bfzyx;
+    case 3: return cldnn::format::bfx;
     default: return cldnn::format::bfyx;
     }
 }
@@ -155,6 +156,7 @@ std::vector<std::pair<cldnn::format, dnnl::memory::format_tag>> format_map = {
         { cldnn::format::g_os_is_zyx_isv16_osv16,  dnnl::memory::format_tag::gIOdhw16i16o },
 
         { cldnn::format::bfyx,  dnnl::memory::format_tag::nchw },
+        { cldnn::format::bfx,   dnnl::memory::format_tag::tnc },
         { cldnn::format::bfxy,  dnnl::memory::format_tag::abdc },
         { cldnn::format::byxf,  dnnl::memory::format_tag::nhwc },
         { cldnn::format::byfx,  dnnl::memory::format_tag::acbd },
@@ -275,7 +277,8 @@ dnnl::memory::desc layout_to_memory_desc(cldnn::layout l, dnnl::memory::format_t
         dims = flatten_tensor(l.get_tensor());
     } else {
         auto rank = cldnn::format::dimension(l.format);
-        dims = convert_tensor(l.get_tensor(), rank, cldnn::format::is_grouped(l.format));
+        auto tensor = l.get_tensor();
+        dims = convert_tensor(tensor, rank, cldnn::format::is_grouped(l.format));
     }
 
     dnnl::memory::data_type dt = convert_data_type(l.data_type);

@@ -28,6 +28,7 @@ enum DataLayout {
     f = 0,                  // 1D
     bf,                     // 1D+batch
     fb,                     // 1D+batch
+    bfx,
     bfyx,                   // 3D+batch
     yxfb,                   // 3D+batch
     byxf,                   // 3D+batch

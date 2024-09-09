@@ -363,6 +363,8 @@ kernel_selector::data_layout to_data_layout(format f) {
             return kernel_selector::data_layout::nv12;
         case format::image_2d_rgba:
             return kernel_selector::data_layout::image_2d_rgba;
+        case format::bfx:
+            return kernel_selector::data_layout::bfx;
         default:
             OPENVINO_THROW("[GPU] Can't convert tensor format to kernel selector format as f=", f, " is not handled");
     }
