@@ -40,23 +40,23 @@ protected:
         }
 
         {
-            int i = 3;
+            int i = 4;
             auto& input = instance.input_memory(i);
             auto offset = onednn::get_offset(instance.get_input_layout(i),
                                              _pd.dnnl::primitive_desc_base::weights_desc(0));
-            args.insert({input_idx++, input.get_onednn_memory(_pd.dnnl::primitive_desc_base::weights_desc(0), offset)});
+            auto mem = input.get_onednn_memory(_pd.dnnl::primitive_desc_base::weights_desc(0), offset);
+            args.insert({input_idx++, });
         }
 
         {
-            int i = 4;
+            int i = 5;
             auto& input = instance.input_memory(i);
             auto offset = onednn::get_offset(instance.get_input_layout(i),
                                              _pd.dnnl::primitive_desc_base::weights_desc(1));
             args.insert({input_idx++, input.get_onednn_memory(_pd.dnnl::primitive_desc_base::weights_desc(1), offset)});
         }
-
         {
-            int i = 5;
+            int i = 6;
             auto& input = instance.input_memory(i);
             auto offset = onednn::get_offset(instance.get_input_layout(i),
                                              _pd.dnnl::primitive_desc_base::weights_desc(2));
@@ -67,16 +67,6 @@ protected:
             auto& output = instance.output_memory();
             auto offset = onednn::get_offset(instance.get_output_layout(), _pd.dnnl::primitive_desc_base::dst_desc(0));
             args.insert({DNNL_ARG_DST, output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(0), offset)});
-        }
-        {
-            auto& output = instance.output_memory(1);
-            auto offset = onednn::get_offset(instance.get_input_layout(7), _pd.dnnl::primitive_desc_base::dst_desc(1));
-            args.insert({DNNL_ARG_DST+1, output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(1), offset)});
-        }
-        {
-            auto& output = instance.output_memory(2);
-            auto offset = onednn::get_offset(instance.get_input_layout(8), _pd.dnnl::primitive_desc_base::dst_desc(2));
-            args.insert({DNNL_ARG_DST+2, output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(2), offset)});
         }
         return args;
     }
@@ -134,8 +124,8 @@ protected:
             R_md,
             B_md,
             output_md,
-            output1_md,
-            output2_md);
+            emptyMemDescriptorForPeephole,
+            emptyMemDescriptorForPeephole);
     }
 
 public:
