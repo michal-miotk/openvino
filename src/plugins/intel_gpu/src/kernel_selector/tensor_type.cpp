@@ -18,6 +18,7 @@ DataTensor::DataChannelArray DataTensor::dataChannelArray {{
     { DataLayout::f,                     { -1, -1, -1, -1, -1, -1,  0, -1 } },
     { DataLayout::bf,                    { -1, -1, -1, -1, -1, -1,  0,  1 } },
     { DataLayout::fb,                    { -1, -1, -1, -1, -1, -1,  1,  0 } },
+    { DataLayout::bfx,                   {  0, -1, -1, -1, -1, -1,  1,  2 } },
     { DataLayout::bfyx,                  {  0,  1, -1, -1, -1, -1,  2,  3 } },
     { DataLayout::yxfb,                  {  2,  3, -1, -1, -1, -1,  1,  0 } },
     { DataLayout::byxf,                  {  1,  2, -1, -1, -1, -1,  0,  3 } },

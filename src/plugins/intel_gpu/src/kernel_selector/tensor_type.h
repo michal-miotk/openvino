@@ -253,6 +253,7 @@ inline bool SimpleLayout(DataLayout l) {
     switch (l) {
         case DataLayout::bf:
         case DataLayout::fb:
+        case DataLayout::bfx:
         case DataLayout::bfyx:
         case DataLayout::yxfb:
         case DataLayout::byxf:

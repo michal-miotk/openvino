@@ -60,34 +60,38 @@ protected:
 
     static std::shared_ptr<dnnl::lstm_forward::primitive_desc> get_lstm_primitive_descriptor(const kernel_impl_params& impl_params, cldnn::engine& engine,
                                                                                            const dnnl::primitive_attr& attr) {
+        auto i0 = impl_params.get_input_layout(0);
+        auto i1 = impl_params.get_input_layout(1);
+        auto i2 = impl_params.get_input_layout(2);
+        auto i3 = impl_params.get_input_layout(3);
+        auto i4 = impl_params.get_input_layout(4);
+        auto i5 = impl_params.get_input_layout(5);
+        auto i6 = impl_params.get_input_layout(6);
         auto prim = impl_params.typed_desc<lstm_seq>();
         auto input_layout = impl_params.get_input_layout(0);
         auto in_shape = impl_params.get_input_layout(0).get_shape();
         in_shape.pop_back();
-        auto input_lay = cldnn::layout{ov::PartialShape{static_cast<long int>(in_shape[0]), static_cast<long int>(in_shape[1]), \
+        auto input_lay = cldnn::layout{ov::PartialShape{static_cast<long int>(in_shape[1]), static_cast<long int>(in_shape[0]), \
         static_cast<long int>(in_shape[2])}, input_layout.data_type, cldnn::format::bfx};
         auto input_md = onednn::layout_to_memory_desc(input_lay);
         auto initial_hidden_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(1));
         auto initial_cell_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(2));
-        auto shape = impl_params.get_input_layout(3).get_shape();
-        shape[1] = 1;
-        shape.push_back(shape[2]);
-        shape[3] = 4;
-        auto l = impl_params.get_input_layout(3).clone_with_other_shape(shape);
-        l.format = cldnn::format::bfzyx;
-        auto W_md = onednn::layout_to_memory_desc(l, dnnl::memory::format_tag::any);
-        auto shapeR = impl_params.get_input_layout(4).get_shape();
+        auto shapeW = impl_params.get_input_layout(4).get_shape();
+        auto lay_W = cldnn::layout{ov::PartialShape{static_cast<long int>(shapeW[0]), static_cast<long int>(shapeW[0]), static_cast<long int>(shapeW[2]), 4, \
+        static_cast<long int>(shapeW[1]/4)}, input_layout.data_type, cldnn::format::bfzyx};
+        auto W_md = onednn::layout_to_memory_desc(lay_W, dnnl::memory::format_tag::any);
+        auto shapeR = impl_params.get_input_layout(5).get_shape();
         shapeR[1] = 1;
         shapeR.push_back(shapeR[2]);
         shapeR[3] = 4;
-        auto lR = impl_params.get_input_layout(4).clone_with_other_shape(shapeR);
+        auto lR = impl_params.get_input_layout(5).clone_with_other_shape(shapeR);
         lR.format = cldnn::format::bfzyx;
         auto R_md = onednn::layout_to_memory_desc(lR, dnnl::memory::format_tag::any);
         auto shapeB = impl_params.get_input_layout(5).get_shape();
         shapeB[3] = shapeB[1]/4;
         shapeB[1] = 1;
         shapeB[2] = 4;
-        auto lB = impl_params.get_input_layout(3).clone_with_other_shape(shapeB);
+        auto lB = impl_params.get_input_layout(6).clone_with_other_shape(shapeB);
         lB.format = cldnn::format::bfyx;
         auto B_md = onednn::layout_to_memory_desc(lB);
         auto out_shape = impl_params.get_output_layout().get_shape();

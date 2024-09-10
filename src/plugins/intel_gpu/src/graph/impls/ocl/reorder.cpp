@@ -178,6 +178,7 @@ attach_reorder_impl::attach_reorder_impl() {
     };
 
     auto formats = {
+        format::bfx,
         format::bfyx,
         format::bfzyx,
         format::bfwzyx,
