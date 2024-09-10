@@ -28,16 +28,39 @@ protected:
     }
 
     std::unordered_map<int, dnnl::memory> get_arguments(lstm_seq_inst& instance) const override {
-        std::cout << "getting args" << std::endl;
         std::unordered_map<int, dnnl::memory> args;
 
         int input_idx = DNNL_ARG_FROM;
-        std::cout << instance.inputs_memory_count() << "instance.inputs_memory_count() ff" << std::endl;
-        for (size_t i = 0; i < instance.inputs_memory_count()-3; i++) {
+        {
+            int i = 0;
             auto& input = instance.input_memory(i);
             auto offset = onednn::get_offset(instance.get_input_layout(i),
                                              _pd.dnnl::primitive_desc_base::src_desc(static_cast<int>(i)));
             args.insert({input_idx++, input.get_onednn_memory(_pd.dnnl::primitive_desc_base::src_desc(static_cast<int>(i)), offset)});
+        }
+
+        {
+            int i = 3;
+            auto& input = instance.input_memory(i);
+            auto offset = onednn::get_offset(instance.get_input_layout(i),
+                                             _pd.dnnl::primitive_desc_base::weights_desc(0));
+            args.insert({input_idx++, input.get_onednn_memory(_pd.dnnl::primitive_desc_base::weights_desc(0), offset)});
+        }
+
+        {
+            int i = 4;
+            auto& input = instance.input_memory(i);
+            auto offset = onednn::get_offset(instance.get_input_layout(i),
+                                             _pd.dnnl::primitive_desc_base::weights_desc(1));
+            args.insert({input_idx++, input.get_onednn_memory(_pd.dnnl::primitive_desc_base::weights_desc(1), offset)});
+        }
+
+        {
+            int i = 5;
+            auto& input = instance.input_memory(i);
+            auto offset = onednn::get_offset(instance.get_input_layout(i),
+                                             _pd.dnnl::primitive_desc_base::weights_desc(2));
+            args.insert({input_idx++, input.get_onednn_memory(_pd.dnnl::primitive_desc_base::weights_desc(2), offset)});
         }
 
         {
@@ -46,27 +69,20 @@ protected:
             args.insert({DNNL_ARG_DST, output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(0), offset)});
         }
         {
-            auto& output = instance.input_memory(7);
-            auto offset = onednn::get_offset(instance.get_output_layout(), _pd.dnnl::primitive_desc_base::dst_desc(0));
-            args.insert({DNNL_ARG_DST+1, output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(0), offset)});
+            auto& output = instance.output_memory(1);
+            auto offset = onednn::get_offset(instance.get_input_layout(7), _pd.dnnl::primitive_desc_base::dst_desc(1));
+            args.insert({DNNL_ARG_DST+1, output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(1), offset)});
         }
         {
-            auto& output = instance.input_memory(8);
-            auto offset = onednn::get_offset(instance.get_output_layout(), _pd.dnnl::primitive_desc_base::dst_desc(0));
-            args.insert({DNNL_ARG_DST+2, output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(0), offset)});
+            auto& output = instance.output_memory(2);
+            auto offset = onednn::get_offset(instance.get_input_layout(8), _pd.dnnl::primitive_desc_base::dst_desc(2));
+            args.insert({DNNL_ARG_DST+2, output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(2), offset)});
         }
         return args;
     }
 
     static std::shared_ptr<dnnl::lstm_forward::primitive_desc> get_lstm_primitive_descriptor(const kernel_impl_params& impl_params, cldnn::engine& engine,
                                                                                            const dnnl::primitive_attr& attr) {
-        auto i0 = impl_params.get_input_layout(0);
-        auto i1 = impl_params.get_input_layout(1);
-        auto i2 = impl_params.get_input_layout(2);
-        auto i3 = impl_params.get_input_layout(3);
-        auto i4 = impl_params.get_input_layout(4);
-        auto i5 = impl_params.get_input_layout(5);
-        auto i6 = impl_params.get_input_layout(6);
         auto prim = impl_params.typed_desc<lstm_seq>();
 
         auto input_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(0));
@@ -94,8 +110,10 @@ protected:
         lB.format = cldnn::format::bfyx;
         auto B_md = onednn::layout_to_memory_desc(lB);
         auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout(), dnnl::memory::format_tag::undef);
-        auto output1_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7));
-        auto output2_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(8));
+        auto shapeOuts = impl_params.get_input_layout(7).get_shape();
+        std::swap(shapeOuts[2], shapeOuts[3]);
+        auto output1_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(shapeOuts));
+        auto output2_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(shapeOuts));
 
         OPENVINO_ASSERT(input_md.get_format_kind() != dnnl::memory::format_kind::any,
                         "[GPU] The format kind of the input memory descriptor of onednn lstm_seq cannot be 'any'.");
@@ -116,8 +134,8 @@ protected:
             R_md,
             B_md,
             output_md,
-            emptyMemDescriptorForPeephole,
-            emptyMemDescriptorForPeephole);
+            output1_md,
+            output2_md);
     }
 
 public:
