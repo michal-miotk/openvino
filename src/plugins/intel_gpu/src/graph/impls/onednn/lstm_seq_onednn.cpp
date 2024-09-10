@@ -60,6 +60,13 @@ protected:
 
     static std::shared_ptr<dnnl::lstm_forward::primitive_desc> get_lstm_primitive_descriptor(const kernel_impl_params& impl_params, cldnn::engine& engine,
                                                                                            const dnnl::primitive_attr& attr) {
+        auto i0 = impl_params.get_input_layout(0);
+        auto i1 = impl_params.get_input_layout(1);
+        auto i2 = impl_params.get_input_layout(2);
+        auto i3 = impl_params.get_input_layout(3);
+        auto i4 = impl_params.get_input_layout(4);
+        auto i5 = impl_params.get_input_layout(5);
+        auto i6 = impl_params.get_input_layout(6);
         auto prim = impl_params.typed_desc<lstm_seq>();
 
         auto input_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(0));
