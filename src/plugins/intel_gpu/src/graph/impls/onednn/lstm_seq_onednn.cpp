@@ -81,8 +81,9 @@ protected:
 
         auto input_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(0));
         auto shape = impl_params.get_input_layout(3).get_shape();
+        std::cout << "origin" << shape[0] << "_" << shape[1] << shape[2] << shape[3] << std::endl;
+        shape.push_back(shape[1]/4);
         shape[1] = 1;
-        shape.push_back(shape[2]);
         shape[3] = 4;
         auto l = impl_params.get_input_layout(3).clone_with_other_shape(shape);
         l.format = cldnn::format::bfzyx;
@@ -101,7 +102,9 @@ protected:
         auto lB = impl_params.get_input_layout(3).clone_with_other_shape(shapeB);
         lB.format = cldnn::format::bfyx;
         auto B_md = onednn::layout_to_memory_desc(lB);
-        auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout(), dnnl::memory::format_tag::undef);
+        auto out_shape = impl_params.get_output_layout().get_shape();
+        std::swap(out_shape[0], out_shape[1]);
+        auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout().clone_with_other_shape(out_shape), dnnl::memory::format_tag::undef);
 
         OPENVINO_ASSERT(input_md.get_format_kind() != dnnl::memory::format_kind::any,
                         "[GPU] The format kind of the input memory descriptor of onednn lstm_seq cannot be 'any'.");
