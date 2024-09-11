@@ -76,7 +76,7 @@ protected:
     }
 
     static std::shared_ptr<dnnl::lstm_forward::primitive_desc> get_lstm_primitive_descriptor(const kernel_impl_params& impl_params, cldnn::engine& engine,
-                                                                                           const dnnl::primitive_attr& attr) {
+                                                                                           const dnnl::primitive_attr& attr, int direction) {
         auto prim = impl_params.typed_desc<lstm_seq>();
 
         auto input_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(0));
@@ -117,7 +117,7 @@ protected:
         return std::make_shared<dnnl::lstm_forward::primitive_desc>(
             eng,
             dnnl::prop_kind::forward_inference,
-            dnnl::rnn_direction::unidirectional_left2right,
+            direction == 0 ? dnnl::rnn_direction::unidirectional_left2right : dnnl::rnn_direction::unidirectional_right2left,
             input_md,
             emptyMemDescriptorForPeephole,
             emptyMemDescriptorForPeephole,
@@ -191,7 +191,8 @@ public:
             auto& engine = impl_params.prog->get_engine();
             auto& config = impl_params.prog->get_config();
             auto attr = impl_params.attrs_onednn;
-            auto prim_desc = get_lstm_primitive_descriptor(impl_params, engine, *attr);
+            auto direction = arg.direction();
+            auto prim_desc = get_lstm_primitive_descriptor(impl_params, engine, *attr, direction);
             return cldnn::make_unique<lstm_seq_onednn>(engine, config, attr, *prim_desc);
     }
 };
