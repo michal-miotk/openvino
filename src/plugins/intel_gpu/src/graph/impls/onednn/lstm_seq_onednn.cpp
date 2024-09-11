@@ -30,13 +30,13 @@ protected:
     std::unordered_map<int, dnnl::memory> get_arguments(lstm_seq_inst& instance) const override {
         std::unordered_map<int, dnnl::memory> args;
 
-        int input_idx = DNNL_ARG_FROM;
         {
             int i = 0;
             auto& input = instance.input_memory(i);
             auto offset = onednn::get_offset(instance.get_input_layout(i),
                                              _pd.dnnl::primitive_desc_base::src_desc(static_cast<int>(i)));
-            args.insert({input_idx++, input.get_onednn_memory(_pd.dnnl::primitive_desc_base::src_desc(static_cast<int>(i)), offset)});
+            auto mem = input.get_onednn_memory(_pd.dnnl::primitive_desc_base::src_desc(static_cast<int>(i)), offset);
+            args.insert({DNNL_ARG_SRC_LAYER, mem});
         }
 
         {
@@ -45,7 +45,7 @@ protected:
             auto offset = onednn::get_offset(instance.get_input_layout(i),
                                              _pd.dnnl::primitive_desc_base::weights_desc(0));
             auto mem = input.get_onednn_memory(_pd.dnnl::primitive_desc_base::weights_desc(0), offset);
-            args.insert({input_idx++, });
+            args.insert({DNNL_ARG_WEIGHTS_LAYER, mem});
         }
 
         {
@@ -53,20 +53,24 @@ protected:
             auto& input = instance.input_memory(i);
             auto offset = onednn::get_offset(instance.get_input_layout(i),
                                              _pd.dnnl::primitive_desc_base::weights_desc(1));
-            args.insert({input_idx++, input.get_onednn_memory(_pd.dnnl::primitive_desc_base::weights_desc(1), offset)});
+            auto mem = input.get_onednn_memory(_pd.dnnl::primitive_desc_base::weights_desc(1), offset);
+            args.insert({DNNL_ARG_WEIGHTS_ITER, mem});
         }
-        {
+
+        {//bias
             int i = 6;
             auto& input = instance.input_memory(i);
             auto offset = onednn::get_offset(instance.get_input_layout(i),
                                              _pd.dnnl::primitive_desc_base::weights_desc(2));
-            args.insert({input_idx++, input.get_onednn_memory(_pd.dnnl::primitive_desc_base::weights_desc(2), offset)});
+            auto mem = input.get_onednn_memory(_pd.dnnl::primitive_desc_base::weights_desc(2), offset);
+            args.insert({DNNL_ARG_BIAS, mem});
         }
 
         {
             auto& output = instance.output_memory();
             auto offset = onednn::get_offset(instance.get_output_layout(), _pd.dnnl::primitive_desc_base::dst_desc(0));
-            args.insert({DNNL_ARG_DST, output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(0), offset)});
+            auto mem = output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(0), offset);
+            args.insert({DNNL_ARG_DST_LAYER, mem});
         }
         return args;
     }
@@ -76,8 +80,6 @@ protected:
         auto prim = impl_params.typed_desc<lstm_seq>();
 
         auto input_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(0));
-        auto initial_hidden_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(1));
-        auto initial_cell_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(2));
         auto shape = impl_params.get_input_layout(3).get_shape();
         shape[1] = 1;
         shape.push_back(shape[2]);
@@ -100,10 +102,6 @@ protected:
         lB.format = cldnn::format::bfyx;
         auto B_md = onednn::layout_to_memory_desc(lB);
         auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout(), dnnl::memory::format_tag::undef);
-        auto shapeOuts = impl_params.get_input_layout(7).get_shape();
-        std::swap(shapeOuts[2], shapeOuts[3]);
-        auto output1_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(shapeOuts));
-        auto output2_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(shapeOuts));
 
         OPENVINO_ASSERT(input_md.get_format_kind() != dnnl::memory::format_kind::any,
                         "[GPU] The format kind of the input memory descriptor of onednn lstm_seq cannot be 'any'.");
