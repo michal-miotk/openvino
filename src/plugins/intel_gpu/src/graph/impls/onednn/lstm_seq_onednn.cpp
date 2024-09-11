@@ -40,6 +40,24 @@ protected:
         }
 
         {
+            int i = 1;
+            auto& input = instance.input_memory(i);
+            auto offset = onednn::get_offset(instance.get_input_layout(i),
+                                             _pd.dnnl::primitive_desc_base::src_desc(static_cast<int>(i)));
+            auto mem = input.get_onednn_memory(_pd.dnnl::primitive_desc_base::src_desc(static_cast<int>(i)), offset);
+            args.insert({DNNL_ARG_SRC_ITER, mem});
+        }
+
+        {
+            int i = 2;
+            auto& input = instance.input_memory(i);
+            auto offset = onednn::get_offset(instance.get_input_layout(i),
+                                             _pd.dnnl::primitive_desc_base::src_desc(static_cast<int>(i)));
+            auto mem = input.get_onednn_memory(_pd.dnnl::primitive_desc_base::src_desc(static_cast<int>(i)), offset);
+            args.insert({DNNL_ARG_SRC_ITER_C, mem});
+        }
+
+        {
             int i = 4;
             auto& input = instance.input_memory(i);
             auto offset = onednn::get_offset(instance.get_input_layout(i),
@@ -78,8 +96,13 @@ protected:
     static std::shared_ptr<dnnl::lstm_forward::primitive_desc> get_lstm_primitive_descriptor(const kernel_impl_params& impl_params, cldnn::engine& engine,
                                                                                            const dnnl::primitive_attr& attr, int direction) {
         auto prim = impl_params.typed_desc<lstm_seq>();
-
+        auto input_shape = impl_params.get_input_layout(0).get_shape();
         auto input_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(0));
+        auto initial_shape = impl_params.get_input_layout(1).get_shape();
+        std::swap(initial_shape[2], initial_shape[3]);
+        initial_shape[2] = input_shape[1];
+        auto initial_hidden = onednn::layout_to_memory_desc(impl_params.get_input_layout(1).clone_with_other_shape(initial_shape));
+        auto initial_cell = onednn::layout_to_memory_desc(impl_params.get_input_layout(2).clone_with_other_shape(initial_shape));
         auto shape = impl_params.get_input_layout(3).get_shape();
         std::cout << "origin" << shape[0] << "_" << shape[1] << shape[2] << shape[3] << std::endl;
         shape.push_back(shape[1]/4);
@@ -119,8 +142,8 @@ protected:
             dnnl::prop_kind::forward_inference,
             direction == 0 ? dnnl::rnn_direction::unidirectional_left2right : dnnl::rnn_direction::unidirectional_right2left,
             input_md,
-            emptyMemDescriptorForPeephole,
-            emptyMemDescriptorForPeephole,
+            initial_hidden,
+            initial_cell,
             W_md,
             R_md,
             B_md,
