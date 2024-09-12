@@ -244,7 +244,7 @@ device_info init_device_info(const cl::Device& device, const cl::Context& contex
     info.supports_intel_required_subgroup_size = extensions.find("cl_intel_required_subgroup_size ") != std::string::npos;
 
     info.supports_imad = get_imad_support(device);
-    info.supports_immad = true;
+    info.supports_immad = false;
 
     info.supports_usm = extensions.find("cl_intel_unified_shared_memory ") != std::string::npos ||
                         extensions.find("cl_intel_unified_shared_memory_preview ") != std::string::npos;
@@ -285,7 +285,7 @@ device_info init_device_info(const cl::Device& device, const cl::Context& contex
         auto features = device.getInfo<CL_DEVICE_FEATURE_CAPABILITIES_INTEL>();
 
         info.supports_imad = info.supports_imad || (features & CL_DEVICE_FEATURE_FLAG_DP4A_INTEL);
-        info.supports_immad = true;
+        info.supports_immad = info.supports_immad || (features & CL_DEVICE_FEATURE_FLAG_DPAS_INTEL);
         if (info.dev_type == device_type::discrete_gpu ||
             info.gfx_ver.major > 12 || (info.gfx_ver.major == 12 && info.gfx_ver.minor >= 70)) {
             info.has_separate_cache = true;
