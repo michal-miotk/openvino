@@ -16,8 +16,8 @@
 namespace cldnn {
 namespace onednn {
 
-struct lstm_seq_onednn : typed_primitive_onednn_impl<lstm_seq, dnnl::lstm_forward::primitive_desc, dnnl::lstm_forward> {
-    using parent = typed_primitive_onednn_impl<lstm_seq, dnnl::lstm_forward::primitive_desc, dnnl::lstm_forward>;
+struct lstm_seq_onednn : typed_primitive_onednn_impl<lstm_seq> {
+    using parent = typed_primitive_onednn_impl<lstm_seq>;
     using parent::parent;
 
     DECLARE_OBJECT_TYPE_SERIALIZATION(cldnn::onednn::lstm_seq_onednn)
@@ -112,7 +112,9 @@ protected:
         auto prim = impl_params.typed_desc<lstm_seq>();
         auto input_shape = impl_params.get_input_layout(0).get_shape();
         std::swap(input_shape[0], input_shape[1]);
-        auto input_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(0).clone_with_other_shape(input_shape));
+        auto input_lay = impl_params.get_input_layout(0).clone_with_other_shape(input_shape);
+        input_lay.format = cldnn::format::fbyx;
+        auto input_md = onednn::layout_to_memory_desc(input_lay);
         auto initial_shape = impl_params.get_input_layout(1).get_shape();
         initial_shape[3] = initial_shape[2];
         initial_shape[2] = initial_shape[0];
@@ -128,7 +130,7 @@ protected:
         shapeW[3] = 4;
         auto l = impl_params.get_input_layout(3).clone_with_other_shape(shapeW);
         l.format = cldnn::format::bfzyx;
-        auto W_md = onednn::layout_to_memory_desc(l, dnnl::memory::format_tag::any);
+        auto W_md = onednn::layout_to_memory_desc(l.convert_to_weights_layout(false));
         auto shapeR = impl_params.get_input_layout(4).get_shape();
         shapeR.push_back(shapeR[1]/4);
         shapeR[0] = 1;
@@ -136,7 +138,7 @@ protected:
         shapeR[3] = 4;
         auto lR = impl_params.get_input_layout(4).clone_with_other_shape(shapeR);
         lR.format = cldnn::format::bfzyx;
-        auto R_md = onednn::layout_to_memory_desc(lR, dnnl::memory::format_tag::any);
+        auto R_md = onednn::layout_to_memory_desc(lR);
         auto shapeB = impl_params.get_input_layout(5).get_shape();
         shapeB[3] = shapeB[1]/4;
         shapeB[0] = 1;
@@ -147,9 +149,9 @@ protected:
         auto B_md = onednn::layout_to_memory_desc(lB);
         auto out_shape = impl_params.get_output_layout().get_shape();
         //std::swap(out_shape[0], out_shape[2]);
-        auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout().clone_with_other_shape(out_shape), dnnl::memory::format_tag::undef);
-        auto output1_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(initial_shape), dnnl::memory::format_tag::undef);
-        auto output2_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(initial_shape), dnnl::memory::format_tag::undef);
+        auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout().clone_with_other_shape(out_shape));
+        auto output1_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(initial_shape));
+        auto output2_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(initial_shape));
         OPENVINO_ASSERT(input_md.get_format_kind() != dnnl::memory::format_kind::any,
                         "[GPU] The format kind of the input memory descriptor of onednn lstm_seq cannot be 'any'.");
         OPENVINO_ASSERT(output_md.get_format_kind() != dnnl::memory::format_kind::any,
@@ -222,12 +224,7 @@ public:
 
         std::vector<uint8_t> prim_cache;
         ib >> prim_cache;
-
-        _scratchpad_md = _pd.scratchpad_desc();
-        if (prim_cache.size() > 0)
-            _prim = dnnl::lstm_forward(_pd, prim_cache);
-        else
-            _prim = dnnl::lstm_forward(_pd);
+        _prim = dnnl::primitive(_pd, prim_cache);
 #endif
     }
 
