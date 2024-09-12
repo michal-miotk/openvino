@@ -49,6 +49,15 @@ protected:
         }
 
         {
+            int i = 2;
+            auto& input = instance.input_memory(i);
+            auto offset = onednn::get_offset(instance.get_input_layout(i),
+                                             _pd.dnnl::primitive_desc_base::src_desc(static_cast<int>(i)));
+            auto mem = input.get_onednn_memory(_pd.dnnl::primitive_desc_base::src_desc(static_cast<int>(i)), offset);
+            args.insert({DNNL_ARG_SRC_ITER_C, mem});
+        }
+
+        {
             int i = 4;
             auto& input = instance.input_memory(i);
             auto offset = onednn::get_offset(instance.get_input_layout(i),
@@ -80,6 +89,20 @@ protected:
             auto offset = onednn::get_offset(instance.get_output_layout(), _pd.dnnl::primitive_desc_base::dst_desc(0));
             auto mem = output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(0), offset);
             args.insert({DNNL_ARG_DST_LAYER, mem});
+        }
+
+        {
+            auto& output = instance.input_memory(7);
+            auto offset = onednn::get_offset(instance.get_input_layout(7), _pd.dnnl::primitive_desc_base::dst_desc(1));
+            auto mem = output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(1), offset);
+            args.insert({DNNL_ARG_DST_ITER, mem});
+        }
+
+        {
+            auto& output = instance.input_memory(8);
+            auto offset = onednn::get_offset(instance.get_input_layout(8), _pd.dnnl::primitive_desc_base::dst_desc(2));
+            auto mem = output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(2), offset);
+            args.insert({DNNL_ARG_DST_ITER_C, mem});
         }
         return args;
     }
@@ -125,7 +148,8 @@ protected:
         auto out_shape = impl_params.get_output_layout().get_shape();
         //std::swap(out_shape[0], out_shape[2]);
         auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout().clone_with_other_shape(out_shape), dnnl::memory::format_tag::undef);
-
+        auto output1_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(initial_shape), dnnl::memory::format_tag::undef);
+        auto output2_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(initial_shape), dnnl::memory::format_tag::undef);
         OPENVINO_ASSERT(input_md.get_format_kind() != dnnl::memory::format_kind::any,
                         "[GPU] The format kind of the input memory descriptor of onednn lstm_seq cannot be 'any'.");
         OPENVINO_ASSERT(output_md.get_format_kind() != dnnl::memory::format_kind::any,
@@ -145,8 +169,8 @@ protected:
             R_md,
             B_md,
             output_md,
-            emptyMemDescriptorForPeephole,
-            emptyMemDescriptorForPeephole);
+            output1_md,
+            output2_md);
     }
 
 public:
