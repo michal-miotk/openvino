@@ -87,6 +87,7 @@ enum WeightsLayout {
     oi = 0,
     io,
     oiyx,
+    oixy,
     ioyx,
     oyxi,
     oyix,

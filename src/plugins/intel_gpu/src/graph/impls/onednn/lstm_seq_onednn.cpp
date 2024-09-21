@@ -120,7 +120,8 @@ protected:
         initial_shape[2] = initial_shape[0];
         initial_shape[0] = 1;
         initial_shape[1] = 1;
-        auto initial_hidden =  onednn::layout_to_memory_desc(impl_params.get_input_layout(1).clone_with_other_shape(initial_shape));
+        auto initial_hidden =  onednn::layout_to_memory_desc(impl_params.get_input_layout(1).clone_with_other_shape(initial_shape), \
+        dnnl::memory::format_tag::bacd);
         auto initial_cell =  onednn::layout_to_memory_desc(impl_params.get_input_layout(1).clone_with_other_shape(initial_shape));
         auto shapeW = impl_params.get_input_layout(3).get_shape();
         std::cout << "origin" << shapeW[0] << "_" << shapeW[1] << shapeW[2] << shapeW[3] << std::endl;
@@ -130,7 +131,7 @@ protected:
         shapeW[3] = 4;
         auto l = impl_params.get_input_layout(3).clone_with_other_shape(shapeW);
         l.format = cldnn::format::bfzyx;
-        auto W_md = onednn::layout_to_memory_desc(l.convert_to_weights_layout(false));
+        auto W_md = onednn::layout_to_memory_desc(l.convert_to_weights_layout(false), dnnl::memory::format_tag::bacde);
         auto shapeR = impl_params.get_input_layout(4).get_shape();
         shapeR.push_back(shapeR[1]/4);
         shapeR[0] = 1;
@@ -152,8 +153,10 @@ protected:
         auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout().clone_with_other_shape(out_shape));
         auto output1_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(initial_shape));
         auto output2_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(initial_shape));
+        /*
         OPENVINO_ASSERT(input_md.get_format_kind() != dnnl::memory::format_kind::any,
                         "[GPU] The format kind of the input memory descriptor of onednn lstm_seq cannot be 'any'.");
+        */
         OPENVINO_ASSERT(output_md.get_format_kind() != dnnl::memory::format_kind::any,
                         "[GPU] The format kind of the output memory descriptor of onednn lstm_seq cannot be 'any'.");
 

@@ -42,9 +42,9 @@ std::vector<layout> lstm_seq_inst::calc_output_layouts(lstm_seq_node const& node
         lstm_hidden_size = -1;
     }
 
-    return {cldnn::layout{ShapeType{lstm_seq_length, lstm_batch_size, lstm_hidden_size}, input_layout_x.data_type, input_layout_x.format}, \
-            cldnn::layout{ShapeType{lstm_batch_size, 1, lstm_hidden_size}, input_layout_x.data_type, input_layout_x.format}, \
-            cldnn::layout{ShapeType{lstm_batch_size, 1, lstm_hidden_size}, input_layout_x.data_type, input_layout_x.format}};
+    return {cldnn::layout{ShapeType{lstm_seq_length, lstm_batch_size, lstm_hidden_size}, input_layout_x.data_type, cldnn::format::fbyx}, \
+            cldnn::layout{ShapeType{1, lstm_batch_size, lstm_hidden_size}, input_layout_x.data_type, cldnn::format::fbyx}, \
+            cldnn::layout{ShapeType{1, lstm_batch_size, lstm_hidden_size}, input_layout_x.data_type, cldnn::format::fbyx}};
 }
 
 template std::vector<layout> lstm_seq_inst::calc_output_layouts<ov::PartialShape>(lstm_seq_node const& node, const kernel_impl_params& impl_param);
