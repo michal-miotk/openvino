@@ -368,8 +368,9 @@ inline uint FUNC(get_input_index)(uint g, uint o, uint i, uint z, uint y, uint x
     return GET_FILTER_G_OS_ZYX_IS_OSV32_ISV16_INDEX(INPUT0, g, o, i, z, y, x);
 #elif defined INPUT0_LAYOUT_G_OS_ZYX_IS_OSV32_ISV32
     return GET_FILTER_G_OS_ZYX_IS_OSV32_ISV32_INDEX(INPUT0, g, o, i, z, y, x);
-#elif defined OUTPUT_LAYOUT_OIXY
-    return GET_FILTER_OIXY(OUTPUT, o, i, z, y, x);
+#elif defined INPUT0_LAYOUT_OIXY
+    printf("qustion about input %d %d %d %d %d \n", o, i, z, y, x);
+    return GET_FILTER_IN_OIXY(INPUT0, o, i, z, y, x);
 #else
 #error reorder_weights.cl: input format - not supported
 #endif
@@ -514,7 +515,8 @@ inline uint FUNC(get_output_index)(uint g, uint o, uint i, uint z, uint y, uint 
 #elif defined OUTPUT_LAYOUT_G_OS_ZYX_IS_OSV32_ISV32
     return GET_FILTER_G_OS_ZYX_IS_OSV32_ISV32_INDEX(OUTPUT, g, o, i, z, y, x);
 #elif defined OUTPUT_LAYOUT_OIXY
-    return GET_FILTER_OIXY(OUTPUT, o, i, z, y, x);
+    printf("qustion about output %d %d %d %d %d \n", o, i, z, y, x);
+    GET_FILTER_OUT_OIXY(OUTPUT, o, i, z, y, x);
 #else
 #error reorder_weights.cl: output format - not supported
 #endif
@@ -579,6 +581,7 @@ KERNEL (reorder_weights)(const __global INPUT0_TYPE* input, __global OUTPUT_TYPE
     output[output_idx] = TO_OUTPUT_TYPE(_convert_as_bfloat16_float(input[input_idx]));
 #else
     output[output_idx] = TO_OUTPUT_TYPE(input[input_idx]);
+    printf("I will write %f to %d\n", TO_OUTPUT_TYPE(input[input_idx]), output_idx);
 #endif
 }
 #endif

@@ -137,12 +137,33 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
                 tensor_from_dims(op->get_output_shape(1)));
     cldnn::layout w_in_Layout = cldnn::layout(
                 cldnn::element_type_to_data_type(w_precision),
-                cldnn::format::oixy,
+                cldnn::format::oiyx,
                 tensor_from_dims(op->get_input_shape(4)));
     cldnn::layout w_out_Layout = cldnn::layout(
                 cldnn::element_type_to_data_type(w_precision),
                 cldnn::format::oixy,
                 tensor_from_dims(op->get_input_shape(4)));
+    cldnn::layout r_in_Layout = cldnn::layout(
+                cldnn::element_type_to_data_type(w_precision),
+                cldnn::format::oiyx,
+                tensor_from_dims(op->get_input_shape(5)));
+    cldnn::layout r_out_Layout = cldnn::layout(
+                cldnn::element_type_to_data_type(w_precision),
+                cldnn::format::oixy,
+                tensor_from_dims(op->get_input_shape(5)));
+    cldnn::layout b_in_Layout = cldnn::layout(
+                cldnn::element_type_to_data_type(w_precision),
+                cldnn::format::oiyx,
+                tensor_from_dims(op->get_input_shape(6)));
+    auto sh = op->get_input_shape(6);
+    sh[3] = sh[1]/4;
+    sh[0] = 1;
+    sh[1] = 1;
+    sh[2] = 4;
+    cldnn::layout b_out_Layout = cldnn::layout(
+                cldnn::element_type_to_data_type(w_precision),
+                cldnn::format::oiyx,
+                tensor_from_dims(sh));
     std::vector<cldnn::memory::ptr> shared_memories;
     shared_memories.push_back(p.get_engine().allocate_memory(out12Layout));
     const cldnn::primitive_id mutable_id_1 = layerName + "_md_write1";
@@ -152,11 +173,24 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     const cldnn::primitive_id mutable_id_2 = layerName + "_md_write2";
     const cldnn::mutable_data mutable_prim_2{mutable_id_2, shared_memories.back()};
     p.add_primitive(*op, mutable_prim_2);
+    const cldnn::primitive_id reorder_in = layerName + "_reorder_in";
+    const cldnn::primitive_id reorder_inh = layerName + "_reorder_inh";
+    const cldnn::primitive_id reorder_inc = layerName + "_reorder_inc";
     const cldnn::primitive_id reorder_W = layerName + "_reorder_W";
+    const cldnn::primitive_id reorder_R = layerName + "_reorder_R";
+    const cldnn::primitive_id reorder_B = layerName + "_reorder_B";
     auto w_reorder_params = std::make_shared<cldnn::WeightsReorderParams>(w_in_Layout, w_out_Layout);
-    p.add_primitive(*op, cldnn::reorder(reorder_W, inputs[4], w_reorder_params));
+    auto r_reorder_params = std::make_shared<cldnn::WeightsReorderParams>(r_in_Layout, r_out_Layout);
+    auto b_reorder_params = std::make_shared<cldnn::WeightsReorderParams>(b_in_Layout, b_out_Layout);
+    //p.add_primitive(*op, cldnn::reorder(reorder_in, inputs[0], cldnn::format::fbyx, op->get_input_element_type(0)));
+    //p.add_primitive(*op, cldnn::reorder(reorder_inh, inputs[1], cldnn::format::fyxb, op->get_input_element_type(1)));
+    //p.add_primitive(*op, cldnn::reorder(reorder_inc, inputs[2], cldnn::format::fyxb, op->get_input_element_type(2)));
+    //p.add_primitive(*op, cldnn::reorder(reorder_W, inputs[4], w_reorder_params));
+    //p.add_primitive(*op, cldnn::reorder(reorder_R, inputs[5], r_reorder_params));
+    auto t = cldnn::tensor(sh[0], sh[1], sh[2], sh[3]);
+    p.add_primitive(*op, cldnn::reshape(reorder_B, inputs[6], t));
     cldnn::lstm_seq prim({lstm_seq_id + ".out0", inputs[0], inputs[1], \
-        inputs[2], reorder_W, inputs[5], inputs[6], inputs[3], mutable_id_1, mutable_id_2, \
+       inputs[2], inputs[4], inputs[5], reorder_B, inputs[3], mutable_id_1, mutable_id_2, \
         clip, activations, activation_params, cldnn::lstm_weights_order::fizo, direction});
     p.add_primitive(*op, prim);
     p.add_primitive(*op, cldnn::mutable_data(lstm_seq_id + ".out1", {cldnn::input_info(lstm_seq_id + ".out0")}, shared_memories.front()));

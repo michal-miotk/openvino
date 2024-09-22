@@ -966,16 +966,11 @@ inline uint get_g_is_os_yx_isa4_osa8_isv8_osv4(uint g, uint o, uint i, uint z, u
         CAT(prefix, _OFM_NUM),                                                \
         CAT(prefix, _OFFSET))
 
-#define GET_FILTER_OIXY(prefix, o, i, z, y, x) \
-    get_g_os_is_yx_osa4_isa8_osv8_isv4(                                       \
-        0, o, i, z, y, x,                                                     \
-        CAT(prefix, _SIZE_X),                                                 \
-        CAT(prefix, _SIZE_Y),                                                 \
-        CAT(prefix, _SIZE_Z),                                                 \
-        CAT(prefix, _IFM_NUM),                                                \
-        CAT(prefix, _OFM_NUM),                                                \
-        CAT(prefix, _OFFSET))
+#define GET_FILTER_IN_OIXY(prefix, o, i, z, y, x) \
+    CAT(prefix, _OFM_PITCH) * o + CAT(prefix, _IFM_PITCH) * i +  CAT(prefix, _X_PITCH) * x + CAT(prefix, _Y_PITCH) * y + CAT(prefix, _Z_PITCH) * z
 
+#define GET_FILTER_OUT_OIXY(prefix, o, i, z, y, x) \
+    if(i==0){return 1;} if(i==1){return 0;} return i;
 #define GET_FILTER_OS_IS_YX_OSA4_ISA8_OSV8_ISV4_SWIZZLED_BY_4_INDEX(prefix, o, i, y, x) \
     get_os_is_yx_osa4_isa8_osv8_isv4_swizzled_by_4_index(                               \
         o, i, y, x,                                                                     \

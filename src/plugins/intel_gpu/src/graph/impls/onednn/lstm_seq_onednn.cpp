@@ -120,8 +120,7 @@ protected:
         initial_shape[2] = initial_shape[0];
         initial_shape[0] = 1;
         initial_shape[1] = 1;
-        auto initial_hidden =  onednn::layout_to_memory_desc(impl_params.get_input_layout(1).clone_with_other_shape(initial_shape), \
-        dnnl::memory::format_tag::bacd);
+        auto initial_hidden =  onednn::layout_to_memory_desc(impl_params.get_input_layout(1).clone_with_other_shape(initial_shape));
         auto initial_cell =  onednn::layout_to_memory_desc(impl_params.get_input_layout(1).clone_with_other_shape(initial_shape));
         auto shapeW = impl_params.get_input_layout(3).get_shape();
         std::cout << "origin" << shapeW[0] << "_" << shapeW[1] << shapeW[2] << shapeW[3] << std::endl;
@@ -140,19 +139,20 @@ protected:
         auto lR = impl_params.get_input_layout(4).clone_with_other_shape(shapeR);
         lR.format = cldnn::format::bfzyx;
         auto R_md = onednn::layout_to_memory_desc(lR);
-        auto shapeB = impl_params.get_input_layout(5).get_shape();
-        shapeB[3] = shapeB[1]/4;
-        shapeB[0] = 1;
-        shapeB[1] = 1;
-        shapeB[2] = 4;
-        auto lB = impl_params.get_input_layout(3).clone_with_other_shape(shapeB);
-        lB.format = cldnn::format::bfyx;
-        auto B_md = onednn::layout_to_memory_desc(lB);
+        //auto shapeB = impl_params.get_input_layout(5).get_shape();
+        //shapeB[3] = shapeB[1]/4;
+        //shapeB[0] = 1;
+        //shapeB[1] = 1;
+        //shapeB[2] = 4;
+        //auto lB = impl_params.get_input_layout(3).clone_with_other_shape(shapeB);
+        //lB.format = cldnn::format::yxfb;
+        auto ll = impl_params.get_input_layout(5);
+        auto B_md = onednn::layout_to_memory_desc(ll);
         auto out_shape = impl_params.get_output_layout().get_shape();
         //std::swap(out_shape[0], out_shape[2]);
         auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout().clone_with_other_shape(out_shape));
         auto output1_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(initial_shape));
-        auto output2_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(initial_shape));
+        auto output2_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(8).clone_with_other_shape(initial_shape));
         /*
         OPENVINO_ASSERT(input_md.get_format_kind() != dnnl::memory::format_kind::any,
                         "[GPU] The format kind of the input memory descriptor of onednn lstm_seq cannot be 'any'.");
