@@ -135,6 +135,7 @@ struct format {
 
         // Weights formats
         oiyx,                                         ///< the most common format for 2D weights
+        oixy,
         ioyx,                                         ///< 2D weights format for deconvolutions
         yxio,                                         ///< format used 2D weights
         oizyx,                                        ///< the most common format for 3D convolution

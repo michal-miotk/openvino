@@ -307,6 +307,7 @@ std::string toString(WeightsLayout layout) {
    switch (layout) {
         case WeightsLayout::oi:                                          return "OI";
         case WeightsLayout::io:                                          return "IO";
+        case WeightsLayout::oixy:                                        return "OIXY";
         case WeightsLayout::oiyx:                                        return "OIYX";
         case WeightsLayout::ioyx:                                        return "IOYX";
         case WeightsLayout::oyxi:                                        return "OYXI";

@@ -79,6 +79,7 @@ static const std::map<format::type, format_traits> format_traits_map {
         FMT_TRAITS(image_2d_rgba,         1, 1, 2, 0, {0, 1, 2, 3},             "bfyx",     "bfxy",     {},                     {}),  // NOLINT
 
         FMT_TRAITS(oiyx,                                         1, 1, 2, 0, {0, 1, 2, 3},    "oiyx",   "oixy",  {},                    {}),  // NOLINT
+        FMT_TRAITS(oixy,                                         1, 1, 2, 0, {0, 1, 2, 3},    "oixy",   "oixy",  {},                    {}),  // NOLINT
         FMT_TRAITS(ioyx,                                         1, 1, 2, 0, {1, 0, 2, 3},    "ioyx",   "oixy",  {},                    {}),  // NOLINT
         FMT_TRAITS(iyxo,                                         1, 1, 2, 0, {1, 2, 3, 0},    "iyxo",   "oixy",  {},                    {}),  // NOLINT
         FMT_TRAITS(oyxi,                                         1, 1, 2, 0, {0, 2, 3, 1},    "oyxi",   "oixy",  {},                    {}),  // NOLINT

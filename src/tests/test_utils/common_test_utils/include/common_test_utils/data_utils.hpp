@@ -237,7 +237,7 @@ void inline fill_data_random(T* pointer,
         start_from = 0;
     }
     for (std::size_t i = 0; i < size; i++) {
-        pointer[i] = static_cast<T>(start_from + i);
+        pointer[i] = static_cast<T>(start_from + i + 1);
     }
 }
 
@@ -250,7 +250,7 @@ void inline fill_data_ptr_real_random_float(T* pointer,
     std::mt19937 gen(seed);
     std::uniform_real_distribution<double> dist(min, max);
     for (std::size_t i = 0; i < size; i++) {
-        pointer[i] = static_cast<T>(i);
+        pointer[i] = static_cast<T>(i + 1);
     }
 }
 
@@ -276,7 +276,7 @@ void inline fill_data_random_act_dft(T* pointer,
         start_from = 0;
     }
     for (std::size_t i = 0; i < size; i++) {
-        pointer[i] = static_cast<T>(start_from + static_cast<double>(i));
+        pointer[i] = static_cast<T>(start_from + static_cast<double>(i) + 1);
     }
 }
 

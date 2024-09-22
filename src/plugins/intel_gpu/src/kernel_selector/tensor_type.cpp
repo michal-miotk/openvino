@@ -73,6 +73,7 @@ WeightsTensor::WeightsChannelArray WeightsTensor::weightsChannelArray {{
     { WeightsLayout::oi,                                          { -1, -1, -1,   0,   1, -1 } },
     { WeightsLayout::io,                                          { -1, -1, -1,   1,   0, -1 } },
     { WeightsLayout::oiyx,                                        {  0,  1, -1,   2,   3, -1 } },
+    { WeightsLayout::oixy,                                        {  0,  1, -1,   2,   3, -1 } },
     { WeightsLayout::ioyx,                                        {  0,  1, -1,   3,   2, -1 } },
     { WeightsLayout::iyxo,                                        {  1,  2, -1,   3,   0, -1 } },
     { WeightsLayout::oyxi,                                        {  1,  2, -1,   0,   3, -1 } },
