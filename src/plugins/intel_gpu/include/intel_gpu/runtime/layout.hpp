@@ -437,6 +437,7 @@ struct layout {
         for (size_t i = 0; i < sizes.size(); ++i) {
             auto c = output_order[i];
             auto pos = default_order.find(c);
+            std::cout << "should be one of " << default_order << std::endl;
             OPENVINO_ASSERT(pos != std::string::npos, "[GPU] Unknown coord type: ", c);
 
             sizes[i] = static_cast<int32_t>(_sizes[pos]);

@@ -4,6 +4,7 @@
 
 #include "pass_manager.h"
 #include "fully_connected_inst.h"
+#include "lstm_seq_inst.h"
 #include "gemm_inst.h"
 #include "program_node.h"
 #include "intel_gpu/runtime/engine.hpp"
@@ -67,7 +68,7 @@ void select_preferred_formats::run(program& p) {
                                                                                 dnnl::primitive_attr(),
                                                                                 dnnl::memory::format_tag::any);
                 lo.select_preferred_formats_for_onednn(*n, *prim_desc);
-            } else if (n->is_type<fully_connected>() || n->is_type<gemm>()) {
+            } else if (n->is_type<fully_connected>() || n->is_type<gemm>() || n->is_type<lstm_seq>()) {
                 lo.select_preferred_formats_for_onednn(*n);
             }
         } catch(std::exception &exception) {
