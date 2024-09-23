@@ -117,8 +117,7 @@ protected:
         auto W_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(3));
         auto R_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(4));
         auto B_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(5));
-        auto out_shape = impl_params.get_output_layout().get_shape();
-        auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout().clone_with_other_shape(out_shape));
+        auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout());
         auto output1_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(initial_shape));
         auto output2_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(initial_shape));
         OPENVINO_ASSERT(input_md.get_format_kind() != dnnl::memory::format_kind::any,
