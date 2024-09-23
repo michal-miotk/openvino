@@ -968,7 +968,9 @@ static bool is_node_for_onednn(gemm_node const& node) {
 }
 
 static bool is_node_for_onednn(lstm_seq_node const& node) {
-    return true;
+    std::vector<cldnn::activation_func> expected{cldnn::activation_func::logistic, cldnn::activation_func::hyperbolic_tan, \
+    cldnn::activation_func::hyperbolic_tan};
+    return node.activations() == expected;
 }
 
 // This function is needed to avoid performance regressions for the convolutions with byxf layout
@@ -1752,6 +1754,8 @@ impl_types layout_optimizer::get_preferred_impl_type(program_node& node, format 
         preferred_impl = impl_types::ocl;
     } else if (node.is_type<lstm_seq>()) {
         if (!_optimization_attributes.use_onednn_impls)
+            return impl_types::ocl;
+        if (!is_node_for_onednn(node.as<lstm_seq>()))
             return impl_types::ocl;
         preferred_impl = impl_types::onednn;
     }
