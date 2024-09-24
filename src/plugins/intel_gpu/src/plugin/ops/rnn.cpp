@@ -172,8 +172,8 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     const cldnn::primitive_id crop_id_B_3 = layerName + "_crop_B_3";
     const cldnn::primitive_id concat_id_B = layerName + "_concatB";
     const cldnn::primitive_id permute_B = layerName + "_permuteB";
-    p.add_primitive(*op, cldnn::permute(permute_id_1, inputs[0], {1, 0, 2, 3}));
-    p.add_primitive(*op, cldnn::permute(permute_id_2, inputs[1], {3, 1, 0, 2}));
+    //p.add_primitive(*op, cldnn::permute(permute_id_1, inputs[0], {1, 0, 2, 3}));
+    //p.add_primitive(*op, cldnn::permute(permute_id_2, inputs[1], {3, 1, 0, 2}));
     p.add_primitive(*op, cldnn::permute(permute_id_3, inputs[2], {3, 1, 0, 2}));
     const unsigned long int gateNum = 4;
     int hiddenSize = static_cast<int>(op->get_input_shape(4)[1]/gateNum);
@@ -216,7 +216,7 @@ static void CreateLSTMSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op
     p.add_primitive(*op, cldnn::crop(crop_id_B_3, inputs[6], cropSizeB, cldnn::tensor{0, 3*hiddenSize, 0, 0}));
     p.add_primitive(*op, cldnn::concatenation(concat_id_B, {crop_id_B_1, crop_id_B_0, crop_id_B_2, crop_id_B_3}, 0));
     p.add_primitive(*op, cldnn::permute(permute_B, concat_id_B, {2, 3, 0, 1}));
-    cldnn::lstm_seq prim({lstm_seq_id + ".out_pre_perm", permute_id_1, permute_id_2, \
+    cldnn::lstm_seq prim({lstm_seq_id + ".out_pre_perm", inputs[0], inputs[1], \
         permute_id_3, permute_W2, permute_R2, permute_B, inputs[3], mutable_id_1, mutable_id_2, \
         clip, activations, activation_params, cldnn::lstm_weights_order::fizo, direction});
     p.add_primitive(*op, prim);

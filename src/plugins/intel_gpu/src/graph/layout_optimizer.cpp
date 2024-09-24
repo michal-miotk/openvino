@@ -1348,6 +1348,9 @@ bool layout_optimizer::are_data_types_suitable_for_onednn(program_node& node) {
     auto in_dt = node.get_input_layout(0).data_type;
     auto out_dt = node.get_output_layout(false).data_type;
 
+    if (node.is_type<lstm_seq>()) {
+        return true;
+    }
     // Generally, fp32 input does NOT use oneDNN
     if (in_dt == data_types::f32 &&
         (!node.is_type<fully_connected>() && !node.is_type<convolution>() && !node.is_type<reorder>()))
@@ -1389,8 +1392,6 @@ bool layout_optimizer::are_data_types_suitable_for_onednn(program_node& node) {
         if (output_fmt == format::bfyx && out_dt == data_types::f32)
             return false;
 
-        return true;
-    } else if (node.is_type<lstm_seq>()) {
         return true;
     }
     return false;
@@ -2045,6 +2046,9 @@ void layout_optimizer::select_preferred_formats_for_onednn(program_node& node, d
             GPU_DEBUG_LOG << "select_preferred_formats:" << node.id() << ": " << fmt_to_str(target_format) << " --> " << fmt_to_str(target_format)
                           << " For index : " << idx << std::endl;
         }
+    } else if (node.is_type<lstm_seq>()) {
+        node.set_preferred_input_fmt(0, format::bfxy);
+        node.set_preferred_input_fmt(1, format::ybfx);
     }
 }
 #endif  // ENABLE_ONEDNN_FOR_GPU
