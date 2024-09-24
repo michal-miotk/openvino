@@ -110,14 +110,14 @@ protected:
     static std::shared_ptr<dnnl::lstm_forward::primitive_desc> get_lstm_primitive_descriptor(const kernel_impl_params& impl_params, cldnn::engine& engine,
                                                                                            const dnnl::primitive_attr& attr, int direction) {
         auto prim = impl_params.typed_desc<lstm_seq>();
-        auto input_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(0));
+        auto input_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(0), dnnl::memory::format_tag::abc);
         auto initial_shape = impl_params.get_input_layout(1).get_shape();
         auto initial_hidden =  onednn::layout_to_memory_desc(impl_params.get_input_layout(1));
         auto initial_cell =  onednn::layout_to_memory_desc(impl_params.get_input_layout(2));
         auto W_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(3));
         auto R_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(4));
         auto B_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(5));
-        auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout());
+        auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout(), dnnl::memory::format_tag::abc);
         auto output1_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(initial_shape));
         auto output2_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(7).clone_with_other_shape(initial_shape));
         OPENVINO_ASSERT(input_md.get_format_kind() != dnnl::memory::format_kind::any,
