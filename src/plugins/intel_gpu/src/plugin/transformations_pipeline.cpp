@@ -64,6 +64,7 @@
 #include "plugin/transformations/kv_cache_fusion.hpp"
 #include "plugin/transformations/move_fc_reshape_to_weights.hpp"
 #include "plugin/transformations/bcast_and_pad_zp_buffers.hpp"
+#include "plugin/transformations/prepare_lstm_weights.hpp"
 #include "plugin/transformations/print_model_statistics.hpp"
 #include "plugin/transformations/swiglu_fusion.hpp"
 #include "plugin/transformations/transpose_fusion.hpp"
@@ -900,7 +901,7 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
         GPU_DEBUG_IF(cldnn::debug_configuration::get_instance()->verbose >= 1) {
             manager.register_pass<ov::intel_gpu::PrintModelStatistics>();
         }
-
+        //manager.register_pass<ov::intel_gpu::PrepareLSTMWeights>();
         manager.run_passes(func);
     }
 }
