@@ -123,7 +123,7 @@ protected:
         initial_hidden_shape_mod[0] = 1;
         initial_hidden_shape_mod[0] = 1;
         auto initial_hidden =  onednn::layout_to_memory_desc(impl_params.get_input_layout(1).clone_with_other_shape(initial_hidden_shape_mod));
-        auto initial_cell =  onednn::layout_to_memory_desc(impl_params.get_input_layout(2));
+        auto initial_cell =  onednn::layout_to_memory_desc(impl_params.get_input_layout(2).clone_with_other_shape(initial_hidden_shape_mod));
         auto W_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(3));
         auto R_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(4));
         auto B_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(5));
