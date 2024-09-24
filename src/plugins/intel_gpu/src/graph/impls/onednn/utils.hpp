@@ -53,13 +53,15 @@ struct WeightsReorderParamsOneDNN : public cldnn::WeightsReorderParams {
                                const layout& out_layout,
                                const dnnl::memory::desc& in_desc,
                                const dnnl::memory::desc& out_desc,
-                               bool transposed, bool grouped = false)
+                               bool transposed, bool grouped = false, bool isLSTM = false)
         : WeightsReorderParams(in_layout, out_layout, transposed, grouped)
         , _in_desc(in_desc)
-        , _out_desc(out_desc) {}
+        , _out_desc(out_desc)
+        , isLSTM(isLSTM) {}
 
     dnnl::memory::desc _in_desc;
     dnnl::memory::desc _out_desc;
+    bool isLSTM;
 };
 
 }  // namespace onednn

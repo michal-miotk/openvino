@@ -29,11 +29,13 @@ PrepareLSTMWeights::PrepareLSTMWeights() {
     using namespace ov::pass::pattern;
     auto m = std::make_shared<ov::pass::pattern::Matcher>(ov::pass::pattern::wrap_type<ov::op::v5::LSTMSequence>(), "PrepareLSTMWeights");
     register_matcher(m, [&](ov::pass::pattern::Matcher& m) {
-        auto lstm = std::dynamic_pointer_cast<ov::op::v1::AvgPool>(m.get_match_root());
-        if (!pool || transformation_callback(pool)) {
+        auto lstm = std::dynamic_pointer_cast<ov::op::v5::LSTMSequence>(m.get_match_root());
+        if (!lstm) {
             return false;
         }
-    }
+        auto rt_info = lstm->get_rt_info();
+        return false;
+    });
 }
 
 }  // namespace intel_gpu
