@@ -2049,6 +2049,10 @@ void layout_optimizer::select_preferred_formats_for_onednn(program_node& node, d
     } else if (node.is_type<lstm_seq>()) {
         node.set_preferred_input_fmt(0, format::bfxy);
         node.set_preferred_input_fmt(1, format::ybfx);
+        node.set_preferred_input_fmt(2, format::ybfx);
+        node.set_preferred_output_fmt(0, format::fybx);
+        node.set_preferred_output_fmt(1, format::fybx);
+        node.set_preferred_output_fmt(2, format::fybx);
     }
 }
 #endif  // ENABLE_ONEDNN_FOR_GPU
