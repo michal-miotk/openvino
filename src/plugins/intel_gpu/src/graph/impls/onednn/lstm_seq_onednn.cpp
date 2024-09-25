@@ -106,8 +106,32 @@ protected:
         }
         return args;
     }
+    static std::shared_ptr<WeightsReorderParams> get_weights_reorder(const kernel_impl_params& impl_params, const dnnl::primitive_desc& pd) {
+        auto cldnn_prim = impl_params.typed_desc<lstm_seq>();
 
-    static std::shared_ptr<dnnl::lstm_forward::primitive_desc> get_lstm_primitive_descriptor(const kernel_impl_params& impl_params, const cldnn::engine& engine,
+        auto source_weights_layout = impl_params.get_input_layout(3);
+        auto grouped_weights = format::is_grouped(source_weights_layout.format);
+        auto target_weights_desc = pd.weights_desc(0);
+
+        auto shape_consistent = onednn::keep_weights_reorder_shape_consistent(source_weights_layout, target_weights_desc);
+        OPENVINO_ASSERT(shape_consistent, "[GPU] Input shape and output shape of weight reorder should be same.");
+
+        auto source_weights_desc = onednn::layout_to_memory_desc(source_weights_layout);
+
+        const bool weights_format = true;
+        auto traits = convert_memory_desc_to_traits(target_weights_desc, weights_format, grouped_weights);
+
+        auto target_weights_layout = source_weights_layout;
+        target_weights_layout.format = format::byxf;
+
+        return std::make_shared<WeightsReorderParamsOneDNN>(source_weights_layout,
+                                                            target_weights_layout,
+                                                            source_weights_desc,
+                                                            target_weights_desc,
+                                                            false,
+                                                            grouped_weights);
+    }
+    static std::shared_ptr<dnnl::lstm_forward::primitive_desc> get_lstm_primitive_descriptor(const kernel_impl_params& impl_params, cldnn::engine& engine,
                                                                                            const dnnl::primitive_attr& attr, int direction) {
         auto prim = impl_params.typed_desc<lstm_seq>();
         auto initial_shape = impl_params.get_input_layout(1).get_shape();
@@ -205,6 +229,7 @@ public:
             auto attr = impl_params.attrs_onednn;
             auto direction = arg.direction();
             auto prim_desc = get_lstm_primitive_descriptor(impl_params, engine, *attr, direction);
+            //get_weights_reorder(impl_params, *prim_desc)
             return cldnn::make_unique<lstm_seq_onednn>(engine, config, attr, *prim_desc);
     }
 };
