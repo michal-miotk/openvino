@@ -111,18 +111,11 @@ protected:
 
         auto source_weights_layout = impl_params.get_input_layout(3);
         auto grouped_weights = format::is_grouped(source_weights_layout.format);
-        auto target_weights_desc = pd.weights_desc(0);
-
-        auto shape_consistent = onednn::keep_weights_reorder_shape_consistent(source_weights_layout, target_weights_desc);
-        OPENVINO_ASSERT(shape_consistent, "[GPU] Input shape and output shape of weight reorder should be same.");
-
         auto source_weights_desc = onednn::layout_to_memory_desc(source_weights_layout);
 
-        const bool weights_format = true;
-        auto traits = convert_memory_desc_to_traits(target_weights_desc, weights_format, grouped_weights);
-
-        auto target_weights_layout = source_weights_layout;
-        target_weights_layout.format = format::byxf;
+        auto target_weights_layout = impl_params.get_input_layout(3);
+        target_weights_layout.format = cldnn::format::bfzyx;
+        auto target_weights_desc = onednn::layout_to_memory_desc(target_weights_layout);
 
         return std::make_shared<WeightsReorderParamsOneDNN>(source_weights_layout,
                                                             target_weights_layout,
@@ -143,7 +136,11 @@ protected:
         initial_hidden_shape_mod = { 1, 1, initial_hidden_shape_mod[0], initial_hidden_shape_mod[2] };
         auto initial_hidden =  onednn::layout_to_memory_desc(impl_params.get_input_layout(1).clone_with_other_shape(initial_hidden_shape_mod));
         auto initial_cell =  onednn::layout_to_memory_desc(impl_params.get_input_layout(2).clone_with_other_shape(initial_hidden_shape_mod));
-        auto W_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(3));
+        auto W_shape_mod = impl_params.get_input_layout(3).get_shape();
+        W_shape_mod = {1, 1, W_shape_mod[2], 4, W_shape_mod[1]/4};
+        auto w_layout = impl_params.get_input_layout(3).clone_with_other_shape(W_shape_mod);
+        w_layout.format = cldnn::format::bfzyx;
+        auto W_md = onednn::layout_to_memory_desc(w_layout);
         auto R_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(4));
         auto B_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(5));
         auto out_shape = impl_params.get_output_layout().get_shape();
@@ -229,8 +226,7 @@ public:
             auto attr = impl_params.attrs_onednn;
             auto direction = arg.direction();
             auto prim_desc = get_lstm_primitive_descriptor(impl_params, engine, *attr, direction);
-            //get_weights_reorder(impl_params, *prim_desc)
-            return cldnn::make_unique<lstm_seq_onednn>(engine, config, attr, *prim_desc);
+            return cldnn::make_unique<lstm_seq_onednn>(engine, config, attr, *prim_desc, get_weights_reorder(impl_params, *prim_desc));
     }
 };
 

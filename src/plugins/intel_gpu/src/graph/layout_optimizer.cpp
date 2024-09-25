@@ -35,6 +35,8 @@
 #include "gather_inst.h"
 #include "broadcast_inst.h"
 #include "loop_inst.h"
+#include "concatenation_inst.h"
+#include "permute_inst.h"
 #include "dft_inst.h"
 #include "lstm_seq_inst.h"
 #include "to_string_utils.h"
@@ -188,6 +190,32 @@ std::pair<std::shared_ptr<primitive>, bool> reorder_factory::get_weights_reorder
         _cached_reorders[ckey] = reorder;
         return std::make_pair(reorder, false);
     }
+}
+
+std::pair<std::shared_ptr<primitive>, std::shared_ptr<primitive>> reorder_factory::get_weights_split(primitive_id input_id,
+                                                                                 std::shared_ptr<WeightsReorderParams> reorder_params, program& p) {
+    OPENVINO_ASSERT(reorder_params != nullptr, "[GPU] WeightsReorderParams is not initialized.");
+    cache_key ckey{ input_id, reorder_params->get_output_layout(), false };
+
+    auto count = _cached_reorders.size();
+    std::string reorder_id = input_id + "_weights_permute_" + std::to_string(count);
+    auto hiddenSize = reorder_params->get_input_layout().get_shape()[1] / 4;
+    auto cropSizeR = cldnn::tensor{1, 1, 1, static_cast<int>(reorder_params->get_input_layout().get_shape()[2]), static_cast<int>(hiddenSize)};
+    auto reorder = std::make_shared<cldnn::reorder>(reorder_id, input_id, reorder_params);
+    auto split0 = std::make_shared<cldnn::crop>(reorder_id, input_id, cropSizeR, cldnn::tensor{0, 0, 0, 0, 0});
+    auto split1 = std::make_shared<cldnn::crop>(reorder_id, input_id, cropSizeR, cldnn::tensor{0, 0, 0, 0, static_cast<int>(1*hiddenSize)});
+    auto split2 = std::make_shared<cldnn::crop>(reorder_id, input_id, cropSizeR, cldnn::tensor{0, 0, 0, 0, static_cast<int>(2*hiddenSize)});
+    auto split3 = std::make_shared<cldnn::crop>(reorder_id, input_id, cropSizeR, cldnn::tensor{0, 0, 0, 0, static_cast<int>(3*hiddenSize)});
+    p.get_or_create(split0);
+    p.get_or_create(split1);
+    p.get_or_create(split2);
+    p.get_or_create(split3);
+    std::vector<input_info> con_input{input_info(*split1), input_info(*split0), input_info(*split2), input_info(*split3)};
+    cldnn::primitive_id concat_id{"concatttt"};
+    auto con = std::make_shared<cldnn::concatenation>(concat_id, con_input, 4);
+    std::vector<uint16_t> permute_order{0, 1, 3, 4, 2};
+    auto perm = std::make_shared<cldnn::permute>("permute_R2", concat_id, permute_order);
+    return std::make_pair(reorder, perm);
 }
 
 bool layout_optimizer::is_format_supported(program_node& node, format::type fmt) {
