@@ -205,53 +205,49 @@ void reorder_factory::get_weights_split(primitive_id input_id,
     auto reorder = std::make_shared<cldnn::reorder>(reorder_id, input_id, reorder_params);
     auto& reorder_node = p.get_or_create(reorder);
     p.add_intermediate(reorder_node, node, prev, true);
-    reorder_node.calc_output_layout();
-    std::string crop_id = input_id + "_crop";
-    auto crop0_id = primitive_id(crop_id + "0");
-    auto crop1_id = primitive_id(crop_id + "1");
-    auto crop2_id = primitive_id(crop_id + "2");
-    auto crop3_id = primitive_id(crop_id + "3");
-    auto crop0 = std::make_shared<cldnn::crop>(crop0_id, reorder_id, cropSizeR, cldnn::tensor{0, static_cast<int>(1*hiddenSize), 0, 0, 0});
+    reorder_node.get_output_layout(false);
+    std::string crop_id = input_id + "_cropx";
+    //auto crop0_id = primitive_id(crop_id + "0");
+    auto crop1_id = primitive_id(crop_id);
+    //auto crop2_id = primitive_id(crop_id + "2");
+    //auto crop3_id = primitive_id(crop_id + "3");
+    //auto crop0 = std::make_shared<cldnn::crop>(crop0_id, reorder_id, cropSizeR, cldnn::tensor{0, 0, 0, 0, 0});
     auto crop1 = std::make_shared<cldnn::crop>(crop1_id, reorder_id, cropSizeR, cldnn::tensor{0, static_cast<int>(1*hiddenSize), 0, 0, 0});
-    auto crop2 = std::make_shared<cldnn::crop>(crop2_id, reorder_id, cropSizeR, cldnn::tensor{0, static_cast<int>(1*hiddenSize), 0, 0, 0});
-    auto crop3 = std::make_shared<cldnn::crop>(crop3_id, reorder_id, cropSizeR, cldnn::tensor{0, static_cast<int>(1*hiddenSize), 0, 0, 0});
-    auto& crop0_node = p.get_or_create(crop0);
+    //auto crop2 = std::make_shared<cldnn::crop>(crop2_id, reorder_id, cropSizeR, cldnn::tensor{0, static_cast<int>(1*hiddenSize), 0, 0, 0});
+    //auto crop3 = std::make_shared<cldnn::crop>(crop3_id, reorder_id, cropSizeR, cldnn::tensor{0, static_cast<int>(1*hiddenSize), 0, 0, 0});
+    //auto& crop0_node = p.get_or_create(crop0);
     auto& crop1_node = p.get_or_create(crop1);
-    auto& crop2_node = p.get_or_create(crop2);
-    auto& crop3_node = p.get_or_create(crop3);
+    //auto& crop2_node = p.get_or_create(crop2);
+    //auto& crop3_node = p.get_or_create(crop3);
     p.add_intermediate(crop1_node, node, reorder_node, true);
-    std::vector<input_info> con_input{input_info(crop1_id), input_info(crop0_id), input_info(crop2_id), input_info(crop3_id)};
-    cldnn::primitive_id concat_id{input_id + "concatttt"};
+    crop1_node.set_selected_impl(crop1_node.type()->choose_impl(crop1_node));
+    if (auto impl = crop1_node.get_selected_impl()) {
+        auto params = crop1_node.get_kernel_impl_params();
+        p.get_kernels_cache().add_kernels_source(*params, impl->get_kernels_source());
+    }
+    //p.add_connection(reorder_node, crop0_node, 0);
+    std::vector<input_info> con_input{input_info(crop1_id)};
+    cldnn::primitive_id concat_id{input_id + "concat"};
     auto con = std::make_shared<cldnn::concatenation>(concat_id, con_input, 3);
     auto& con_node = p.get_or_create(con);
     p.add_intermediate(con_node, node, crop1_node, true);
-    p.add_connection(reorder_node, crop0_node, 0);
-    //p.add_connection(reorder_node, crop1_node, 1);
-    p.add_connection(reorder_node, crop2_node, 0);
-    p.add_connection(reorder_node, crop3_node, 0);
-    crop0_node.calc_output_layout();
-    crop0_node.calc_output_layout();
-    crop1_node.calc_output_layout();
-    crop0_node.calc_output_layout();
-    crop2_node.calc_output_layout();
-    crop0_node.calc_output_layout();
-    crop3_node.calc_output_layout();
-    crop0_node.calc_output_layout();
-    p.add_connection(crop0_node, con_node, 0);
-    p.add_connection(crop2_node, con_node, 0);
-    p.add_connection(crop3_node, con_node, 0);
-    crop0_node.get_output_layout();
-    crop0_node.get_input_layout();
-    crop1_node.get_input_layout();
-    con_node.calc_output_layout();
-    crop0_node.calc_output_layout();
-    con_node.calc_output_layout();
-    /*
-    std::vector<uint16_t> permute_order{0, 1, 3, 4, 2};
-    auto perm = std::make_shared<cldnn::permute>("permute_R2", concat_id, permute_order);
-    auto& perm_node = p.get_or_create(perm);
-    p.add_intermediate(perm_node, node, con_node, true);
-    */
+    //p.add_connection(crop0_node, con_node, 0);
+    //crop0_node.get_output_layout(false);
+    crop1_node.get_output_layout(false);
+    con_node.get_output_layout(false);
+
+    con_node.set_selected_impl(con_node.type()->choose_impl(con_node));
+    if (auto impl = con_node.get_selected_impl()) {
+        auto params = con_node.get_kernel_impl_params();
+        p.get_kernels_cache().add_kernels_source(*params, impl->get_kernels_source());
+    }
+    reorder_node.set_selected_impl(reorder_node.type()->choose_impl(reorder_node));
+    if (auto impl = reorder_node.get_selected_impl()) {
+        auto params = reorder_node.get_kernel_impl_params();
+        p.get_kernels_cache().add_kernels_source(*params, impl->get_kernels_source());
+    }
+    auto some_info = p.get_implementation_info(crop_id);
+    std::cout << some_info << std::endl;
 }
 
 bool layout_optimizer::is_format_supported(program_node& node, format::type fmt) {

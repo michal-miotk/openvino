@@ -14,10 +14,11 @@
 #ifdef ENABLE_ONEDNN_FOR_GPU
 #include "graph/impls/onednn/utils.hpp"
 #endif // ENABLE_ONEDNN_FOR_GPU
+
 namespace cldnn {
 
 post_optimize_lstm_weights::post_optimize_lstm_weights(reorder_factory& rf_ref)
-    : base_pass("post_optimize_weights"), _rf(rf_ref) {}
+    : base_pass("post_optimize_lstm_weights"), _rf(rf_ref) {}
 
 template<typename T> post_optimize_lstm_weights::weights_bias_offset post_optimize_lstm_weights::get_weights_bias_offset(const T& node) {
     return weights_bias_offset(3, 4);
@@ -118,10 +119,6 @@ void post_optimize_lstm_weights::optimize_lstm_weights(T& node, program& p) {
                 // set weights reorder's node output layout and implementation
                 auto& weights_reorder_node = node.get_dependency(i);
                 weights_reorder_node.get_output_layout(false);
-                for (int i=1; i < 4 ; i++) {
-                    auto& dep = weights_reorder_node.get_dependency(i);
-                    dep.get_output_layout(false);
-                }
             }
         }
     }
