@@ -53,8 +53,9 @@ public:
     std::pair<std::shared_ptr<primitive>, bool> get_weights_reorder(primitive_id input_id,
                                                                     std::shared_ptr<WeightsReorderParams> reorder_params);
 
-    std::pair<std::shared_ptr<primitive>, std::shared_ptr<primitive>> get_weights_split(primitive_id input_id,
-                                                                    std::shared_ptr<WeightsReorderParams> reorder_params, program& p);
+    void get_weights_split(primitive_id input_id,
+                                                                    std::shared_ptr<WeightsReorderParams> reorder_params, program& p, cldnn::program_node&, \
+                                                                    cldnn::program_node&);
 
 private:
     struct cache_key {

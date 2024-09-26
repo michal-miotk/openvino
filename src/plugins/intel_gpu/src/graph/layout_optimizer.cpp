@@ -192,30 +192,66 @@ std::pair<std::shared_ptr<primitive>, bool> reorder_factory::get_weights_reorder
     }
 }
 
-std::pair<std::shared_ptr<primitive>, std::shared_ptr<primitive>> reorder_factory::get_weights_split(primitive_id input_id,
-                                                                                 std::shared_ptr<WeightsReorderParams> reorder_params, program& p) {
+void reorder_factory::get_weights_split(primitive_id input_id,
+                                                                                 std::shared_ptr<WeightsReorderParams> reorder_params, program& p, \
+                                                                                 cldnn::program_node& prev, cldnn::program_node& node) {
     OPENVINO_ASSERT(reorder_params != nullptr, "[GPU] WeightsReorderParams is not initialized.");
     cache_key ckey{ input_id, reorder_params->get_output_layout(), false };
 
     auto count = _cached_reorders.size();
     std::string reorder_id = input_id + "_weights_permute_" + std::to_string(count);
     auto hiddenSize = reorder_params->get_input_layout().get_shape()[1] / 4;
-    auto cropSizeR = cldnn::tensor{1, 1, 1, static_cast<int>(reorder_params->get_input_layout().get_shape()[2]), static_cast<int>(hiddenSize)};
+    auto cropSizeR = cldnn::tensor{1, static_cast<int>(hiddenSize), static_cast<int>(reorder_params->get_input_layout().get_shape()[2]), 1, 1};
     auto reorder = std::make_shared<cldnn::reorder>(reorder_id, input_id, reorder_params);
-    auto split0 = std::make_shared<cldnn::crop>(reorder_id, input_id, cropSizeR, cldnn::tensor{0, 0, 0, 0, 0});
-    auto split1 = std::make_shared<cldnn::crop>(reorder_id, input_id, cropSizeR, cldnn::tensor{0, 0, 0, 0, static_cast<int>(1*hiddenSize)});
-    auto split2 = std::make_shared<cldnn::crop>(reorder_id, input_id, cropSizeR, cldnn::tensor{0, 0, 0, 0, static_cast<int>(2*hiddenSize)});
-    auto split3 = std::make_shared<cldnn::crop>(reorder_id, input_id, cropSizeR, cldnn::tensor{0, 0, 0, 0, static_cast<int>(3*hiddenSize)});
-    p.get_or_create(split0);
-    p.get_or_create(split1);
-    p.get_or_create(split2);
-    p.get_or_create(split3);
-    std::vector<input_info> con_input{input_info(*split1), input_info(*split0), input_info(*split2), input_info(*split3)};
-    cldnn::primitive_id concat_id{"concatttt"};
-    auto con = std::make_shared<cldnn::concatenation>(concat_id, con_input, 4);
+    auto& reorder_node = p.get_or_create(reorder);
+    p.add_intermediate(reorder_node, node, prev, true);
+    reorder_node.calc_output_layout();
+    std::string crop_id = input_id + "_crop";
+    auto crop0_id = primitive_id(crop_id + "0");
+    auto crop1_id = primitive_id(crop_id + "1");
+    auto crop2_id = primitive_id(crop_id + "2");
+    auto crop3_id = primitive_id(crop_id + "3");
+    auto crop0 = std::make_shared<cldnn::crop>(crop0_id, reorder_id, cropSizeR, cldnn::tensor{0, static_cast<int>(1*hiddenSize), 0, 0, 0});
+    auto crop1 = std::make_shared<cldnn::crop>(crop1_id, reorder_id, cropSizeR, cldnn::tensor{0, static_cast<int>(1*hiddenSize), 0, 0, 0});
+    auto crop2 = std::make_shared<cldnn::crop>(crop2_id, reorder_id, cropSizeR, cldnn::tensor{0, static_cast<int>(1*hiddenSize), 0, 0, 0});
+    auto crop3 = std::make_shared<cldnn::crop>(crop3_id, reorder_id, cropSizeR, cldnn::tensor{0, static_cast<int>(1*hiddenSize), 0, 0, 0});
+    auto& crop0_node = p.get_or_create(crop0);
+    auto& crop1_node = p.get_or_create(crop1);
+    auto& crop2_node = p.get_or_create(crop2);
+    auto& crop3_node = p.get_or_create(crop3);
+    p.add_intermediate(crop1_node, node, reorder_node, true);
+    std::vector<input_info> con_input{input_info(crop1_id), input_info(crop0_id), input_info(crop2_id), input_info(crop3_id)};
+    cldnn::primitive_id concat_id{input_id + "concatttt"};
+    auto con = std::make_shared<cldnn::concatenation>(concat_id, con_input, 3);
+    auto& con_node = p.get_or_create(con);
+    p.add_intermediate(con_node, node, crop1_node, true);
+    p.add_connection(reorder_node, crop0_node, 0);
+    //p.add_connection(reorder_node, crop1_node, 1);
+    p.add_connection(reorder_node, crop2_node, 0);
+    p.add_connection(reorder_node, crop3_node, 0);
+    crop0_node.calc_output_layout();
+    crop0_node.calc_output_layout();
+    crop1_node.calc_output_layout();
+    crop0_node.calc_output_layout();
+    crop2_node.calc_output_layout();
+    crop0_node.calc_output_layout();
+    crop3_node.calc_output_layout();
+    crop0_node.calc_output_layout();
+    p.add_connection(crop0_node, con_node, 0);
+    p.add_connection(crop2_node, con_node, 0);
+    p.add_connection(crop3_node, con_node, 0);
+    crop0_node.get_output_layout();
+    crop0_node.get_input_layout();
+    crop1_node.get_input_layout();
+    con_node.calc_output_layout();
+    crop0_node.calc_output_layout();
+    con_node.calc_output_layout();
+    /*
     std::vector<uint16_t> permute_order{0, 1, 3, 4, 2};
     auto perm = std::make_shared<cldnn::permute>("permute_R2", concat_id, permute_order);
-    return std::make_pair(reorder, perm);
+    auto& perm_node = p.get_or_create(perm);
+    p.add_intermediate(perm_node, node, con_node, true);
+    */
 }
 
 bool layout_optimizer::is_format_supported(program_node& node, format::type fmt) {

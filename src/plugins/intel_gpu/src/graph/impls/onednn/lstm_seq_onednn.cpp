@@ -114,7 +114,7 @@ protected:
         auto source_weights_desc = onednn::layout_to_memory_desc(source_weights_layout);
 
         auto target_weights_layout = impl_params.get_input_layout(3);
-        target_weights_layout.format = cldnn::format::bfzyx;
+        target_weights_layout.format = cldnn::format::bfyx;;
         auto target_weights_desc = onednn::layout_to_memory_desc(target_weights_layout);
 
         return std::make_shared<WeightsReorderParamsOneDNN>(source_weights_layout,
