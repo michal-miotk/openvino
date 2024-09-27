@@ -235,14 +235,21 @@ void reorder_factory::get_weights_split(primitive_id input_id,
     crop2_node.get_output_layout(false);
     crop3_node.get_output_layout(false);
     con_node.get_output_layout(false);
-    if (!con_node.is_constant()) {
+
+    std::string permute_id = input_id + "_permute";
+    std::vector<uint16_t> ord{0, 1, 3, 4, 2};
+    auto permute = std::make_shared<cldnn::permute>(permute_id, input_info{concat_id}, ord);
+    auto& permute_node = p.get_or_create(permute);
+    p.add_intermediate(permute_node, node, con_node,  true);
+    permute_node.get_output_layout(false);
+    if (false) {
         con_node.set_selected_impl(con_node.type()->choose_impl(con_node));
         if (auto impl = con_node.get_selected_impl()) {
             auto params = con_node.get_kernel_impl_params();
             p.get_kernels_cache().add_kernels_source(*params, impl->get_kernels_source());
         }
     }
-    if (!reorder_node.is_constant()) {
+    if (false) {
         reorder_node.set_selected_impl(reorder_node.type()->choose_impl(reorder_node));
         if (auto impl = reorder_node.get_selected_impl()) {
             auto params = reorder_node.get_kernel_impl_params();
@@ -250,7 +257,7 @@ void reorder_factory::get_weights_split(primitive_id input_id,
         }
     }
 
-    if (!crop0_node.is_constant()) {
+    if (false) {
         crop0_node.set_selected_impl(crop0_node.type()->choose_impl(crop0_node));
         if (auto impl = crop0_node.get_selected_impl()) {
             auto params = crop0_node.get_kernel_impl_params();
@@ -258,14 +265,14 @@ void reorder_factory::get_weights_split(primitive_id input_id,
         }
     }
 
-    if (!crop1_node.is_constant()) {
+    if (false) {
         crop1_node.set_selected_impl(crop1_node.type()->choose_impl(crop1_node));
         if (auto impl = crop1_node.get_selected_impl()) {
             auto params = crop1_node.get_kernel_impl_params();
             p.get_kernels_cache().add_kernels_source(*params, impl->get_kernels_source());
         }
     }
-    if (!crop2_node.is_constant()) {
+    if (false) {
         crop2_node.set_selected_impl(crop2_node.type()->choose_impl(crop2_node));
         if (auto impl = crop2_node.get_selected_impl()) {
             auto params = crop2_node.get_kernel_impl_params();
@@ -273,7 +280,7 @@ void reorder_factory::get_weights_split(primitive_id input_id,
         }
     }
 
-    if (!crop3_node.is_constant()) {
+    if (false) {
         crop3_node.set_selected_impl(crop3_node.type()->choose_impl(crop3_node));
         if (auto impl = crop3_node.get_selected_impl()) {
             auto params = crop3_node.get_kernel_impl_params();
