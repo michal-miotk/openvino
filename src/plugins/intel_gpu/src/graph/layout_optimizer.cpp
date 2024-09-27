@@ -198,9 +198,9 @@ void reorder_factory::get_weights_split(primitive_id input_id,
     OPENVINO_ASSERT(reorder_params != nullptr, "[GPU] WeightsReorderParams is not initialized.");
     cache_key ckey{ input_id, reorder_params->get_output_layout(), false };
     auto count = _cached_reorders.size();
-    std::string reorder_id = input_id + "_weights_permute_" + std::to_string(count);
+    std::string reorder_id = input_id + "_reorder_" + std::to_string(count);
     auto hiddenSize = reorder_params->get_input_layout().get_shape()[1] / 4;
-    auto cropSizeR = cldnn::tensor{1, 1, 1, 1, static_cast<int>(hiddenSize), static_cast<int>(reorder_params->get_input_layout().get_shape()[2])};
+    auto cropSizeR = cldnn::tensor{1, static_cast<int>(1*hiddenSize), 1, 1, static_cast<int>(reorder_params->get_input_layout().get_shape()[2])};
     auto reorder = std::make_shared<cldnn::reorder>(reorder_id, input_id, reorder_params);
     auto& reorder_node = p.get_or_create(reorder);
     std::string crop_id = input_id + "_crop";
@@ -236,7 +236,7 @@ void reorder_factory::get_weights_split(primitive_id input_id,
     crop3_node.get_output_layout(false);
     con_node.get_output_layout(false);
 
-    std::string permute_id = input_id + "_permute";
+    std::string permute_id = input_id + "_permutex";
     std::vector<uint16_t> ord{0, 1, 3, 4, 2};
     auto permute = std::make_shared<cldnn::permute>(permute_id, input_info{concat_id}, ord);
     auto& permute_node = p.get_or_create(permute);
