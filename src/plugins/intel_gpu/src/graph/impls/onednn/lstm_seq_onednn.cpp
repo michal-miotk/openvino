@@ -114,7 +114,7 @@ protected:
         auto source_weights_desc = onednn::layout_to_memory_desc(source_weights_layout);
 
         auto target_weights_layout = impl_params.get_input_layout(3);
-        target_weights_layout.format = cldnn::format::bfyx;;
+        target_weights_layout.format = cldnn::format::bfzyx;;
         auto target_weights_desc = onednn::layout_to_memory_desc(target_weights_layout);
 
         return std::make_shared<WeightsReorderParamsOneDNN>(source_weights_layout,
@@ -141,8 +141,16 @@ protected:
         auto w_layout = impl_params.get_input_layout(3).clone_with_other_shape(W_shape_mod);
         w_layout.format = cldnn::format::bfzyx;
         auto W_md = onednn::layout_to_memory_desc(w_layout);
-        auto R_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(4));
-        auto B_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(5));
+        auto R_shape_mod = impl_params.get_input_layout(4).get_shape();
+        R_shape_mod = {1, 1, R_shape_mod[2], 4, R_shape_mod[1]/4};
+        auto r_layout = impl_params.get_input_layout(4).clone_with_other_shape(R_shape_mod);
+        r_layout.format = cldnn::format::bfzyx;
+        auto R_md = onednn::layout_to_memory_desc(r_layout);
+        auto B_shape_mod = impl_params.get_input_layout(5).get_shape();
+        B_shape_mod = {1, 1, 4, B_shape_mod[1]/4};
+        auto b_layout = impl_params.get_input_layout(5).clone_with_other_shape(B_shape_mod);
+        b_layout.format = cldnn::format::bfyx;
+        auto B_md = onednn::layout_to_memory_desc(b_layout);
         auto out_shape = impl_params.get_output_layout().get_shape();
         out_shape = {out_shape[2], out_shape[0], out_shape[3], 1};
         auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout().clone_with_other_shape(out_shape), dnnl::memory::format_tag::abc);

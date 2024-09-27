@@ -27,7 +27,7 @@ template<typename T> post_optimize_lstm_weights::weights_bias_offset post_optimi
 // function which prepares given primitive for weights optimization
 template<typename T>
 void post_optimize_lstm_weights::optimize_lstm_weights(T& node, program& p) {
-    auto offsets = get_weights_bias_offset(node);
+    //auto offsets = get_weights_bias_offset(node);
     auto impl = node.get_selected_impl();
 
     // Skip load-time weights reordering if impl is not selected
@@ -72,7 +72,7 @@ void post_optimize_lstm_weights::optimize_lstm_weights(T& node, program& p) {
 
     auto output_layout = node.get_output_layout();
     auto weights_reorder_params = impl->get_weights_reorder_params();
-    for (auto i = offsets.weights_offset; i < offsets.bias_offset; i++) {
+    for (auto i = 3; i < 6; i++) {
         program_node& prev_node = node.get_dependency(i);
 
         if (weights_reorder_params != nullptr) {
@@ -132,6 +132,7 @@ void post_optimize_lstm_weights::run(program& p) {
             optimize_lstm_weights(node->as<lstm_seq>(), p);
         }
     }
+    p.get_processing_order().calc_processing_order(p);
 }
 
 }  // namespace cldnn
