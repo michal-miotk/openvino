@@ -237,7 +237,7 @@ void reorder_factory::get_weights_split(primitive_id input_id,
     con_node.get_output_layout(false);
 
     std::string permute_id = input_id + "_permutex";
-    std::vector<uint16_t> ord{0, 1, 3, 4, 2};
+    std::vector<uint16_t> ord{0, 4, 2, 3, 1};
     auto permute = std::make_shared<cldnn::permute>(permute_id, input_info{concat_id}, ord);
     auto& permute_node = p.get_or_create(permute);
     p.add_intermediate(permute_node, node, con_node,  true);
@@ -300,6 +300,96 @@ void reorder_factory::get_weights_split(primitive_id input_id,
     p.get_processing_order().calc_processing_order_visit(&con_node);
     p.get_processing_order().calc_processing_order_visit(&reorder_node);
     */
+    std::cout << some_info << std::endl;
+}
+
+void reorder_factory::get_bias_split(primitive_id input_id,
+                                                                                 std::shared_ptr<WeightsReorderParams> reorder_params, program& p, \
+                                                                                 cldnn::program_node& prev, cldnn::program_node& node) {
+    OPENVINO_ASSERT(reorder_params != nullptr, "[GPU] WeightsReorderParams is not initialized.");
+    cache_key ckey{ input_id, reorder_params->get_output_layout(), false };
+    auto hiddenSize = reorder_params->get_input_layout().get_shape()[1] / 4;
+    auto cropSizeR = cldnn::tensor{1, static_cast<int>(hiddenSize), 1, 1};
+    std::string crop_id = input_id + "_crop";
+    auto crop0_id = primitive_id(crop_id + "0");
+    auto crop1_id = primitive_id(crop_id + "1");
+    auto crop2_id = primitive_id(crop_id + "2");
+    auto crop3_id = primitive_id(crop_id + "3");
+    auto crop0 = std::make_shared<cldnn::crop>(crop0_id, input_id, cropSizeR, cldnn::tensor{0, 0, 0, 0});
+    auto crop1 = std::make_shared<cldnn::crop>(crop1_id, input_id, cropSizeR, cldnn::tensor{0, static_cast<int>(1*hiddenSize), 0, 0});
+    auto crop2 = std::make_shared<cldnn::crop>(crop2_id, input_id, cropSizeR, cldnn::tensor{0, static_cast<int>(2*hiddenSize), 0, 0});
+    auto crop3 = std::make_shared<cldnn::crop>(crop3_id, input_id, cropSizeR, cldnn::tensor{0, static_cast<int>(3*hiddenSize), 0, 0});
+    auto& crop0_node = p.get_or_create(crop0);
+    auto& crop1_node = p.get_or_create(crop1);
+    auto& crop2_node = p.get_or_create(crop2);
+    auto& crop3_node = p.get_or_create(crop3);
+    std::vector<input_info> con_input{input_info(crop1_id), input_info(crop0_id), input_info(crop2_id), input_info(crop3_id)};
+    cldnn::primitive_id concat_id{input_id + "concat"};
+    auto con = std::make_shared<cldnn::concatenation>(concat_id, con_input, 2);
+    auto& con_node = p.get_or_create(con);
+    p.add_intermediate(con_node, node, prev, true);
+    p.add_intermediate(crop1_node, con_node, prev, true);
+    p.add_connection(prev, crop0_node, 0);
+    p.add_connection(prev, crop2_node, 0);
+    p.add_connection(prev, crop3_node, 0);
+    p.add_connection(crop0_node, con_node, 0);
+    p.add_connection(crop2_node, con_node, 0);
+    p.add_connection(crop3_node, con_node, 0);
+    crop1_node.get_output_layout(false);
+    crop0_node.get_output_layout(false);
+    crop2_node.get_output_layout(false);
+    crop3_node.get_output_layout(false);
+    con_node.get_output_layout(false);
+
+    std::string permute_id = input_id + "_permutex";
+    std::vector<uint16_t> ord{0, 3, 2, 1};
+    auto permute = std::make_shared<cldnn::permute>(permute_id, input_info{concat_id}, ord);
+    auto& permute_node = p.get_or_create(permute);
+    p.add_intermediate(permute_node, node, con_node,  true);
+    permute_node.get_output_layout(false);
+    if (false) {
+        con_node.set_selected_impl(con_node.type()->choose_impl(con_node));
+        if (auto impl = con_node.get_selected_impl()) {
+            auto params = con_node.get_kernel_impl_params();
+            p.get_kernels_cache().add_kernels_source(*params, impl->get_kernels_source());
+        }
+    }
+
+    if (false) {
+        crop0_node.set_selected_impl(crop0_node.type()->choose_impl(crop0_node));
+        if (auto impl = crop0_node.get_selected_impl()) {
+            auto params = crop0_node.get_kernel_impl_params();
+            p.get_kernels_cache().add_kernels_source(*params, impl->get_kernels_source());
+        }
+    }
+
+    if (false) {
+        crop1_node.set_selected_impl(crop1_node.type()->choose_impl(crop1_node));
+        if (auto impl = crop1_node.get_selected_impl()) {
+            auto params = crop1_node.get_kernel_impl_params();
+            p.get_kernels_cache().add_kernels_source(*params, impl->get_kernels_source());
+        }
+    }
+    if (false) {
+        crop2_node.set_selected_impl(crop2_node.type()->choose_impl(crop2_node));
+        if (auto impl = crop2_node.get_selected_impl()) {
+            auto params = crop2_node.get_kernel_impl_params();
+            p.get_kernels_cache().add_kernels_source(*params, impl->get_kernels_source());
+        }
+    }
+
+    if (false) {
+        crop3_node.set_selected_impl(crop3_node.type()->choose_impl(crop3_node));
+        if (auto impl = crop3_node.get_selected_impl()) {
+            auto params = crop3_node.get_kernel_impl_params();
+            p.get_kernels_cache().add_kernels_source(*params, impl->get_kernels_source());
+        }
+    }
+
+    auto some_info = p.get_implementation_info(crop0_id);
+    p.mark_if_constant(crop0_node);
+    p.mark_if_constant(crop2_node);
+    p.mark_if_constant(crop3_node);
     std::cout << some_info << std::endl;
 }
 
@@ -2160,9 +2250,9 @@ void layout_optimizer::select_preferred_formats_for_onednn(program_node& node, d
                           << " For index : " << idx << std::endl;
         }
     } else if (node.is_type<lstm_seq>()) {
-        node.set_preferred_input_fmt(0, format::bfxy);
-        node.set_preferred_input_fmt(1, format::ybfx);
-        node.set_preferred_input_fmt(2, format::ybfx);
+        node.set_preferred_input_fmt(0, format::fbyx);
+        node.set_preferred_input_fmt(1, format::fyxb);
+        node.set_preferred_input_fmt(2, format::fyxb);
         node.set_preferred_output_fmt(0, format::fybx);
         node.set_preferred_output_fmt(1, format::fybx);
         node.set_preferred_output_fmt(2, format::fybx);

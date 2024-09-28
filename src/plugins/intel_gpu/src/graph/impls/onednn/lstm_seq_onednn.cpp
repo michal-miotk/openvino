@@ -58,7 +58,7 @@ protected:
         }
 
         {
-            int i = 4;
+            int i = 3;
             auto& input = instance.input_memory(i);
             auto offset = onednn::get_offset(instance.get_input_layout(i),
                                              _pd.dnnl::primitive_desc_base::weights_desc(0));
@@ -67,7 +67,7 @@ protected:
         }
 
         {
-            int i = 5;
+            int i = 4;
             auto& input = instance.input_memory(i);
             auto offset = onednn::get_offset(instance.get_input_layout(i),
                                              _pd.dnnl::primitive_desc_base::weights_desc(1));
@@ -76,7 +76,7 @@ protected:
         }
 
         {//bias
-            int i = 6;
+            int i = 5;
             auto& input = instance.input_memory(i);
             auto offset = onednn::get_offset(instance.get_input_layout(i),
                                              _pd.dnnl::primitive_desc_base::weights_desc(2));

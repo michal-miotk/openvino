@@ -113,7 +113,11 @@ void post_optimize_lstm_weights::optimize_lstm_weights(T& node, program& p) {
                     set_implementation(weights_reorder_node);
                 }
             } else {
-                _rf.get_weights_split(prev_node.id(), weights_reorder_params, p, prev_node, node);
+                if (i != 5) {
+                    _rf.get_weights_split(prev_node.id(), weights_reorder_params, p, prev_node, node);
+                } else {
+                    _rf.get_bias_split(prev_node.id(), weights_reorder_params, p, prev_node, node);
+                }
                 // insert new weights reorder node to topology
                 //p.add_intermediate(weights_reorder.first, node, i, !weights_reorder.second);
                 // set weights reorder's node output layout and implementation

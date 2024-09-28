@@ -57,6 +57,10 @@ public:
                                                                     std::shared_ptr<WeightsReorderParams> reorder_params, program& p, cldnn::program_node&, \
                                                                     cldnn::program_node&);
 
+    void get_bias_split(primitive_id input_id,
+                                                                    std::shared_ptr<WeightsReorderParams> reorder_params, program& p, cldnn::program_node&, \
+                                                                    cldnn::program_node&);
+
 private:
     struct cache_key {
         primitive_id data_source;
