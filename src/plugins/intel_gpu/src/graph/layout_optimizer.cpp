@@ -2112,7 +2112,7 @@ format layout_optimizer::get_preferred_format(program_node& node) {
             node.set_preferred_input_fmt(0, format::get_default_format(node.get_input_layouts()[0].get_rank()));
         }
     } else if (node.is_type<lstm_seq>()) {
-        expected = format::get_default_format(node.get_output_layout().get_rank());
+        expected = format::fbyx;
     }
 
     if (allow_new_shape_infer && node.get_preferred_input_fmt() != format::any) {
@@ -2251,9 +2251,9 @@ void layout_optimizer::select_preferred_formats_for_onednn(program_node& node, d
         }
     } else if (node.is_type<lstm_seq>()) {
         node.set_preferred_input_fmt(0, format::fbyx);
-        node.set_preferred_input_fmt(1, format::fyxb);
-        node.set_preferred_input_fmt(2, format::fyxb);
-        node.set_preferred_output_fmt(0, format::fybx);
+        node.set_preferred_input_fmt(1, format::fbyx);
+        node.set_preferred_input_fmt(2, format::fbyx);
+        node.set_preferred_output_fmt(0, format::fbyx);
         node.set_preferred_output_fmt(1, format::fybx);
         node.set_preferred_output_fmt(2, format::fybx);
     }

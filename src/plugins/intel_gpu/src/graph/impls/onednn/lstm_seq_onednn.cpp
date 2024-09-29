@@ -250,6 +250,7 @@ attach_lstm_seq_onednn::attach_lstm_seq_onednn() {
     };
     std::vector<format::type> fmt = {
         format::bfyx,
+        format::fbyx,
         format::bfzyx,
         format::byxf,
         format::bzyxf,
