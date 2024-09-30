@@ -106,21 +106,26 @@ protected:
         }
         return args;
     }
+
+    static cldnn::layout get_reorder_layout(const kernel_impl_params& impl_params, size_t layout_nr) {
+        auto weights_shape = impl_params.get_input_layout(layout_nr).get_shape();
+        auto target_weights_layout = impl_params.get_input_layout(layout_nr);
+        target_weights_layout.format = cldnn::format::bfzyx;
+        auto layout = target_weights_layout.clone_with_other_shape(ov::Shape{weights_shape[0], weights_shape[1], 1, weights_shape[2], weights_shape[3]});
+        return layout;
+    }
+
     static std::shared_ptr<WeightsReorderParams> get_weights_reorder(const kernel_impl_params& impl_params, const dnnl::primitive_desc& pd) {
-        auto cldnn_prim = impl_params.typed_desc<lstm_seq>();
+        auto layout_W = get_reorder_layout(impl_params, 3);
+        auto W_desc = onednn::layout_to_memory_desc(layout_W);
+        auto layout_R = get_reorder_layout(impl_params, 4);
+        auto R_desc = onednn::layout_to_memory_desc(layout_W);
+        auto grouped_weights = format::is_grouped(layout_W.format);
 
-        auto source_weights_layout = impl_params.get_input_layout(3);
-        auto grouped_weights = format::is_grouped(source_weights_layout.format);
-        auto source_weights_desc = onednn::layout_to_memory_desc(source_weights_layout);
-
-        auto target_weights_layout = impl_params.get_input_layout(3);
-        target_weights_layout.format = cldnn::format::bfzyx;;
-        auto target_weights_desc = onednn::layout_to_memory_desc(target_weights_layout);
-
-        return std::make_shared<WeightsReorderParamsOneDNN>(source_weights_layout,
-                                                            target_weights_layout,
-                                                            source_weights_desc,
-                                                            target_weights_desc,
+        return std::make_shared<WeightsReorderParamsOneDNN>(layout_W,
+                                                            layout_R,
+                                                            W_desc,
+                                                            R_desc,
                                                             false,
                                                             grouped_weights);
     }

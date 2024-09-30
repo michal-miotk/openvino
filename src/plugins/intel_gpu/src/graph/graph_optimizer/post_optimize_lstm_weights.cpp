@@ -114,7 +114,7 @@ void post_optimize_lstm_weights::optimize_lstm_weights(T& node, program& p) {
                 }
             } else {
                 if (i != 5) {
-                    _rf.get_weights_split(prev_node.id(), weights_reorder_params, p, prev_node, node);
+                    _rf.get_weights_split(prev_node.id(), weights_reorder_params, p, prev_node, node, i);
                 } else {
                     _rf.get_bias_split(prev_node.id(), weights_reorder_params, p, prev_node, node);
                 }
