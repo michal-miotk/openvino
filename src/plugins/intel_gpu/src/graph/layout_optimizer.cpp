@@ -1184,7 +1184,7 @@ static bool is_node_for_onednn(gemm_node const& node) {
 static bool is_node_for_onednn(lstm_seq_node const& node) {
     std::vector<cldnn::activation_func> expected{cldnn::activation_func::logistic, cldnn::activation_func::hyperbolic_tan, \
     cldnn::activation_func::hyperbolic_tan};
-    return node.activations() == expected;
+    return node.activations() == expected && node.clip() == 0.f;
 }
 
 // This function is needed to avoid performance regressions for the convolutions with byxf layout
