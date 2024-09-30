@@ -2254,8 +2254,8 @@ void layout_optimizer::select_preferred_formats_for_onednn(program_node& node, d
         node.set_preferred_input_fmt(1, format::fbyx);
         node.set_preferred_input_fmt(2, format::fbyx);
         node.set_preferred_output_fmt(0, format::fbyx);
-        node.set_preferred_output_fmt(1, format::fybx);
-        node.set_preferred_output_fmt(2, format::fybx);
+        node.set_preferred_output_fmt(1, format::fbyx);
+        node.set_preferred_output_fmt(2, format::fbyx);
     }
 }
 #endif  // ENABLE_ONEDNN_FOR_GPU
