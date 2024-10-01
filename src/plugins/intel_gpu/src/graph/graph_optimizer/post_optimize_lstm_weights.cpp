@@ -21,7 +21,7 @@ post_optimize_lstm_weights::post_optimize_lstm_weights(reorder_factory& rf_ref)
     : base_pass("post_optimize_lstm_weights"), _rf(rf_ref) {}
 
 template<typename T> post_optimize_lstm_weights::weights_bias_offset post_optimize_lstm_weights::get_weights_bias_offset(const T& node) {
-    return weights_bias_offset(3, 4);
+    return weights_bias_offset(3, 6);
 }
 
 // function which prepares given primitive for weights optimization
@@ -57,10 +57,8 @@ void post_optimize_lstm_weights::optimize_lstm_weights(T& node, program& p) {
     auto set_implementation = [&p, &impl](program_node& weights_reorder_node) {
         if (!weights_reorder_node.is_constant()) {
             auto reorder_kernel_params = impl->get_weights_reorder_kernel_params();
-            auto impl_type = (reorder_kernel_params->get_output_layout(0).format == format::custom) ? impl_types::onednn : impl_types::ocl;
-            auto factory = WeightsReordersFactory::get(impl_type, shape_types::static_shape);
-            reorder_kernel_params->prog = &p;
-            auto reorder_impl = factory(*reorder_kernel_params);
+            weights_reorder_node.set_preferred_impl_type(impl_types::any);
+            auto reorder_impl = weights_reorder_node.type()->create_impl(weights_reorder_node);
 
             weights_reorder_node.set_selected_impl(reorder_impl->clone());
             if (auto impl = weights_reorder_node.get_selected_impl()) {

@@ -5,6 +5,7 @@
 #include "impls/onednn/utils.hpp"
 #include "lstm_seq_inst.h"
 #include "primitive_onednn_base.h"
+#include "lstm_seq_onednn.hpp"
 #include "impls/registry/implementation_map.hpp"
 
 #include "kernel_selector_common.h"
@@ -243,57 +244,11 @@ public:
     }
 };
 
-namespace detail {
-
-attach_lstm_seq_onednn::attach_lstm_seq_onednn() {
-    std::vector<data_types> dt = {
-        data_types::f32,
-        data_types::f16,
-        data_types::u8,
-        data_types::i8,
-        data_types::i32
-    };
-    std::vector<format::type> fmt = {
-        format::bfyx,
-        format::fbyx,
-        format::bfzyx,
-        format::byxf,
-        format::bzyxf,
-        format::b_fs_yx_fsv2,
-        format::b_fs_zyx_fsv2,
-        format::b_fs_yx_fsv4,
-        format::b_fs_zyx_fsv4,
-        format::b_fs_yx_fsv8,
-        format::b_fs_zyx_fsv8,
-        format::b_fs_yx_fsv16,
-        format::b_fs_zyx_fsv16,
-        format::b_fs_zyx_fsv32,
-        format::b_fs_yx_fsv32,
-        format::bs_fs_yx_bsv16_fsv16,
-        format::bs_fs_zyx_bsv16_fsv16,
-        format::bs_fs_yx_bsv16_fsv32,
-        format::bs_fs_zyx_bsv16_fsv32,
-        format::bs_fs_yx_bsv32_fsv16,
-        format::bs_fs_zyx_bsv32_fsv16,
-        format::bs_fs_yx_bsv32_fsv32,
-        format::bs_fs_zyx_bsv32_fsv32,
-        format::bs_fs_yx_bsv4_fsv4,
-        format::bs_fs_yx_bsv8_fsv4,
-        format::bs_fs_yx_bsv16_fsv8,
-        format::bs_fs_yx_bsv16_fsv4,
-        format::bs_fs_yx_bsv16_fsv2,
-        format::bs_fs_zyx_bsv8_fsv4,
-        format::bs_fs_zyx_bsv16_fsv8,
-        format::bs_fs_zyx_bsv16_fsv4,
-        format::bs_fs_zyx_bsv16_fsv2,
-        format::bs_fs_yx_bsv8_fsv2,
-        format::bs_fs_zyx_bsv8_fsv2,
-        format::bs_fs_yx_bsv4_fsv2,
-    };
-    implementation_map<lstm_seq>::add(impl_types::onednn, lstm_seq_onednn::create, dt, fmt);
+std::unique_ptr<primitive_impl> LSTMSeqImplementationManager::create_impl(const program_node& node, const kernel_impl_params& params) const  {
+    assert(node.is_type<lstm_seq>());
+    return onednn::lstm_seq_onednn::create(static_cast<const lstm_seq_node&>(node), params);
 }
 
-}  // namespace detail
 }  // namespace onednn
 }  // namespace cldnn
 
