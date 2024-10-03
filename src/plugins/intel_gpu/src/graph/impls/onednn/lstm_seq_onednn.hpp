@@ -33,17 +33,15 @@ struct LSTMSeqImplementationManager : public ImplementationManager {
         std::vector<format::type> in_fmts(node.get_dependencies().size(), format::any);
         std::vector<format::type> out_fmts(node.get_outputs_count(), format::any);
 
-        size_t out_rank = node.get_output_layout().get_rank();
-        for (size_t idx = 0 ; idx < node.get_dependencies().size() ; idx++) {
+        for (size_t idx = 0 ; idx < 3; idx++) {
             if (node.get_dependency(idx).is_constant())
                 continue;
 
-            auto target_format = format::get_default_format(out_rank);
-
-            in_fmts[idx] = target_format;
+            in_fmts[idx] = cldnn::format::bfyx;
         }
-        out_fmts[0] = format::get_default_format(out_rank);
-
+        out_fmts[0] = cldnn::format::ybfx;
+        out_fmts[1] = cldnn::format::fbyx;
+        out_fmts[2] = cldnn::format::fbyx;
         return {in_fmts, out_fmts};
     }
 };
