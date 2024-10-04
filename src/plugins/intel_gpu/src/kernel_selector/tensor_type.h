@@ -36,6 +36,8 @@ enum DataLayout {
     bfxy,                   // 3D+batch
     byfx,
     bxfy,
+    ybfx,
+    ybxf,
     b_fs_yx_fsv2,
     b_fs_zyx_fsv2,
     b_fs_yx_fsv4,           // reordering format for swizzled input for convolution using IMAD

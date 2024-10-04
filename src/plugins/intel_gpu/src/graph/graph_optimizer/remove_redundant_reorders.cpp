@@ -20,6 +20,7 @@
 #include "concatenation_inst.h"
 #include "region_yolo_inst.h"
 #include "fully_connected_inst.h"
+#include "lstm_seq_inst.h"
 #include "mvn_inst.h"
 
 #include <vector>
@@ -90,7 +91,9 @@ void remove_redundant_reorders::run(program& p) {
                     return has_quantize_user(*users.front());
                 return false;
             };
-
+            if (input.is_type<lstm_seq>()) {
+                continue;
+            }
             // Avoid different data types between input and output
             auto same_data_type = input.get_output_layout().data_type == output_layout.data_type;
             auto i8_u8_input = input.get_output_layout().data_type == data_types::i8 ||
@@ -184,7 +187,9 @@ void remove_redundant_reorders::run(program& p) {
                               !r_dep_node.is_output() &&
                               !r_node.get_primitive()->has_surface_input() &&
                               r_node.get_input_layout().data_padding == r_node.get_output_layout().data_padding;
-
+        if (r_dep_node.get_dependency(0).is_type<lstm_seq>()) {
+            continue;
+        }
         if (remove_dep) {
             // for chains like
             // b_fs_yx_fsv16 -> reorder(ofmt:bfyx) -> bfyx -> reorder(ofmt:any) -> bfyx
@@ -340,6 +345,9 @@ void remove_redundant_reorders::run(program& p) {
         // mark as optimized
         r_node.can_be_optimized(true);
         r_node.requires_reinterpret(!o_layout.identical(i_layout));
+        if (r_node.get_dependency(0).is_type<lstm_seq>()) {
+            continue;
+        }
         if (o_layout.identical(i_layout)) {  // no need of reshape
             if (r_node.is_output()) {
                 // if removed reorder is output, we need to add it's dependency id to the optimized primitives list,
@@ -371,7 +379,9 @@ void remove_redundant_reorders::run(program& p) {
             continue;
 
         auto& dep = node->get_dependency(0);
-
+        if (dep.is_type<lstm_seq>()) {
+            continue;
+        }
         for (auto& user : dep.get_users()) {
             if (user->is_type<reorder>() &&
                 user != node &&

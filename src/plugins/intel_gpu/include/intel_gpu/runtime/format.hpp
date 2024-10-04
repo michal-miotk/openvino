@@ -92,6 +92,9 @@ struct format {
         byfx,                                   ///< To be used when onednn gemm allows permute fusing in transformer network. Not for normal use from cldnn.
         bxfy,                                   ///< To be used when onednn gemm allows permute fusing in transformer network. Not for normal use from cldnn.
                                                 ///< for user provided formats.
+        //ybfx and xbyf
+        ybxf,
+
         b_fs_yx_fsv2,
         b_fs_zyx_fsv2,
         b_fs_yx_fsv4,                           ///< format for input for IMAD convolutions
