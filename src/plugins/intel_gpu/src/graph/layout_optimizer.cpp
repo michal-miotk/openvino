@@ -1582,7 +1582,7 @@ format layout_optimizer::get_preferred_format(program_node& node) {
         node.set_preferred_input_fmt(0, format::fbyx);
         node.set_preferred_input_fmt(1, format::fbyx);
         node.set_preferred_input_fmt(2, format::fbyx);
-        node.set_preferred_output_fmt(0, format::ybxf);
+        node.set_preferred_output_fmt(0, format::fbyx);
         node.set_preferred_output_fmt(1, format::fbyx);
         node.set_preferred_output_fmt(2, format::fbyx);
         expected = node.get_preferred_output_fmt();

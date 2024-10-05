@@ -94,7 +94,7 @@ struct format {
                                                 ///< for user provided formats.
         //ybfx and xbyf
         ybxf,
-
+        xybf,
         b_fs_yx_fsv2,
         b_fs_zyx_fsv2,
         b_fs_yx_fsv4,                           ///< format for input for IMAD convolutions
