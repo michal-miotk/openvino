@@ -558,7 +558,17 @@ public:
                 new_sizes[i] = 1;
             }
         }
+        std::cout << "old sizes " << std::endl;
+        for(auto s: old_sizes) {
+            std::cout << s << "_";
+        }
+        std::cout << std::endl;
 
+        std::cout << "new sizes " << std::endl;
+        for(auto s: new_sizes) {
+            std::cout << s << "_" ;
+        }
+        std::cout << std::endl;
         tensor sizes { new_sizes };
         return sizes;
     }

@@ -27,6 +27,7 @@ DataTensor::DataChannelArray DataTensor::dataChannelArray {{
     { DataLayout::fyxb,                  {  1,  2, -1, -1, -1, -1,  3,  0 } },
     { DataLayout::ybxf,                  {  1,  3, -1, -1, -1, -1,  0,  2 } },
     { DataLayout::ybfx,                  {  0,  3, -1, -1, -1, -1,  1,  2 } },
+    { DataLayout::xbfy,                  {  3,  0, -1, -1, -1, -1,  1,  2 } },
     { DataLayout::xybf,                  {  3,  2, -1, -1, -1, -1,  0,  1 } },
     { DataLayout::b_fs_yx_fsv2,          {  0,  1, -1, -1, -1, -1,  2,  3 } },
     { DataLayout::b_fs_yx_fsv4,          {  0,  1, -1, -1, -1, -1,  2,  3 } },

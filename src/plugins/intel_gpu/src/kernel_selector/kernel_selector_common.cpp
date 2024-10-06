@@ -101,6 +101,7 @@ std::string toString(DataLayout l) {
         case kernel_selector::DataLayout::fyxb:                  return "FYXB";
         case kernel_selector::DataLayout::ybxf:                  return "YBXF";
         case kernel_selector::DataLayout::ybfx:                  return "YBFX";
+        case kernel_selector::DataLayout::xbfy:                  return "XBFY";
         case kernel_selector::DataLayout::xybf:                  return "XYBF";
         case kernel_selector::DataLayout::b_fs_yx_fsv2:          return "B_FS_YX_FSV2";
         case kernel_selector::DataLayout::b_fs_yx_fsv4:          return "B_FS_YX_FSV4";

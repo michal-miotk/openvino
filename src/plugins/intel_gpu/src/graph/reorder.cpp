@@ -168,7 +168,7 @@ layout reorder_inst::calc_output_layout(reorder_node const& node, kernel_impl_pa
     } else if (ofmt != ifmt && (ofmt == format::bfwzyx || ifmt == format::bfwzyx)) {
         // TODO Shouldn't transform be called every time ifmt != ofmt?
         return layout(odt, ofmt, input_layout.get_tensor().transform(ofmt, 1), op);
-    } else if (ofmt != ifmt && (ifmt == format::ybxf)) {
+    } else if (ofmt != ifmt && (ifmt == format::ybxf || ifmt == format::xbfy)) {
         // TODO Shouldn't transform be called every time ifmt != ofmt?
         return layout(odt, ofmt, input_layout.get_tensor().transform(ofmt, ifmt, 1), op);
     } else {

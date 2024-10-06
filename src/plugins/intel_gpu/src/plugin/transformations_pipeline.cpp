@@ -537,7 +537,7 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
             [isCellPrimitiveSupported](const_node_ptr &node) -> bool {
                 return !isCellPrimitiveSupported(node);
             });
-
+        std::cout << "unrol loop is " << unroll_loop << std::endl;
         if (unroll_loop) {
             pass_config->set_callback<ov::pass::ConvertRNNSequenceToTensorIterator,
                     ov::pass::ConvertGRUSequenceToTensorIterator,

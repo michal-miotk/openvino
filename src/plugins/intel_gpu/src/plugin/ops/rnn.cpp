@@ -104,7 +104,6 @@ static void CreateLSTMCellOp(ProgramBuilder& p, const std::shared_ptr<ov::op::v4
     p.add_primitive(*op, cldnn::lstm_cell({layerName + ".out0", inputs[0], inputs[1], inputs[2], inputs[3], inputs[4], inputs[5], \
     cldnn::input_info(), layerName + "_md_write1", "", clip, activations, \
                                         activation_params, cldnn::lstm_weights_order::fizo}, 0));
-
     p.add_primitive(*op, cldnn::mutable_data(layerName + ".out1", {cldnn::input_info(layerName + ".out0")}, shared_memory));
 }
 
