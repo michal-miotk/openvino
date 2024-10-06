@@ -45,6 +45,7 @@
 #include <vector>
 #include <memory>
 #include <utility>
+#include <openvino/op/constant.hpp>
 
 #include "pass_manager.h"
 
@@ -333,7 +334,6 @@ bool layout_optimizer::is_format_supported(program_node& node, format::type fmt)
         node.get_input_layout(0).data_type != data_types::i8 &&
         node.get_input_layout(0).data_type != data_types::u8)
         return false;
-
     if (node.is_type<input_layout>())
         return node.get_output_layout().format == fmt;
 
@@ -1582,7 +1582,7 @@ format layout_optimizer::get_preferred_format(program_node& node) {
         node.set_preferred_input_fmt(0, format::fbyx);
         node.set_preferred_input_fmt(1, format::fbyx);
         node.set_preferred_input_fmt(2, format::fbyx);
-        node.set_preferred_output_fmt(0, format::fbyx);
+        node.set_preferred_output_fmt(0, format::ybxf);
         node.set_preferred_output_fmt(1, format::fbyx);
         node.set_preferred_output_fmt(2, format::fbyx);
         expected = node.get_preferred_output_fmt();

@@ -517,6 +517,52 @@ public:
         return sizes;
     }
 
+    tensor transform(cldnn::format ofmt, cldnn::format ifmt, value_type default_size) const {
+        const auto& ifmt_order = ifmt.order();
+        const auto& ofmt_order = ofmt.order();
+        const std::vector<value_type>& old_sizes = sizes();
+        std::vector<value_type> new_sizes(old_sizes.size(), default_size);
+        const auto& new_traits = ofmt.traits();
+        static const std::map<char, char> flatten_mapping = {
+            { 'v', 'u'},
+            { 'u', 'w'},
+            { 'w', 'z'},
+            { 'z', 'y'}
+        };
+
+        for (size_t i = 0; i < ifmt.order().size(); i++) {
+            auto target_dim = ifmt_order[i];
+            while (!new_traits.has_dimension(target_dim)) {
+                if (flatten_mapping.find(target_dim) != flatten_mapping.end()) {
+                    target_dim = flatten_mapping.at(target_dim);
+                } else {
+                    target_dim = ofmt.order().back();
+                }
+            }
+
+            auto new_pos = ofmt_order.find(target_dim);
+            if (new_pos != std::string::npos) {
+                if (new_sizes[new_pos] == -1) {
+                    new_sizes[new_pos] = old_sizes[i];
+                } else {
+                    new_sizes[new_pos] *= old_sizes[i];
+                }
+            }
+        }
+
+        for (size_t i = 0; i < ofmt_order.size(); i++) {
+            auto c = ofmt_order[i]; //bfxywz
+            if (c == '?')
+                continue;
+            if (new_sizes[i] == -1) {
+                new_sizes[i] = 1;
+            }
+        }
+
+        tensor sizes { new_sizes };
+        return sizes;
+    }
+
     /// @brief Calculates linear offset for given @p coord within current tensor.
     /// @param coord The coordinate within current tensor.
     size_t get_linear_offset(const tensor& coord, const cldnn::format& fmt) const {
