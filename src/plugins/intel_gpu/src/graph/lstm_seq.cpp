@@ -49,7 +49,7 @@ std::vector<layout> lstm_seq_inst::calc_output_layouts(lstm_seq_node const& node
         third_out_fmt = node.get_preferred_output_fmt(2);
     }
 
-    return {cldnn::layout{ShapeType{lstm_seq_length, lstm_batch_size, lstm_hidden_size, 1}, input_layout_x.data_type, first_out_fmt}, \
+    return {cldnn::layout{ShapeType{lstm_batch_size, 1, lstm_seq_length, lstm_hidden_size}, input_layout_x.data_type, cldnn::format::ybxf}, \
             cldnn::layout{ShapeType{lstm_batch_size, 1, lstm_hidden_size}, input_layout_x.data_type, second_out_fmt}, \
             cldnn::layout{ShapeType{lstm_batch_size, 1, lstm_hidden_size}, input_layout_x.data_type, third_out_fmt}};
 }
