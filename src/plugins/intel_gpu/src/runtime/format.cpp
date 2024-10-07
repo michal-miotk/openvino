@@ -33,10 +33,6 @@ static const std::map<format::type, format_traits> format_traits_map {
         FMT_TRAITS(ybfx,                  1, 1, 2, 0, {2, 0, 1, 3},             "ybfx",     "bfxy",     {},                     {}),  // NOLINT
         FMT_TRAITS(byfx,                  1, 1, 2, 0, {0, 2, 1, 3},             "byfx",     "bfxy",     {},                     {}),  // NOLINT
         FMT_TRAITS(bxfy,                  1, 1, 2, 0, {0, 3, 1, 2},             "bxfy",     "bfxy",     {},                     {}),  // NOLINT
-        FMT_TRAITS(ybxf,                  1, 1, 2, 0, {1, 3, 0, 2},             "ybxf",     "bfxy",     {},                     {}),  // NOLINT
-        FMT_TRAITS(ybfx,                  1, 1, 2, 0, {1, 2, 0, 3},             "ybfx",     "bfxy",     {},                     {}),  // NOLINT
-        FMT_TRAITS(xybf,                  1, 1, 2, 0, {2, 3, 1, 0},             "xybf",     "bfxy",     {},                     {}),  // NOLINT
-        FMT_TRAITS(xbfy,                  1, 1, 2, 0, {1, 2, 3, 0},             "xbfy",     "bfxy",     {},                      {}),  // NOLINT
         FMT_TRAITS(b_fs_yx_fsv2,          1, 1, 2, 0, {0, 1, 2, 3},             "bfyx",     "bfxy",     {{1, 2}},               {{1, 2}}),  // NOLINT
         FMT_TRAITS(b_fs_yx_fsv4,          1, 1, 2, 0, {0, 1, 2, 3},             "bfyx",     "bfxy",     {{1, 4}},               {{1, 4}}),  // NOLINT
         FMT_TRAITS(b_fs_yx_fsv8,          1, 1, 2, 0, {0, 1, 2, 3},             "bfyx",     "bfxy",     {{1, 8}},               {{1, 8}}),  // NOLINT
