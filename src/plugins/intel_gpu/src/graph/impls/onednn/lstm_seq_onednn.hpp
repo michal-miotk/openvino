@@ -25,10 +25,8 @@ struct LSTMSeqImplementationManager : public ImplementationManager {
             return false;
         assert(node.is_type<lstm_seq>());
         const auto& lstm_node = node.as<lstm_seq>();
-        auto seq_len_program_node = node.get_dependencies()[3].first;
-        bool is_seq_len_constant = seq_len_program_node->is_constant();
 
-        return is_seq_len_constant && lstm_node.clip() == 0.f;
+        return lstm_node.clip() == 0.f;
     }
 
     in_out_fmts_t query_formats(const program_node& node) const override {

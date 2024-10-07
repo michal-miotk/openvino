@@ -117,14 +117,14 @@ void reorder_factory::get_out_reorder(program& p, cldnn::program_node* prev, cld
     auto& permute_node = p.get_or_create(permute);
     p.add_intermediate(permute_node, *node, *prev,  true);
     prev->calc_output_layouts();
+    permute_node.recalc_output_layout(true);
     if (!permute_node.is_constant()) {
         permute_node.set_selected_impl(permute_node.type()->create_impl(permute_node));
         if (auto impl = permute_node.get_selected_impl()) {
             auto params = permute_node.get_kernel_impl_params();
             p.get_kernels_cache().add_kernels_source(*params, impl->get_kernels_source());
         }
-    }
-    permute_node.calc_output_layouts();
+    }    
 }
 
 void reorder_factory::get_weights_split(primitive_id input_id,
@@ -1602,7 +1602,7 @@ format layout_optimizer::get_preferred_format(program_node& node) {
         node.set_preferred_output_fmt(0, format::bfyx);
         node.set_preferred_output_fmt(1, format::fbyx);
         node.set_preferred_output_fmt(2, format::fbyx);
-        expected = node.get_preferred_output_fmt();
+        expected = node.get_preferred_input_fmt();
     }
 
     if (allow_new_shape_infer && node.get_preferred_input_fmt() != format::any) {
