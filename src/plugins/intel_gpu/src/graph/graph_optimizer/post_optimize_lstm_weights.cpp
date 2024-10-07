@@ -135,18 +135,18 @@ void post_optimize_lstm_weights::run(program& p) {
             optimize_lstm_weights(node->as<lstm_seq>(), p);
         }
     }
-    //p.get_processing_order().calc_processing_order(p);
+    p.get_processing_order().calc_processing_order(p);
     for (auto node : p.get_processing_order()) {
         if (node->is_type<cldnn::mutable_data>()) {
             continue;
         }
+        int i = 0;
         for (auto prev_node : node->get_dependencies()) {
-            int i = 0;
-            std::cout << "dependa" << std::endl;
+            
             if (prev_node.first->is_type<lstm_seq>()) {
+                prev_node.first->recalc_output_layouts(false);
                 _rf.get_out_reorder(p, prev_node.first, node, i);
-                std::cout << "node for recalc" << node->id() << std::endl;
-                node->recalc_output_layouts(true);
+                node->recalc_output_layouts(false);
                 i++;
             }
         }

@@ -27,7 +27,6 @@ KERNEL (reorder_data)(
 #endif
     )
 {
-printf("reorder kernel \n");
 #if INPUT0_LAYOUT_BYFX
     // GWS_FEATURE takes Y for byfx format
     const uint b = get_global_id(GWS_BATCH);
@@ -227,8 +226,6 @@ printf("reorder kernel \n");
         FUSED_OPS;
         output[output_idx] = FUSED_OPS_RESULT;
     #else
-        printf("input idx is %d input is %f output idx is %d because b is %d f is %d y is %d x is %d B f y x dims %d %d %d %d OUTPUT dims %d %d %d %d\n", input_idx, input[input_idx], output_idx, b, f, y, x, INPUT0_BATCH_NUM, INPUT0_FEATURE_NUM, INPUT0_SIZE_Y, INPUT0_SIZE_X, OUTPUT_BATCH_NUM, OUTPUT_FEATURE_NUM, OUTPUT_SIZE_Y, OUTPUT_SIZE_X);
-        printf("input pitches %d %d %d %d output pitches %d %d %d %d\n", INPUT0_BATCH_PITCH, INPUT0_FEATURE_PITCH, INPUT0_Y_PITCH, INPUT0_X_PITCH, OUTPUT_BATCH_PITCH, OUTPUT_FEATURE_PITCH, OUTPUT_Y_PITCH, OUTPUT_X_PITCH);
         output[output_idx] = ACTIVATION_TYPED(OUTPUT_REORDER, __TO_OUTPUT_REORDER_TYPE(res), ACTIVATION_PARAMS_TYPED);
     #endif
 #undef __TO_OUTPUT_REORDER_TYPE
