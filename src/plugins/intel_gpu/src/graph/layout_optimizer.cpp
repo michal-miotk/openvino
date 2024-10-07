@@ -110,6 +110,23 @@ std::pair<std::shared_ptr<primitive>, bool> reorder_factory::get_weights_reorder
     }
 }
 
+void reorder_factory::get_out_reorder(program& p, cldnn::program_node* prev, cldnn::program_node* node, int i) {
+    std::string permute_id = prev->id() + "_outonednn_permute" + std::to_string(i);
+    std::vector<uint16_t> ord{1, 3, 0, 2};
+    auto permute = std::make_shared<cldnn::permute>(permute_id, input_info{prev->id()}, ord);
+    auto& permute_node = p.get_or_create(permute);
+    p.add_intermediate(permute_node, *node, *prev,  true);
+    prev->calc_output_layouts();
+    if (!permute_node.is_constant()) {
+        permute_node.set_selected_impl(permute_node.type()->create_impl(permute_node));
+        if (auto impl = permute_node.get_selected_impl()) {
+            auto params = permute_node.get_kernel_impl_params();
+            p.get_kernels_cache().add_kernels_source(*params, impl->get_kernels_source());
+        }
+    }
+    permute_node.calc_output_layouts();
+}
+
 void reorder_factory::get_weights_split(primitive_id input_id,
                                                                                  std::shared_ptr<WeightsReorderParams> reorder_params, program& p, \
                                                                                  cldnn::program_node& prev, cldnn::program_node& node, int i) {
@@ -1582,7 +1599,7 @@ format layout_optimizer::get_preferred_format(program_node& node) {
         node.set_preferred_input_fmt(0, format::fbyx);
         node.set_preferred_input_fmt(1, format::fbyx);
         node.set_preferred_input_fmt(2, format::fbyx);
-        node.set_preferred_output_fmt(0, format::ybxf);
+        node.set_preferred_output_fmt(0, format::bfyx);
         node.set_preferred_output_fmt(1, format::fbyx);
         node.set_preferred_output_fmt(2, format::fbyx);
         expected = node.get_preferred_output_fmt();

@@ -11,6 +11,7 @@
 #include "fully_connected_inst.h"
 #include "intel_gpu/runtime/format.hpp"
 #include "lstm_seq_inst.h"
+#include "intel_gpu/primitives/mutable_data.hpp"
 #ifdef ENABLE_ONEDNN_FOR_GPU
 #include "graph/impls/onednn/utils.hpp"
 #endif // ENABLE_ONEDNN_FOR_GPU
@@ -132,6 +133,22 @@ void post_optimize_lstm_weights::run(program& p) {
     for (auto& node : p.get_processing_order()) {
         if (node->is_type<lstm_seq>()) {
             optimize_lstm_weights(node->as<lstm_seq>(), p);
+        }
+    }
+    //p.get_processing_order().calc_processing_order(p);
+    for (auto node : p.get_processing_order()) {
+        if (node->is_type<cldnn::mutable_data>()) {
+            continue;
+        }
+        for (auto prev_node : node->get_dependencies()) {
+            int i = 0;
+            std::cout << "dependa" << std::endl;
+            if (prev_node.first->is_type<lstm_seq>()) {
+                _rf.get_out_reorder(p, prev_node.first, node, i);
+                std::cout << "node for recalc" << node->id() << std::endl;
+                node->recalc_output_layouts(true);
+                i++;
+            }
         }
     }
     p.get_processing_order().calc_processing_order(p);

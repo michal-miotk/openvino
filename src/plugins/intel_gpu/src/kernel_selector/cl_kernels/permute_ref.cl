@@ -78,5 +78,7 @@ KERNEL (permute_ref)(
     output[OUT_IDX] = FUSED_OPS_RESULT;
 #else
     output[OUT_IDX] = ACTIVATION(input[IN_IDX], ACTIVATION_PARAMS);
+    printf("PERM input idx is %d input is %f output idx is %d because b is %d f is %d y is %d x is %d B f y x dims %d %d %d %d OUTPUT dims %d %d %d %d\n", IN_IDX, input[IN_IDX], OUT_IDX, b, f, y, x, INPUT0_BATCH_NUM, INPUT0_FEATURE_NUM, INPUT0_SIZE_Y, INPUT0_SIZE_X, OUTPUT_BATCH_NUM, OUTPUT_FEATURE_NUM, OUTPUT_SIZE_Y, OUTPUT_SIZE_X);
+    printf("PERM input pitches %d %d %d %d output pitches %d %d %d %d\n", INPUT0_BATCH_PITCH, INPUT0_FEATURE_PITCH, INPUT0_Y_PITCH, INPUT0_X_PITCH, OUTPUT_BATCH_PITCH, OUTPUT_FEATURE_PITCH, OUTPUT_Y_PITCH, OUTPUT_X_PITCH);
 #endif
 }
