@@ -50,14 +50,7 @@ void ov::Plugin::set_property(const ov::AnyMap& config) {
 
 ov::SoPtr<ov::ICompiledModel> ov::Plugin::compile_model(const std::shared_ptr<const ov::Model>& model,
                                                         const ov::AnyMap& properties) const {
-    
-    try {
-        return {m_ptr->compile_model(model, properties), m_so};
-    } catch (const std::exception& ex) {                                               
-        OPENVINO_THROW(ex.what());                                                     
-    } catch (...) {
-        OPENVINO_THROW("Unexpected exception");
-    }
+    OV_PLUGIN_CALL_STATEMENT(return {m_ptr->compile_model(model, properties), m_so});
 }
 
 ov::SoPtr<ov::ICompiledModel> ov::Plugin::compile_model(const std::string& model_path,
