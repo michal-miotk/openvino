@@ -282,7 +282,7 @@ private:
     static std::string gen_file_name(const std::string& model_name, const std::string& pass_name, const size_t idx) {
         std::stringstream name;
         // visualizations and serializations will be named after the outermost function
-        const size_t num_digits_in_pass_index = 3;
+        const size_t num_digits_in_pass_index = 5;
         std::string index_str = std::to_string(idx);
         index_str = std::string(num_digits_in_pass_index - index_str.length(), '0') + index_str;
 
