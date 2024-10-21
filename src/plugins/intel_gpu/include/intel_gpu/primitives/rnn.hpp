@@ -27,7 +27,7 @@ enum class lstm_weights_order {
 };
 
 template <typename PType>
-struct RNNParams : public primitive_base<PType> {
+struct RNNParams : public primitive_base<RNNParams> {
     RNNParams() = default;
     RNNParams(const RNNParams&) = default;
     RNNParams(const primitive_id& id,
@@ -50,7 +50,7 @@ struct RNNParams : public primitive_base<PType> {
               const padding& output_padding = padding(),
               const int num_outputs = 1)
               : primitive_base(id, {x, initial_hidden_state, initial_cell_state, W, R, B}),
-                (id),
+                id(id),
                 x(x),
                 initial_hidden_state(initial_hidden_state),
                 initial_cell_state(initial_cell_state),
@@ -68,13 +68,13 @@ struct RNNParams : public primitive_base<PType> {
                 output_padding(output_padding),
                 num_outputs(num_outputs) {
                 if (!seq_lenghts.pid.empty()) {
-                    inputs.push_back(seq_lenghts);
+                    input.push_back(seq_lenghts);
                 }
                 if (!out1_prim_id.empty()) {
-                    inputs.push_back(out1_prim_id);
+                    input.push_back(out1_prim_id);
                 }
                 if (!out2_prim_id.empty()) {
-                    inputs.push_back(out2_prim_id);
+                    input.push_back(out2_prim_id);
                 }
     }
 
