@@ -238,6 +238,11 @@ void reorder_factory::get_bias_split(primitive_id input_id,
         auto crop_prim = std::make_shared<cldnn::crop>(crop_id,  input_id, cropSizeR, cldnn::tensor{0, static_cast<int>(cropNum*hiddenSize), 0, 0});
         return p.get_or_create(crop_prim);
     };
+    auto reorder_layout = prev.get_output_layout(0);
+    reorder_layout.data_type = cldnn::data_types::f32;
+    cldnn::primitive_id reorder_id = input_id + "_reorder";
+    auto reorder = std::make_shared<cldnn::reorder>(reorder_id, input_id, reorder_layout);
+    auto& reorder_node = p.get_or_create(reorder);
     auto& crop0_node = get_crop_node(0);
     auto& crop1_node = get_crop_node(1);
     auto& crop2_node = get_crop_node(2);
@@ -247,10 +252,11 @@ void reorder_factory::get_bias_split(primitive_id input_id,
     auto con = std::make_shared<cldnn::concatenation>(concat_id, con_input, 2);
     auto& con_node = p.get_or_create(con);
     p.add_intermediate(con_node, node, prev, true);
-    p.add_intermediate(crop1_node, con_node, prev, true);
-    p.add_connection(prev, crop0_node, 0);
-    p.add_connection(prev, crop2_node, 0);
-    p.add_connection(prev, crop3_node, 0);
+    p.add_intermediate(reorder_node, con_node, prev, true);
+    p.add_intermediate(crop1_node, con_node, reorder_node, true);
+    p.add_connection(reorder_node, crop0_node, 0);
+    p.add_connection(reorder_node, crop2_node, 0);
+    p.add_connection(reorder_node, crop3_node, 0);
     p.add_connection(crop0_node, con_node, 0);
     p.add_connection(crop2_node, con_node, 0);
     p.add_connection(crop3_node, con_node, 0);
@@ -259,6 +265,7 @@ void reorder_factory::get_bias_split(primitive_id input_id,
     crop2_node.get_output_layout(false);
     crop3_node.get_output_layout(false);
     con_node.get_output_layout(false);
+    reorder_node.get_output_layout(false);
 
     std::string permute_id = input_id + "_pex";
     std::vector<uint16_t> ord{0, 3, 2, 1};
@@ -266,18 +273,22 @@ void reorder_factory::get_bias_split(primitive_id input_id,
     auto& permute_node = p.get_or_create(permute);
     p.add_intermediate(permute_node, node, con_node,  true);
     permute_node.get_output_layout(false);
+    select_implementation(p, reorder_node);
     select_implementation(p, crop0_node);
     select_implementation(p, crop1_node);
     select_implementation(p, crop2_node);
     select_implementation(p, crop3_node);
     select_implementation(p, permute_node);
     select_implementation(p, con_node);
+
+    p.mark_if_constant(reorder_node);
     p.mark_if_constant(crop0_node);
     p.mark_if_constant(crop1_node);
     p.mark_if_constant(crop2_node);
     p.mark_if_constant(crop3_node);
     p.mark_if_constant(con_node);
     p.mark_if_constant(permute_node);
+    reorder_node.recalc_output_layout(false);
     crop1_node.recalc_output_layout(false);
     crop0_node.recalc_output_layout(false);
     crop2_node.recalc_output_layout(false);

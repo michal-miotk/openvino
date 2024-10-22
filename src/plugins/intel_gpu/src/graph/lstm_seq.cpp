@@ -43,6 +43,7 @@ std::vector<layout> lstm_seq_inst::calc_output_layouts(lstm_seq_node const& node
     auto first_out_fmt = cldnn::format::bfyx;
     auto second_out_fmt = input_layout_x.format;
     auto third_out_fmt = input_layout_x.format;
+    const auto out_dt = cldnn::data_types::f32;
     if (node.permute_inserted) {
         first_out_fmt = node.get_preferred_output_fmt();
         second_out_fmt = node.get_preferred_output_fmt(1);
@@ -51,9 +52,9 @@ std::vector<layout> lstm_seq_inst::calc_output_layouts(lstm_seq_node const& node
             cldnn::layout{ShapeType{lstm_batch_size, 1, lstm_hidden_size}, input_layout_x.data_type, second_out_fmt}, \
             cldnn::layout{ShapeType{lstm_batch_size, 1, lstm_hidden_size}, input_layout_x.data_type, third_out_fmt}};
     } else {
-        return {cldnn::layout{ShapeType{lstm_batch_size, 1, lstm_seq_length, lstm_hidden_size}, input_layout_x.data_type, first_out_fmt}, \
-                cldnn::layout{ShapeType{lstm_batch_size, 1, lstm_hidden_size}, input_layout_x.data_type, second_out_fmt}, \
-                cldnn::layout{ShapeType{lstm_batch_size, 1, lstm_hidden_size}, input_layout_x.data_type, third_out_fmt}};
+        return {cldnn::layout{ShapeType{lstm_batch_size, 1, lstm_seq_length, lstm_hidden_size}, out_dt, first_out_fmt}, \
+                cldnn::layout{ShapeType{lstm_batch_size, 1, lstm_hidden_size}, out_dt, second_out_fmt}, \
+                cldnn::layout{ShapeType{lstm_batch_size, 1, lstm_hidden_size}, out_dt, third_out_fmt}};
     }
 }
 
