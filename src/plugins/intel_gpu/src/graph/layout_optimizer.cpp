@@ -110,6 +110,18 @@ std::pair<std::shared_ptr<primitive>, bool> reorder_factory::get_weights_reorder
     }
 }
 
+void reorder_factory::add_in_reorder(program& p, cldnn::program_node* prev, cldnn::program_node* node, int input_idx) {
+    auto reorder_layout = prev->get_output_layout(0);
+    reorder_layout.data_type = cldnn::data_types::f32;
+    cldnn::primitive_id reorder_id = prev->id() + "_reorder" + std::to_string(input_idx);
+    auto reorder = std::make_shared<cldnn::reorder>(reorder_id, prev->id(), reorder_layout);
+    auto& reorder_node = p.get_or_create(reorder);
+    p.add_intermediate(reorder_node, *node, *prev, true);
+    reorder_node.get_output_layout(false);
+    select_implementation(p, reorder_node);
+    reorder_node.recalc_output_layout(false);
+}
+
 void reorder_factory::get_out_reorder(program& p, cldnn::program_node* prev, cldnn::program_node* node, int i) {
     std::string permute_id = prev->id() + "_outreor_" + std::to_string(i);
     std::vector<uint16_t> ord{1, 3, 0, 2};

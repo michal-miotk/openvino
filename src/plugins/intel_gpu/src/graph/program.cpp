@@ -622,7 +622,7 @@ void program::post_optimize_graph(bool is_internal) {
         apply_opt_pass<post_optimize_weights>(rf);
     }
 
-    apply_opt_pass<remove_redundant_reorders>(false, true);  // TODO: do we need it at this place also?
+    //apply_opt_pass<remove_redundant_reorders>(false, true);  // TODO: do we need it at this place also?
 
     auto partial_build = _config.get_property(ov::intel_gpu::partial_build_program);
 #ifdef GPU_DEBUG_CONFIG
@@ -632,11 +632,11 @@ void program::post_optimize_graph(bool is_internal) {
     if (!is_internal && !partial_build) {
 #endif
         // ToDo remove hidden dependencies from propagate_constants pass
-        apply_opt_pass<propagate_constants>();
+        //apply_opt_pass<propagate_constants>();
     }
 
     if (optimize_data)
-        apply_opt_pass<remove_redundant_reorders>(false, true, true); // pass to remove output reorders while all others graph optimizations were done
+        //apply_opt_pass<remove_redundant_reorders>(false, true, true); // pass to remove output reorders while all others graph optimizations were done
 
     // update inner program input/output primitive mappings
     apply_opt_pass<update_inner_program_io_map>();

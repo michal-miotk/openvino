@@ -160,7 +160,16 @@ void post_optimize_weights::run(program& p) {
         if (node->is_type<cldnn::mutable_data>()) {
             continue;
         }
+        const int max_lstm_data_idx = 2;
+        int dep_idx = -1;
         for (auto prev_node : node->get_dependencies()) {
+            dep_idx++;
+            if (node->is_type<lstm_seq>()) {
+                if (dep_idx <= max_lstm_data_idx) {
+                    _rf.add_in_reorder(p, prev_node.first, node, dep_idx);
+                }
+                continue;
+            }
             if (prev_node.first->is_type<lstm_seq>()) {
                 auto impl = prev_node.first->get_selected_impl();
                  if (!impl)

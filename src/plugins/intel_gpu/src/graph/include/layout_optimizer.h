@@ -55,6 +55,8 @@ public:
 
     void get_out_reorder(program& p, cldnn::program_node* prev, cldnn::program_node* node, int i);
 
+    void add_in_reorder(program& p, cldnn::program_node* prev, cldnn::program_node* node, int);
+
     void get_weights_split(primitive_id input_id, std::shared_ptr<WeightsReorderParams> reorder_params, program& p, cldnn::program_node&, \
                            cldnn::program_node&, size_t);
 
