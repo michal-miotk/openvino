@@ -49,7 +49,8 @@ struct RNNParams : public primitive_base<PType> {
               const lstm_weights_order& offset_order = lstm_weights_order::iofz,
               const uint32_t direction = 0,
               const padding& output_padding = padding(),
-              const int num_outputs = 1)
+              const int num_outputs = 1,
+              const primitive_id& cell = "")
         : primitive_base<PType>(id, {x}, num_outputs, {optional_data_type()}, {output_padding}),
         id(id),
         x(x),
@@ -68,7 +69,8 @@ struct RNNParams : public primitive_base<PType> {
         offset_order(offset_order),
         direction(direction),
         output_padding(output_padding),
-        num_outputs(num_outputs) {
+        num_outputs(num_outputs),
+        cell(cell) {
         std::vector<std::string> pids{initial_hidden_state.pid, initial_cell_state.pid, W.pid, R.pid, B.pid, seq_lenghts.pid, out1_prim_id, out2_prim_id};
         for (auto pid : pids) {
             if (!pid.empty()) {
@@ -100,6 +102,7 @@ struct RNNParams : public primitive_base<PType> {
     uint32_t direction;
     padding output_padding;
     int num_outputs;
+    primitive_id cell;
 
     size_t hash() const override {
         size_t seed = primitive::hash();
@@ -122,6 +125,7 @@ struct RNNParams : public primitive_base<PType> {
         seed = hash_combine(seed, offset_order);
         seed = hash_combine(seed, direction);
         seed = hash_combine(seed, num_outputs);
+        seed = hash_combine(seed, cell);
         return seed;
     }
 
@@ -153,7 +157,8 @@ struct RNNParams : public primitive_base<PType> {
                cmp_fields(offset_order) &&
                cmp_fields(direction) &&
                cmp_fields(output_padding) &&
-               cmp_fields(num_outputs);
+               cmp_fields(num_outputs) &&
+               cmp_fields(cell);
         #undef cmp_fields
     }
 
@@ -175,6 +180,7 @@ struct RNNParams : public primitive_base<PType> {
         ob << direction;
         ob << output_padding;
         ob << num_outputs;
+        ob << cell;
     }
 
     void load(BinaryInputBuffer& ib) {
@@ -195,6 +201,7 @@ struct RNNParams : public primitive_base<PType> {
         ib >> direction;
         ib >> output_padding;
         ib >> num_outputs;
+        ib >> cell;
     }
 };
 

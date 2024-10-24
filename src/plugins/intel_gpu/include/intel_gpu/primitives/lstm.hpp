@@ -20,6 +20,5 @@ struct lstm_elt : public RNNParams<lstm_elt> {
     using RNNParams::RNNParams;
     lstm_elt() : RNNParams() {}
     lstm_elt(const lstm_elt&) = default;
-    bool input_forget;
 };
 } // namespace cldnn
