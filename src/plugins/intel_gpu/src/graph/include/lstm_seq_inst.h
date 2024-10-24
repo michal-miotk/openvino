@@ -53,7 +53,7 @@ public:
         return clip_val;
     }
     uint32_t direction() const { return get_typed_desc<lstm_seq>()->direction; }
-    bool has_cell() const { return !get_typed_desc<lstm_seq>()->initial_cell_state.pid.empty(); }
+    bool has_cell() const { return !get_typed_desc<lstm_seq>()->cell.empty(); }
 };
 
 using lstm_seq_inst = typed_primitive_inst<lstm_seq>;

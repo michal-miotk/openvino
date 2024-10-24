@@ -18,7 +18,7 @@ public:
 
     program_node& input() const { return get_dependency(0); }
     program_node& cell() const { return get_dependency(1); }
-    bool cell_term() const { return !get_primitive()->initial_cell_state.pid.empty(); }
+    bool cell_term() const { return !get_primitive()->cell.empty(); }
     lstm_weights_order offset_order() const { return get_primitive()->offset_order; }
     float clip() const {
         float clip_val = get_primitive()->clip;
