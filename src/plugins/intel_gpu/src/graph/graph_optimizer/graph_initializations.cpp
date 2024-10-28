@@ -34,7 +34,7 @@ void graph_initializations::set_outputs(program& p) {
     }
 }
 
-void graph_initializations::run(program& p) {
+void graph_initializations:: run(program& p) {
     set_outputs(p);
 
     auto forcing_map = p.get_config().get_property(ov::intel_gpu::force_implementations);

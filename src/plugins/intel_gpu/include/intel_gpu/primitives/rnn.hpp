@@ -51,7 +51,6 @@ struct RNNParams : public primitive_base<PType> {
               const padding& output_padding = padding(),
               const int num_outputs = 1)
         : primitive_base<PType>(id, {x}, num_outputs, {optional_data_type()}, {output_padding}),
-        id(id),
         x(x),
         initial_hidden_state(initial_hidden_state),
         initial_cell_state(initial_cell_state),
@@ -76,8 +75,6 @@ struct RNNParams : public primitive_base<PType> {
             }
         }
     }
-
-    primitive_id id;
     input_info x;
     input_info initial_hidden_state;
     input_info initial_cell_state;
@@ -103,8 +100,6 @@ struct RNNParams : public primitive_base<PType> {
 
     size_t hash() const override {
         size_t seed = primitive::hash();
-        seed = hash_combine(seed, id);
-        seed = hash_combine(seed, x.pid);
         seed = hash_combine(seed, initial_hidden_state.pid);
         seed = hash_combine(seed, initial_cell_state.pid);
         seed = hash_combine(seed, seq_lenghts.pid);
@@ -138,7 +133,6 @@ struct RNNParams : public primitive_base<PType> {
 
         #define cmp_fields(name) name == rhs_casted.name
         return act_params_eq &&
-               cmp_fields(id) &&
                cmp_fields(x) &&
                cmp_fields(initial_hidden_state) &&
                cmp_fields(initial_cell_state) &&
@@ -158,7 +152,6 @@ struct RNNParams : public primitive_base<PType> {
     }
 
     void save(BinaryOutputBuffer& ob) const override {
-        ob << id;
         ob << x;
         ob << initial_hidden_state;
         ob << initial_cell_state;
@@ -177,8 +170,7 @@ struct RNNParams : public primitive_base<PType> {
         ob << num_outputs;
     }
 
-    void load(BinaryInputBuffer& ib) override{
-        ib >> id;
+    void load(BinaryInputBuffer& ib) override {
         ib >> x;
         ib >> initial_hidden_state;
         ib >> initial_cell_state;

@@ -89,8 +89,9 @@ void program_node::replace_dependency(size_t idx, std::pair<program_node*, int32
 
 std::vector<layout> const program_node::get_input_layouts() const {
     std::vector<layout> layouts;
-    for (size_t i = 0; i < dependencies.size(); i++) {
-        layouts.push_back(get_input_layout(i));
+    for (size_t i = 0; i < dependencies.size(); i++) {\
+        auto& x = get_input_layout(i);
+        layouts.push_back(x);
     }
     return layouts;
 }
@@ -439,9 +440,12 @@ bool program_node::set_output_layout(layout& new_layout, bool invalidate_users_i
                                         " but output_layouts length is ", std::to_string(output_layouts.size()));
     new_layout.data_padding = output_layouts[idx].data_padding;
     bool changed = (new_layout != output_layouts[idx]);
-    if (changed && invalidate_users_if_changed)  // output_layout has changed! invalidate users
+    if (changed && invalidate_users_if_changed) { // output_layout has changed! invalidate users
         invalidate_users();
-
+        std::cout << "I invalidate users of" << id() << std::endl;
+    } else {
+        std::cout << "for node " << id() << " idx " << idx << std::endl;
+    }
     output_layouts[idx] = new_layout;
     valid_output_layouts[idx] = true;
     return changed;
