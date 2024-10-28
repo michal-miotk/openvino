@@ -8,22 +8,9 @@
 #include <vector>
 #include <algorithm>
 #include "intel_gpu/graph/serialization/activation_serializer.hpp"
+#include "intel_gpu/primitives/rnn.hpp"
 
 namespace cldnn {
-
-/// @brief Weights orders
-/// @details Specifies the order in which the weights are concatenated.
-/// e.g. [i, o, f, z] : [input, output, forget, block]
-/// ONNX order: iofz
-/// Caffe order: ifoz
-/// pyTorch order: izof
-/// OV order: fizo
-enum class lstm_weights_order {
-    iofz,
-    ifoz,
-    izof,
-    fizo
-};
 
 struct lstm_elt : public primitive_base<lstm_elt> {
     CLDNN_DECLARE_PRIMITIVE(lstm_elt)
