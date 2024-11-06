@@ -539,7 +539,7 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
             });
         if (unroll_loop) {
             pass_config->set_callback<ov::pass::ConvertRNNSequenceToTensorIterator,
-                    ov::pass::ConvertGRUSequenceToTensorIterator,
+                    //ov::pass::ConvertGRUSequenceToTensorIterator,
                     ov::pass::ConvertLSTMSequenceToTensorIterator>(
                     [isSequencePrimitiveSupported](const_node_ptr &node) -> bool {
                         return isSequencePrimitiveSupported(node);

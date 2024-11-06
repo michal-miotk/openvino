@@ -10,7 +10,7 @@
 
 namespace kernel_selector {
 
-JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool sequential) const {
+JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool sequential, bool gru) const {
     JitConstants jit = MakeBaseParamsJitConstants(params);
     auto out =  params.outputs[0];
     if (params.input_forget) {
@@ -19,7 +19,9 @@ JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool seq
     jit.AddConstants({MakeJitConstant("VEC_SIZE", 4)});
     assert(params.direction ==  ov::op::RecurrentSequenceDirection::FORWARD || params.direction == ov::op::RecurrentSequenceDirection::REVERSE);
     jit.AddConstants({MakeJitConstant("DIRECTION", params.direction == ov::op::RecurrentSequenceDirection::REVERSE ? 1 : 0)});
-    const unsigned int gate_num = 4;
+    unsigned int gate_num = 4;
+    if (gru)
+        gate_num = 3;
     jit.AddConstants({MakeJitConstant("GATE_NUM", gate_num)});
     if (sequential) {
         jit.AddConstants({MakeJitConstant("SEQUENCE", 1)});
@@ -78,7 +80,7 @@ JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool seq
     return jit;
 }
 
-KernelsData LSTMKernelBase::GetCommonKernelsData(const Params& params, bool sequential) const {
+KernelsData LSTMKernelBase::GetCommonKernelsData(const Params& params, bool sequential, bool gru) const {
     if (!Validate(params)) {
         return {};
     }
@@ -101,10 +103,10 @@ KernelsData LSTMKernelBase::GetCommonKernelsData(const Params& params, bool sequ
     }
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::OUTPUT, 0});
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::OUTPUT, 1});
-    if (sequential) {
+    if (sequential && !gru) {
         kernel.params.arguments.push_back({ArgumentDescriptor::Types::OUTPUT, 2});
     }
-    auto cldnnJit = GetJitConstants(orgParams, sequential);
+    auto cldnnJit = GetJitConstants(orgParams, sequential, gru);
     auto entryPoint = GetEntryPoint(kernelName, orgParams.layerID, params);
     auto jit = CreateJit(kernelName, cldnnJit, entryPoint);
     size_t num_hidden_kernels;
