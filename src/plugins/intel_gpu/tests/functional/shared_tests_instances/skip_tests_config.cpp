@@ -12,8 +12,7 @@ std::vector<std::string> disabledTestPatterns() {
             // These tests might fail due to accuracy loss a bit bigger than threshold
             R"(.*(GRUCellTest).*)",
             R"(.*(RNNSequenceTest).*)",
-            //R"(.*(GRUSequenceTest).*)",PURE_SEQ_RAND_SEQ_LEN_CONST_IS
-            R"(.*(GRUSequenceTest).*(PURE_SEQ_RAND_SEQ_LEN_CONST_IS).*)",
+            R"(.*(smoke_GRUSequenceCommonClipBidirect).*(clip=0.7).*)",
             // These test cases might fail due to FP16 overflow
             R"(.*(LSTM).*activations=\(relu.*modelType=f16.*)",
 

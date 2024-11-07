@@ -10,6 +10,9 @@
     #include "impls/ocl/gru_seq.hpp"
 #endif
 
+#if OV_GPU_WITH_ONEDNN
+    #include "impls/onednn/gru_seq_onednn.hpp"
+#endif
 
 namespace ov {
 namespace intel_gpu {
@@ -18,6 +21,7 @@ using namespace cldnn;
 
 const std::vector<std::shared_ptr<cldnn::ImplementationManager>>& Registry<gru_seq>::get_implementations() {
     static const std::vector<std::shared_ptr<ImplementationManager>> impls = {
+        OV_GPU_CREATE_INSTANCE_ONEDNN(onednn::GRUSeqImplementationManager, shape_types::static_shape)
         OV_GPU_CREATE_INSTANCE_OCL(ocl::GRUSeqImplementationManager, shape_types::static_shape)
     };
 

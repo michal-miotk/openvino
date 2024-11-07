@@ -16,7 +16,7 @@ namespace {
                                         SequenceTestsMode::CONVERT_TO_TI_RAND_SEQ_LEN_CONST,
                                         SequenceTestsMode::CONVERT_TO_TI_RAND_SEQ_LEN_PARAM,
                                         SequenceTestsMode::PURE_SEQ_RAND_SEQ_LEN_PARAM,
-                                        //SequenceTestsMode::PURE_SEQ_RAND_SEQ_LEN_CONST,
+                                        SequenceTestsMode::PURE_SEQ_RAND_SEQ_LEN_CONST,
                                         SequenceTestsMode::PURE_SEQ};
     // output values increase rapidly without clip, so use only seq_lengths = 2
 
