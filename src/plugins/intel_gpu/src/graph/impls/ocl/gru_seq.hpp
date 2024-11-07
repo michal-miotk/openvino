@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-#include "gru_seq_inst.h"
+#include "lstm_seq_inst.h"
 #include "impls/registry/implementation_manager.hpp"
 #include "intel_gpu/runtime/layout.hpp"
 

@@ -7,24 +7,23 @@
 KERNEL(gru_cell_and_seq_ref)(
     const __global INPUT0_TYPE* x,
     const __global INPUT1_TYPE* initial_hidden_state,
-    const __global INPUT2_TYPE* initial_cell_state,
-    const __global INPUT3_TYPE* W,
-    const __global INPUT4_TYPE* R,
-    const __global INPUT5_TYPE* B,
+    const __global INPUT2_TYPE* W,
+    const __global INPUT3_TYPE* R,
+    const __global INPUT4_TYPE* B,
 #ifdef SEQUENCE
-    const __global INPUT6_TYPE* sequence_lengths,
+    const __global INPUT5_TYPE* sequence_lengths,
     __global OUTPUT_TYPE* hidden_history,
-    __global OUTPUT1_TYPE* hidden_state,
+    __global OUTPUT1_TYPE* hidden_state
 #else
-    __global OUTPUT_TYPE* hidden_state,
+    __global OUTPUT_TYPE* hidden_state
 #endif
 )
 {
     const uint b = get_global_id(1);
     const uint local_idx = get_local_id(0);
-    const uint weight_offsets[3] = {GEMM_OFFSET_F, GEMM_OFFSET_I, GEMM_OFFSET_Z};
+    const uint weight_offsets[GATE_NUM] = {GEMM_OFFSET_R, GEMM_OFFSET_Z, GEMM_OFFSET_H};
     #ifdef SEQUENCE
-        const uint real_seq_length = sequence_lengths[INPUT6_GET_INDEX_SAFE(b, 0, 0, 0)];
+        const uint real_seq_length = sequence_lengths[INPUT5_GET_INDEX_SAFE(b, 0, 0, 0)];
     #else
         const uint real_seq_length = 1;
     #endif
@@ -54,32 +53,32 @@ KERNEL(gru_cell_and_seq_ref)(
                 unroll_for(uint j=0;j<HIDDEN_SIZE;++j) {
                     if(i==0){
                         #ifdef SEQUENCE
-                            hidden_result += initial_hidden_state[INPUT1_GET_INDEX_SAFE(b, 0, j, 0)]*R[INPUT4_GET_INDEX_SAFE(0, weight_idx, j, 0)];
+                            hidden_result += initial_hidden_state[INPUT1_GET_INDEX_SAFE(b, 0, j, 0)]*R[INPUT3_GET_INDEX_SAFE(0, weight_idx, j, 0)];
                         #else
-                            hidden_result += initial_hidden_state[INPUT1_GET_INDEX_SAFE(b, j, 0, 0)]*R[INPUT4_GET_INDEX_SAFE(weight_idx, j, 0, 0)];
+                            hidden_result += initial_hidden_state[INPUT1_GET_INDEX_SAFE(b, j, 0, 0)]*R[INPUT3_GET_INDEX_SAFE(weight_idx, j, 0, 0)];
                         #endif
                     }else{
                         #ifdef SEQUENCE
-                            hidden_result += hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, prev_idx, j)]*R[INPUT4_GET_INDEX_SAFE(0, weight_idx, j, 0)];
+                            hidden_result += hidden_history[OUTPUT_GET_INDEX_SAFE(b, 0, prev_idx, j)]*R[INPUT3_GET_INDEX_SAFE(0, weight_idx, j, 0)];
                         #endif
                     }
                 }
                 
                 unroll_for(uint j=0;j<INPUT_SIZE;++j) {
                     #if DIRECTION == 1 //reverse
-                        input_result += x[INPUT0_GET_INDEX_SAFE(b, real_seq_length-1-i, j, 0)]*W[INPUT3_GET_INDEX_SAFE(0, weight_idx, j, 0)];
+                        input_result += x[INPUT0_GET_INDEX_SAFE(b, real_seq_length-1-i, j, 0)]*W[INPUT2_GET_INDEX_SAFE(0, weight_idx, j, 0)];
                     #else
                         #ifdef SEQUENCE
-                            input_result += x[INPUT0_GET_INDEX_SAFE(b, i, j, 0)]*W[INPUT3_GET_INDEX_SAFE(0, weight_idx, j, 0)];
+                            input_result += x[INPUT0_GET_INDEX_SAFE(b, i, j, 0)]*W[INPUT2_GET_INDEX_SAFE(0, weight_idx, j, 0)];
                         #else
-                            input_result += x[INPUT0_GET_INDEX_SAFE(b, j, 0, 0)]*W[INPUT3_GET_INDEX_SAFE(weight_idx, j, 0, 0)];
+                            input_result += x[INPUT0_GET_INDEX_SAFE(b, j, 0, 0)]*W[INPUT2_GET_INDEX_SAFE(weight_idx, j, 0, 0)];
                         #endif
                     #endif //DIRECTION == 1 //reverse
                 }
                 #ifdef SEQUENCE
-                    gate_output[k] = hidden_result + input_result + TO_ACCUMULATOR_TYPE(B[INPUT5_GET_INDEX_SAFE(0, weight_idx, 0, 0)]);
+                    gate_output[k] = hidden_result + input_result + TO_ACCUMULATOR_TYPE(B[INPUT4_GET_INDEX_SAFE(0, weight_idx, 0, 0)]);
                 #else
-                    gate_output[k] = hidden_result + input_result + TO_ACCUMULATOR_TYPE(B[INPUT5_GET_INDEX_SAFE(weight_idx, 0, 0, 0)]);
+                    gate_output[k] = hidden_result + input_result + TO_ACCUMULATOR_TYPE(B[INPUT4_GET_INDEX_SAFE(weight_idx, 0, 0, 0)]);
                 #endif
                 switch(k){
                     case 0:
@@ -96,13 +95,13 @@ KERNEL(gru_cell_and_seq_ref)(
             ACCUMULATOR_TYPE temp_state;
             if (i==0){
                 #ifdef SEQUENCE
-                    temp_state = (1-gate_output[1])*initial_cell_state[INPUT2_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] + gate_output[1]*gate_output[2];
+                    temp_state = gate_output[1]*initial_hidden_state[INPUT1_GET_INDEX_SAFE(b, 0, hidden_idx, 0)] + (1-gate_output[1])*gate_output[2];
                 #else
-                    temp_state = (1-gate_output[1])*initial_cell_state[INPUT2_GET_INDEX_SAFE(b, hidden_idx, 0, 0)] + gate_output[1]*gate_output[2];
+                    temp_state = (1-gate_output[1])*initial_hidden_state[INPUT1_GET_INDEX_SAFE(b, hidden_idx, 0, 0)] + gate_output[1]*gate_output[2];
                 #endif
             }else{
-                temp_state *= 1-gate_output[1];
-                temp_state += gate_output[1]*gate_output[2];
+                temp_state *= gate_output[1];
+                temp_state += (1-gate_output[1])*gate_output[2];
             }
             
             #if DIRECTION == 1  //reverse

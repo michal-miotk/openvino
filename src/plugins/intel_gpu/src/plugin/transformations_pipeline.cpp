@@ -515,8 +515,8 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
                 return false;
             if (std::dynamic_pointer_cast<const ov::op::v5::RNNSequence>(node)) {
                 return false;
-            } else if (std::dynamic_pointer_cast<const ov::op::v5::GRUSequence>(node)) {
-                return false;
+            } else if (const auto &gru_seq = std::dynamic_pointer_cast<const ov::op::v5::GRUSequence>(node)) {
+                return gru_seq->get_clip() == 0.0f;
             } else if (const auto &lstm_seq = std::dynamic_pointer_cast<const ov::op::v5::LSTMSequence>(node)) {
                 return lstm_seq->get_clip() == 0.0f &&
                        lstm_seq->get_activations() == std::vector<std::string>{"sigmoid", "tanh", "tanh"} &&
@@ -539,7 +539,7 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
             });
         if (unroll_loop) {
             pass_config->set_callback<ov::pass::ConvertRNNSequenceToTensorIterator,
-                    //ov::pass::ConvertGRUSequenceToTensorIterator,
+                    ov::pass::ConvertGRUSequenceToTensorIterator,
                     ov::pass::ConvertLSTMSequenceToTensorIterator>(
                     [isSequencePrimitiveSupported](const_node_ptr &node) -> bool {
                         return isSequencePrimitiveSupported(node);

@@ -43,12 +43,20 @@ JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool seq
     } else {
         size = params.inputs[1].Feature().v;
     }
-    jit.AddConstants({
-        MakeJitConstant("GEMM_OFFSET_I", params.GetOffsetIndexI() * size),
-        MakeJitConstant("GEMM_OFFSET_O", params.GetOffsetIndexO() * size),
-        MakeJitConstant("GEMM_OFFSET_F", params.GetOffsetIndexF() * size),
-        MakeJitConstant("GEMM_OFFSET_Z", params.GetOffsetIndexZ() * size),
-    });
+    if (!gru) {
+        jit.AddConstants({
+            MakeJitConstant("GEMM_OFFSET_I", params.GetOffsetIndexI() * size),
+            MakeJitConstant("GEMM_OFFSET_O", params.GetOffsetIndexO() * size),
+            MakeJitConstant("GEMM_OFFSET_F", params.GetOffsetIndexF() * size),
+            MakeJitConstant("GEMM_OFFSET_Z", params.GetOffsetIndexZ() * size),
+        });
+    } else {
+        jit.AddConstants({
+            MakeJitConstant("GEMM_OFFSET_R", 0),
+            MakeJitConstant("GEMM_OFFSET_Z", 1 * size),
+            MakeJitConstant("GEMM_OFFSET_H", 2 * size)
+        });
+    }
     jit.AddConstants({MakeJitConstant("BATCH_SIZE", params.inputs[1].Batch().v)});
     jit.AddConstants({MakeJitConstant("HIDDEN_SIZE", hidden_size)});
     int num_hidden_to_do = hidden_size/num_hidden_kernels + (hidden_size % num_hidden_kernels  ? 1 : 0);
@@ -98,7 +106,7 @@ KernelsData LSTMKernelBase::GetCommonKernelsData(const Params& params, bool sequ
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 3});
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 4});
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 5});
-    if (sequential) {
+    if (sequential && !gru) {
         kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 6});
     }
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::OUTPUT, 0});
