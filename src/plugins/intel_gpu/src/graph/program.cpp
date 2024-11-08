@@ -135,9 +135,9 @@ std::shared_ptr<ICompilationContext> program::make_compilation_context(const Exe
                                                                  "Task executor config for CompilationContext in GPU plugin", _num_async_build_threads));
 }
 
-bool program::has_lstm(topology const& topology) {
+bool program::has_lstm_or_gru(topology const& topology) {
     for (auto primitive_pair : topology.get_primitives()) {
-        if (primitive_pair.second->type_string() == "lstm_seq") {
+        if (primitive_pair.second->type_string() == "lstm_seq" || primitive_pair.second->type_string() == "gru_seq") {
             return true;
         }
     }
@@ -160,8 +160,8 @@ program::program(engine& engine_ref,
       is_internal(is_internal),
       _is_body_program(is_body_program),
       _compilation_context(compilation_context) {
-    bool lstm_present = has_lstm(topology);
-    _config.apply_user_properties(_engine.get_device_info(), lstm_present);
+    bool rnn_present = has_lstm_or_gru(topology);
+    _config.apply_user_properties(_engine.get_device_info(), rnn_present);
     init_primitives();
     GPU_DEBUG_INFO << "Program config\n" << _config.to_string();
     init_program();

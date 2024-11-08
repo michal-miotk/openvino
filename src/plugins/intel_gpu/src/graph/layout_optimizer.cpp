@@ -22,6 +22,7 @@
 #include "gemm_inst.h"
 #include "deconvolution_inst.h"
 #include "fully_connected_inst.h"
+#include "gru_seq_inst.h"
 #include "non_max_suppression_inst.h"
 #include "eltwise_inst.h"
 #include "pooling_inst.h"
@@ -1281,7 +1282,7 @@ format layout_optimizer::get_expected_format(quantize_node const& node) {
 bool layout_optimizer::is_primitive_implemented_for_onednn(program_node& node) {
     if (node.is_type<fully_connected>() || node.is_type<gemm>() || node.is_type<pooling>() ||
         node.is_type<convolution>() || node.is_type<deconvolution>() ||
-        node.is_type<reduce>() || node.is_type<reorder>() || node.is_type<concatenation>() || node.is_type<lstm_seq>()) {
+        node.is_type<reduce>() || node.is_type<reorder>() || node.is_type<concatenation>() || node.is_type<lstm_seq>() || node.is_type<gru_seq>()) {
         return true;
     }
 

@@ -130,6 +130,7 @@ REGISTER_IMPLS(fully_connected);
 REGISTER_IMPLS(gather);
 REGISTER_IMPLS(gather_nd);
 REGISTER_IMPLS(gemm);
+REGISTER_IMPLS(gru_seq);
 REGISTER_IMPLS(lstm_cell);
 REGISTER_IMPLS(lstm_seq);
 REGISTER_IMPLS(pooling);

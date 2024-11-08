@@ -10,7 +10,7 @@
 
 namespace kernel_selector {
 
-JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool sequential) const {
+JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool sequential, bool gru) const {
     JitConstants jit = MakeBaseParamsJitConstants(params);
     auto out =  params.outputs[0];
     if (params.input_forget) {
@@ -19,7 +19,9 @@ JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool seq
     jit.AddConstants({MakeJitConstant("VEC_SIZE", 4)});
     assert(params.direction ==  ov::op::RecurrentSequenceDirection::FORWARD || params.direction == ov::op::RecurrentSequenceDirection::REVERSE);
     jit.AddConstants({MakeJitConstant("DIRECTION", params.direction == ov::op::RecurrentSequenceDirection::REVERSE ? 1 : 0)});
-    const unsigned int gate_num = 4;
+    unsigned int gate_num = 4;
+    if (gru)
+        gate_num = 3;
     jit.AddConstants({MakeJitConstant("GATE_NUM", gate_num)});
     if (sequential) {
         jit.AddConstants({MakeJitConstant("SEQUENCE", 1)});
@@ -41,12 +43,20 @@ JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool seq
     } else {
         size = params.inputs[1].Feature().v;
     }
-    jit.AddConstants({
-        MakeJitConstant("GEMM_OFFSET_I", params.GetOffsetIndexI() * size),
-        MakeJitConstant("GEMM_OFFSET_O", params.GetOffsetIndexO() * size),
-        MakeJitConstant("GEMM_OFFSET_F", params.GetOffsetIndexF() * size),
-        MakeJitConstant("GEMM_OFFSET_Z", params.GetOffsetIndexZ() * size),
-    });
+    if (!gru) {
+        jit.AddConstants({
+            MakeJitConstant("GEMM_OFFSET_I", params.GetOffsetIndexI() * size),
+            MakeJitConstant("GEMM_OFFSET_O", params.GetOffsetIndexO() * size),
+            MakeJitConstant("GEMM_OFFSET_F", params.GetOffsetIndexF() * size),
+            MakeJitConstant("GEMM_OFFSET_Z", params.GetOffsetIndexZ() * size),
+        });
+    } else {
+        jit.AddConstants({
+            MakeJitConstant("GEMM_OFFSET_R", 0),
+            MakeJitConstant("GEMM_OFFSET_Z", 1 * size),
+            MakeJitConstant("GEMM_OFFSET_H", 2 * size)
+        });
+    }
     jit.AddConstants({MakeJitConstant("BATCH_SIZE", params.inputs[1].Batch().v)});
     jit.AddConstants({MakeJitConstant("HIDDEN_SIZE", hidden_size)});
     int num_hidden_to_do = hidden_size/num_hidden_kernels + (hidden_size % num_hidden_kernels  ? 1 : 0);
@@ -78,7 +88,7 @@ JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool seq
     return jit;
 }
 
-KernelsData LSTMKernelBase::GetCommonKernelsData(const Params& params, bool sequential) const {
+KernelsData LSTMKernelBase::GetCommonKernelsData(const Params& params, bool sequential, bool gru) const {
     if (!Validate(params)) {
         return {};
     }
@@ -96,15 +106,15 @@ KernelsData LSTMKernelBase::GetCommonKernelsData(const Params& params, bool sequ
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 3});
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 4});
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 5});
-    if (sequential) {
+    if (sequential && !gru) {
         kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 6});
     }
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::OUTPUT, 0});
     kernel.params.arguments.push_back({ArgumentDescriptor::Types::OUTPUT, 1});
-    if (sequential) {
+    if (sequential && !gru) {
         kernel.params.arguments.push_back({ArgumentDescriptor::Types::OUTPUT, 2});
     }
-    auto cldnnJit = GetJitConstants(orgParams, sequential);
+    auto cldnnJit = GetJitConstants(orgParams, sequential, gru);
     auto entryPoint = GetEntryPoint(kernelName, orgParams.layerID, params);
     auto jit = CreateJit(kernelName, cldnnJit, entryPoint);
     size_t num_hidden_kernels;

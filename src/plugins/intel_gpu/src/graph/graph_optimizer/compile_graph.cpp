@@ -49,6 +49,9 @@ void compile_graph::run(program& p) {
                     } catch (std::exception& e) {
                         fail_reason = e.what();
                     }
+                    if (node->selected_impl == nullptr) {
+                        std::cout << "nullll" << std::endl;
+                    }
 
                     OPENVINO_ASSERT(shape_type == shape_types::dynamic_shape || node->selected_impl != nullptr,
                                     "[GPU] Failed to select implementation for"
