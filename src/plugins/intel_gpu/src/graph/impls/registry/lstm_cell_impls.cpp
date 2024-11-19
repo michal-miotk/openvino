@@ -10,6 +10,11 @@
     #include "impls/ocl/lstm_cell.hpp"
 #endif
 
+#if OV_GPU_WITH_ONEDNN
+    #include "impls/onednn/lstm_cell_onednn.hpp"
+#endif
+
+
 namespace ov {
 namespace intel_gpu {
 
@@ -17,6 +22,7 @@ using namespace cldnn;
 
 const std::vector<std::shared_ptr<cldnn::ImplementationManager>>& Registry<lstm_cell>::get_implementations() {
     static const std::vector<std::shared_ptr<ImplementationManager>> impls = {
+        OV_GPU_CREATE_INSTANCE_ONEDNN(onednn::LSTMCellImplementationManager, shape_types::static_shape)
         OV_GPU_CREATE_INSTANCE_OCL(ocl::LSTMCellImplementationManager, shape_types::static_shape)
     };
 

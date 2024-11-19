@@ -73,7 +73,7 @@
 #include "intel_gpu/graph/serialization/map_serializer.hpp"
 
 #include "intel_gpu/primitives/rnn.hpp"
-
+#include "intel_gpu/primitives/lstm_cell.hpp"
 // TODO: Remove once we have interface for kernels cache
 #include "impls/ocl/kernels_cache.hpp"
 
@@ -526,7 +526,7 @@ void program::init_graph() {
     for (auto& node : processing_order) {
         if (!node->is_type<data>())
             node->get_output_layouts();
-        if (node->is_type<lstm_seq>()) {
+        if (node->is_type<lstm_seq>() || node->is_type<lstm_cell>()) {
             _config.set_property(ov::intel_gpu::use_onednn(true));
         }
     }
@@ -1645,6 +1645,7 @@ void program::set_layout_optimizer_attributes(layout_optimizer& lo) {
             } else {
                 if (get_config().get_property(ov::intel_gpu::use_onednn)) {
                     lo.enable_onednn_for<lstm_seq>();
+                    lo.enable_onednn_for<lstm_cell>();
                 }
             }
         }
