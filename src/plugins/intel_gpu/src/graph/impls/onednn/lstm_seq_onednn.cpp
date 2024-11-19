@@ -168,11 +168,18 @@ protected:
                         "[GPU] The format kind of the output memory descriptor of onednn lstm_seq cannot be 'any'.");
 
         auto eng = engine.get_onednn_engine();
+        dnnl::rnn_direction lstm_desc_dir;
+        if (direction == ov::op::RecurrentSequenceDirection::FORWARD) {
+            lstm_desc_dir = dnnl::rnn_direction::unidirectional_left2right;
+        } else if (direction == ov::op::RecurrentSequenceDirection::REVERSE) {
+            lstm_desc_dir = dnnl::rnn_direction::unidirectional_right2left;
+        } else {
+            lstm_desc_dir = dnnl::rnn_direction::bidirectional_concat;
+        }
         return std::make_shared<dnnl::lstm_forward::primitive_desc>(
             eng,
             dnnl::prop_kind::forward_inference,
-            direction == ov::op::RecurrentSequenceDirection::FORWARD ? dnnl::rnn_direction::unidirectional_left2right : \
-            dnnl::rnn_direction::unidirectional_right2left,
+            lstm_desc_dir,
             input_md,
             initial_hidden,
             initial_cell,
