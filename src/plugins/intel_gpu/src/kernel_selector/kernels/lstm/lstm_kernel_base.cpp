@@ -10,8 +10,9 @@
 
 namespace kernel_selector {
 
-JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool sequential) const {
+JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params) const {
     JitConstants jit = MakeBaseParamsJitConstants(params);
+    bool sequential = params.sequential;
     auto out =  params.outputs[0];
     if (params.input_forget) {
         jit.AddConstants({MakeJitConstant("INPUT_FORGET", true)});
@@ -77,13 +78,13 @@ JitConstants LSTMKernelBase::GetJitConstants(const lstm_params& params, bool seq
     return jit;
 }
 
-KernelsData LSTMKernelBase::GetCommonKernelsData(const Params& params, bool sequential) const {
+KernelsData LSTMKernelBase::GetCommonKernelsData(const Params& params) const {
     if (!Validate(params)) {
         return {};
     }
 
     const lstm_params& orgParams = static_cast<const lstm_params&>(params);
-
+    bool sequential = orgParams.sequential;
     KernelData kd = KernelData::Default<lstm_params>(params, 1);
 
     auto out =  orgParams.outputs[0];
@@ -103,7 +104,7 @@ KernelsData LSTMKernelBase::GetCommonKernelsData(const Params& params, bool sequ
     if (sequential) {
         kernel.params.arguments.push_back({ArgumentDescriptor::Types::OUTPUT, 2});
     }
-    auto cldnnJit = GetJitConstants(orgParams, sequential);
+    auto cldnnJit = GetJitConstants(orgParams);
     auto entryPoint = GetEntryPoint(kernelName, orgParams.layerID, params);
     auto jit = CreateJit(kernelName, cldnnJit, entryPoint);
     size_t num_hidden_kernels;
