@@ -135,6 +135,15 @@ std::shared_ptr<ICompilationContext> program::make_compilation_context(const Exe
                                                                  "Task executor config for CompilationContext in GPU plugin", _num_async_build_threads));
 }
 
+bool program::has_lstm(topology const& topology) {
+    for (auto primitive_pair : topology.get_primitives()) {
+        if (primitive_pair.second->type_string() == "lstm_seq") {
+            return true;
+        }
+    }
+    return false;
+}
+
 program::program(engine& engine_ref,
                  topology const& topology,
                  const ExecutionConfig& config,
@@ -151,6 +160,9 @@ program::program(engine& engine_ref,
       is_internal(is_internal),
       _is_body_program(is_body_program),
       _compilation_context(compilation_context) {
+    if (topology.lstm_present || _engine.get_device_info().supports_immad) {
+        _config.set_property(ov::intel_gpu::use_onednn(true));
+    }
     _config.apply_user_properties(_engine.get_device_info());
     init_primitives();
     GPU_DEBUG_INFO << "Program config\n" << _config.to_string();
@@ -195,6 +207,9 @@ program::program(engine& engine_ref,
       _task_executor(std::move(task_executor)),
       processing_order(),
       is_internal(is_internal) {
+    if (_engine.get_device_info().supports_immad) {
+        _config.set_property(ov::intel_gpu::use_onednn(true));
+    }
     _config.apply_user_properties(_engine.get_device_info());
     init_primitives();
     init_program();
@@ -208,6 +223,9 @@ program::program(engine& engine, const ExecutionConfig& config)
       _config(config),
       processing_order() {
     init_primitives();
+    if (_engine.get_device_info().supports_immad) {
+        _config.set_property(ov::intel_gpu::use_onednn(true));
+    }
     _config.apply_user_properties(_engine.get_device_info());
     new_shape_infer = _config.get_property(ov::intel_gpu::allow_new_shape_infer);
     _layout_optimizer = cldnn::make_unique<layout_optimizer>();
@@ -1631,11 +1649,17 @@ void program::set_layout_optimizer_attributes(layout_optimizer& lo) {
 #ifdef ENABLE_ONEDNN_FOR_GPU
     bool enable_onednn_for_tests = get_config().get_property(ov::intel_gpu::optimize_data) || is_internal_program();
     auto& engine = get_engine();
-    if (engine.get_device_info().supports_immad &&
-        engine.get_device_info().vendor_id == INTEL_VENDOR_ID &&
+    if (engine.get_device_info().vendor_id == INTEL_VENDOR_ID &&
         get_config().get_property(ov::intel_gpu::queue_type) == QueueTypes::in_order &&
-        enable_onednn_for_tests)
-        lo.set_optimization_attribute(layout_optimizer::optimization_attributes_type::use_onednn_impls, 1);
+        enable_onednn_for_tests) {
+            if (engine.get_device_info().supports_immad) {
+                lo.add_all_onednn_impls_optimization_attribute();
+            } else {
+                if (get_config().get_property(ov::intel_gpu::use_onednn)) {
+                    lo.add_onednn_impls_optimization_attribute("lstm_seq");
+                }
+            }
+        }
 #endif
 }
 
@@ -1779,7 +1803,11 @@ void program::save(cldnn::BinaryOutputBuffer& ob) const {
 
     ob << _is_body_program;
     ob << _can_be_optimized;
-    ob << get_layout_optimizer().get_optimization_attributes().use_onednn_impls;
+    ob << get_layout_optimizer().get_all_onednn_impls_optimization_attribute().size();
+    for (auto onednn_impl : get_layout_optimizer().get_all_onednn_impls_optimization_attribute()) {
+        ob << onednn_impl;
+    }
+
     processing_order.save(ob);
 
     {
@@ -1903,9 +1931,15 @@ void program::load(cldnn::BinaryInputBuffer& ib) {
 
     ib >> _is_body_program;
     ib >> _can_be_optimized;
-    int32_t use_onednn_attr = 0;
-    ib >> use_onednn_attr;
-    get_layout_optimizer().set_optimization_attribute(layout_optimizer::optimization_attributes_type::use_onednn_impls, use_onednn_attr);
+
+    size_t num_of_onednn_impls;
+    ib >> num_of_onednn_impls;
+    for (size_t num = 0; num < num_of_onednn_impls; num++) {
+        std::string primitive_name;
+        ib >> primitive_name;
+        get_layout_optimizer().add_onednn_impls_optimization_attribute(primitive_name);
+    }
+
     _loaded_from_cache = true;
 
     processing_order.load(ib, *this);

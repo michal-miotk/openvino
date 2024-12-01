@@ -38,13 +38,13 @@ public:
         const auto& primitive = impl_param.typed_desc<lstm_elt>();
         auto params = get_default_params<kernel_selector::lstm_elt_params>(impl_param);
 
-        if (!primitive->cell.empty()) {
+        if (!primitive->initial_cell_state.pid.empty()) {
             const auto& cell_idx = 1;
             const auto& cell_layout = impl_param.input_layouts[cell_idx];
             params.SetCell(convert_data_tensor(cell_layout));
             // TODO: make a generic function to get the direction
             if (cell_layout.spatial(1) > 1) {
-                params.cell_direction = primitive->direction;
+                params.cell_direction = primitive->direction == ov::op::RecurrentSequenceDirection::FORWARD ? 0 : 1;
             }
         }
 
@@ -66,7 +66,7 @@ public:
         params.SetOffsetOrder(static_cast<int32_t>(primitive->offset_order));
         params.clip = primitive->clip;
         params.input_forget = primitive->input_forget;
-        params.direction = primitive->direction;
+        params.direction = primitive->direction == ov::op::RecurrentSequenceDirection::FORWARD ? 0 : 1;
 
         return params;
     }
