@@ -22,22 +22,28 @@ KERNEL (mvn_gpu_bfyx_opt)(
     const uint data_sets_count = DATA_SETS_COUNT;   // how many data sets are in the processing payload
     const uint items_num = data_set_size / workers_per_data_set;
     const uint leftovers = data_set_size % workers_per_data_set;
-
+    const uint global_size_0 = get_global_size(0);
     const uint data_set_offset = data_set_idx * data_set_size;
     const uint my_data_offset = data_set_offset + in_data_set_idx;
+    const uint my_data_offset2 = data_set_offset + in_data_set_idx*items_num;
 
     float my_sum = 0;
     float tmp;
-
-    //each WI reads items_num consecutive items from batch*feature
-    for (uint i=0; i<items_num; ++i)
-    {
-        my_sum += (float)input[my_data_offset + i * workers_per_data_set];
+    
+    MAKE_VECTOR_TYPE(INPUT0_TYPE, 4) x;
+    for(int i=0;i<items_num/4;i++) {
+        x = vload4(0, &input[my_data_offset2+i*4]);
+        my_sum += x.s0 + x.s1 + x.s2 + x.s3;
     }
-
+    int vec_leftovers = items_num%4;
+    for (uint i=0; i<vec_leftovers; ++i)
+    {
+        my_sum += (float)input[my_data_offset2 + 4 + i];
+    }
+    
     if (in_data_set_idx < leftovers)
     {
-        my_sum += (float)input[data_set_offset + workers_per_data_set * items_num + in_data_set_idx];
+        my_sum += (float)input[data_set_offset + global_size_0*items_num + in_data_set_idx];
     }
 
     my_sum = work_group_reduce_add(my_sum) / data_set_size;
