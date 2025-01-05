@@ -29,16 +29,16 @@ KERNEL (mvn_gpu_bfyx_opt)(
 
     float my_sum = 0;
     float tmp;
-    
     MAKE_VECTOR_TYPE(INPUT0_TYPE, 4) x;
-    for(int i=0;i<items_num/4;i++) {
+    int vec_iter_num = items_num/4;
+    for(int i=0;i<vec_iter_num;i++) {
         x = vload4(0, &input[my_data_offset2+i*4]);
         my_sum += x.s0 + x.s1 + x.s2 + x.s3;
     }
     int vec_leftovers = items_num%4;
     for (uint i=0; i<vec_leftovers; ++i)
     {
-        my_sum += (float)input[my_data_offset2 + 4 + i];
+        my_sum += (float)input[my_data_offset2 + vec_iter_num*4 + i];
     }
     
     if (in_data_set_idx < leftovers)
