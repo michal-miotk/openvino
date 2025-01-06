@@ -31,6 +31,7 @@ KERNEL (mvn_gpu_bfyx_opt)(
     float tmp;
     MAKE_VECTOR_TYPE(INPUT0_TYPE, 4) x;
     int vec_iter_num = items_num/4;
+    //each WI reads items_num consecutive items from batch*featur
     for(int i=0;i<vec_iter_num;i++) {
         x = vload4(0, &input[my_data_offset2+i*4]);
         my_sum += x.s0 + x.s1 + x.s2 + x.s3;
@@ -73,20 +74,32 @@ KERNEL (mvn_gpu_bfyx_opt)(
 
     float my_variance = 0.f;
     //each WI reads items_num consecutive items from batch*feature
-    for (uint i=0; i<items_num; ++i)
-    {
-        tmp = (float)input[my_data_offset + i * workers_per_data_set];
-        tmp -= my_sum;
+    for(int i=0;i<vec_iter_num;i++) {
+        x = vload4(0, &input[my_data_offset2+i*4]);
+        tmp = x.s0 - my_sum;
+        my_variance = fma(tmp, tmp, my_variance);
+        tmp = x.s1 - my_sum;
+        my_variance = fma(tmp, tmp, my_variance);
+        tmp = x.s2 - my_sum;
+        my_variance = fma(tmp, tmp, my_variance);
+        tmp = x.s3 - my_sum;
         my_variance = fma(tmp, tmp, my_variance);
     }
 
+    for (uint i=0; i<vec_leftovers; ++i)
+    {
+        tmp = (float)input[my_data_offset2 + vec_iter_num*4 + i];
+        tmp -= my_sum;
+        my_variance = fma(tmp, tmp, my_variance);
+    }
+    
     if (in_data_set_idx < leftovers)
     {
-        tmp = (float)input[data_set_offset + workers_per_data_set * items_num + in_data_set_idx];
+        tmp = (float)input[data_set_offset + global_size_0*items_num + in_data_set_idx];
         tmp -= my_sum;
         my_variance = fma(tmp, tmp, my_variance);
     }
-
+    
     my_variance = work_group_reduce_add(my_variance);
 
     if (in_data_set_idx == 0)
@@ -101,7 +114,6 @@ KERNEL (mvn_gpu_bfyx_opt)(
     }
 
     my_variance = work_group_broadcast(my_variance, 0);
-
     for (uint i=0; i<items_num; ++i) {
         uint iteration_in_data_set_offset = i * workers_per_data_set;
         ACTIVATION_TYPE result = (TO_ACTIVATION_TYPE(input[my_data_offset + iteration_in_data_set_offset]) - TO_ACTIVATION_TYPE(my_sum)) * TO_ACTIVATION_TYPE(my_variance);
