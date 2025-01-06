@@ -103,6 +103,8 @@ JitConstants MVNKernelBfyxOpt::GetJitConstants(const mvn_params& params, MVNKern
             MakeJitConstant("DATA_SET_SIZE", dispatchData.dataSetSize),
         });
     }
+    jit.AddConstant(MakeJitConstant("VEC_WIDTH", 4));
+    jit.AddConstant(MakeJitConstant("VLOAD", "CAT(vload, VEC_WIDTH)"));
     auto activation_dt = GetActivationType(params);
     jit.Merge(MakeTypeJitConstants(activation_dt, "ACTIVATION"));
 

@@ -29,17 +29,17 @@ KERNEL (mvn_gpu_bfyx_opt)(
 
     float my_sum = 0;
     float tmp;
-    MAKE_VECTOR_TYPE(INPUT0_TYPE, 4) x;
-    int vec_iter_num = items_num/4;
+    MAKE_VECTOR_TYPE(INPUT0_TYPE, VEC_WIDTH) x;
+    const uint vec_iter_num = native_divide(items_num, VEC_WIDTH);
     //each WI reads items_num consecutive items from batch*featur
-    for(int i=0;i<vec_iter_num;i++) {
-        x = vload4(0, &input[my_data_offset2+i*4]);
+    for(uint i=0;i<vec_iter_num;i++) {
+        x = VLOAD(0, &input[my_data_offset2+i*VEC_WIDTH]);
         my_sum += x.s0 + x.s1 + x.s2 + x.s3;
     }
-    int vec_leftovers = items_num%4;
+    const uint vec_leftovers = items_num%VEC_WIDTH;
     for (uint i=0; i<vec_leftovers; ++i)
     {
-        my_sum += (float)input[my_data_offset2 + vec_iter_num*4 + i];
+        my_sum += (float)input[my_data_offset2 + vec_iter_num*VEC_WIDTH + i];
     }
     
     if (in_data_set_idx < leftovers)
@@ -74,8 +74,8 @@ KERNEL (mvn_gpu_bfyx_opt)(
 
     float my_variance = 0.f;
     //each WI reads items_num consecutive items from batch*feature
-    for(int i=0;i<vec_iter_num;i++) {
-        x = vload4(0, &input[my_data_offset2+i*4]);
+    for(uint i=0;i<vec_iter_num;i++) {
+        x = VLOAD(0, &input[my_data_offset2+i*VEC_WIDTH]);
         tmp = x.s0 - my_sum;
         my_variance = fma(tmp, tmp, my_variance);
         tmp = x.s1 - my_sum;
@@ -88,7 +88,7 @@ KERNEL (mvn_gpu_bfyx_opt)(
 
     for (uint i=0; i<vec_leftovers; ++i)
     {
-        tmp = (float)input[my_data_offset2 + vec_iter_num*4 + i];
+        tmp = (float)input[my_data_offset2 + vec_iter_num*VEC_WIDTH + i];
         tmp -= my_sum;
         my_variance = fma(tmp, tmp, my_variance);
     }
@@ -115,23 +115,21 @@ KERNEL (mvn_gpu_bfyx_opt)(
 
     my_variance = work_group_broadcast(my_variance, 0);
     for (uint i=0; i<items_num; ++i) {
-        uint iteration_in_data_set_offset = i * workers_per_data_set;
-        ACTIVATION_TYPE result = (TO_ACTIVATION_TYPE(input[my_data_offset + iteration_in_data_set_offset]) - TO_ACTIVATION_TYPE(my_sum)) * TO_ACTIVATION_TYPE(my_variance);
+        ACTIVATION_TYPE result = (TO_ACTIVATION_TYPE(input[my_data_offset2 + i]) - TO_ACTIVATION_TYPE(my_sum)) * TO_ACTIVATION_TYPE(my_variance);
 #   if HAS_FUSED_OPS
         FUSED_OPS;
-        output[my_data_offset + iteration_in_data_set_offset] = FUSED_OPS_RESULT;
+        output[my_data_offset2 + i] = FUSED_OPS_RESULT;
 #   else
-        output[my_data_offset + iteration_in_data_set_offset] = TO_OUTPUT_TYPE(ACTIVATION(result, ACTIVATION_PARAMS));
+        output[my_data_offset2 + i] = TO_OUTPUT_TYPE(ACTIVATION(result, ACTIVATION_PARAMS));
 #   endif
     }
     if (in_data_set_idx < leftovers) {
-        uint iteration_in_data_set_offset = items_num * workers_per_data_set;
-        ACTIVATION_TYPE result = (TO_ACTIVATION_TYPE(input[my_data_offset + iteration_in_data_set_offset]) - TO_ACTIVATION_TYPE(my_sum)) * TO_ACTIVATION_TYPE(my_variance);
+        ACTIVATION_TYPE result = (TO_ACTIVATION_TYPE(input[data_set_offset + global_size_0*items_num + in_data_set_idx]) - TO_ACTIVATION_TYPE(my_sum)) * TO_ACTIVATION_TYPE(my_variance);
 #   if HAS_FUSED_OPS
         FUSED_OPS;
-        output[my_data_offset + iteration_in_data_set_offset] = FUSED_OPS_RESULT;
+        output[data_set_offset + global_size_0*items_num + in_data_set_idx] = FUSED_OPS_RESULT;
 #   else
-        output[my_data_offset + iteration_in_data_set_offset] = TO_OUTPUT_TYPE(ACTIVATION(result, ACTIVATION_PARAMS));
+        output[data_set_offset + global_size_0*items_num + in_data_set_idx] = TO_OUTPUT_TYPE(ACTIVATION(result, ACTIVATION_PARAMS));
 #   endif
     }
 #endif
