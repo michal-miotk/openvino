@@ -36,7 +36,7 @@ KERNEL (mvn_gpu_bfyx_opt)(
         x = VLOAD(0, &input[my_data_offset2+i*VEC_WIDTH]);
         my_sum += x.s0 + x.s1 + x.s2 + x.s3;
     }
-    const uint vec_leftovers = items_num%VEC_WIDTH;
+    const uint vec_leftovers = items_num - vec_iter_num*VEC_WIDTH;
     for (uint i=0; i<vec_leftovers; ++i)
     {
         my_sum += (float)input[my_data_offset2 + vec_iter_num*VEC_WIDTH + i];
@@ -76,14 +76,10 @@ KERNEL (mvn_gpu_bfyx_opt)(
     //each WI reads items_num consecutive items from batch*feature
     for(uint i=0;i<vec_iter_num;i++) {
         x = VLOAD(0, &input[my_data_offset2+i*VEC_WIDTH]);
-        tmp = x.s0 - my_sum;
-        my_variance = fma(tmp, tmp, my_variance);
-        tmp = x.s1 - my_sum;
-        my_variance = fma(tmp, tmp, my_variance);
-        tmp = x.s2 - my_sum;
-        my_variance = fma(tmp, tmp, my_variance);
-        tmp = x.s3 - my_sum;
-        my_variance = fma(tmp, tmp, my_variance);
+        float4 ve = (float4)(x.s0, x.s1, x.s2, x.s3);
+        ve -= my_sum;
+        ve *= ve;
+        my_variance += ve.s0 + ve.s1 + ve.s2 + ve.s3;
     }
 
     for (uint i=0; i<vec_leftovers; ++i)
