@@ -7,6 +7,7 @@
 #include "mvn_inst.h"
 #include "mvn/mvn_kernel_selector.h"
 #include "mvn/mvn_kernel_base.h"
+#include "mvn.hpp"
 
 namespace cldnn {
 namespace ocl {
@@ -170,6 +171,10 @@ attach_mvn_impl::attach_mvn_impl() {
     });
 }
 
+std::unique_ptr<primitive_impl> MVNImplementationManager::create_impl(const program_node& node, const kernel_impl_params& params) const {
+    OPENVINO_ASSERT(node.is_type<mvn>());
+    return typed_primitive_impl_ocl<mvn>::create<mvn_impl>(static_cast<const mvn_node&>(node), params);
+}
 }  // namespace detail
 }  // namespace ocl
 }  // namespace cldnn
