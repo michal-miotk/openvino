@@ -176,7 +176,7 @@ bool ov::pass::CommonOptimizations::run_on_model(const std::shared_ptr<ov::Model
     ADD_MATCHER(decomp, ConvertConvertLike)
     ADD_MATCHER(decomp, BatchNormDecomposition)
     ADD_MATCHER(decomp, GroupNormalizationDecomposition)
-    ADD_MATCHER(decomp, MVN6Decomposition)
+    //ADD_MATCHER(decomp, MVN6Decomposition)
     decomp->add_matcher<NormalizeL2Decomposition, false>();
     ADD_MATCHER(decomp, SimplifyCTCGreedyDecoderSeqLen)
     ADD_MATCHER(decomp, EinsumDecomposition)

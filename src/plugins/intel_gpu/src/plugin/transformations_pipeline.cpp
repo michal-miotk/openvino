@@ -358,7 +358,7 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
         manager.register_pass<ov::pass::SoftmaxFusion>();
         manager.register_pass<ov::pass::MVNFusion>();
         // decompose MVNs that sre not supported in GPU, so that they will be marked as precision sensitive in ConvertPrecision
-        manager.register_pass<ov::pass::MVN6Decomposition>();
+        //manager.register_pass<ov::pass::MVN6Decomposition>();
         // Run these broadcast optimizations earlier to ensure that those are executed before NopElimination/ConstantFolding
         manager.register_pass<ov::pass::BroadcastElementwiseFusion>();
         manager.register_pass<ov::pass::BroadcastTransition>();
