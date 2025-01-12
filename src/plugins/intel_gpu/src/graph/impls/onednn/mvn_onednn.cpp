@@ -24,7 +24,7 @@ struct mvn_onednn : typed_primitive_onednn_impl<mvn> {
 
 protected:
     std::unique_ptr<primitive_impl> clone() const override {
-        return make_unique<mvn>(*this);
+        return make_unique<mvn_onednn>(*this);
     }
 
     std::unordered_map<int, dnnl::memory> get_arguments(mvn_inst& instance) const override {

@@ -171,11 +171,11 @@ attach_mvn_impl::attach_mvn_impl() {
     });
 }
 
+}  // namespace detail
 std::unique_ptr<primitive_impl> MVNImplementationManager::create_impl(const program_node& node, const kernel_impl_params& params) const {
     OPENVINO_ASSERT(node.is_type<mvn>());
     return typed_primitive_impl_ocl<mvn>::create<mvn_impl>(static_cast<const mvn_node&>(node), params);
 }
-}  // namespace detail
 }  // namespace ocl
 }  // namespace cldnn
 
