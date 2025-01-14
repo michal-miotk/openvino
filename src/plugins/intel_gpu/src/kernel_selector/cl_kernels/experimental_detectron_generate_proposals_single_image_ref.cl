@@ -101,17 +101,25 @@ inline void FUNC(swap_box)(__global Box* a, __global Box* b) {
     *b = temp;
 }
 
-inline int FUNC(partition)(__global Box* arr, int l, int h) {
-    INPUT0_TYPE pivotScore = arr[h].score;
-    int i = (l - 1);
-    for (int j = l; j <= h - 1; j++) {
-        if (arr[j].score > pivotScore) {
-            i++;
-            FUNC_CALL(swap_box)(&arr[i], &arr[j]);
-        }
-    }
-    FUNC_CALL(swap_box)(&arr[i + 1], &arr[h]);
-    return (i + 1);
+
+inline int FUNC(Partitionn)(__global Box* data, int left, int right) {
+    INPUT0_TYPE pivotScore = data[right].score;
+	int temp;
+	int i = left;
+
+	for (int j = left; j < right; ++j)
+	{
+		if (data[j].score <= pivot)
+		{
+			FUNC_CALL(swap_box)(&data[j], &data[i]);
+			i++;
+		}
+	}
+
+	data[right] = data[i];
+	data[i] = pivot;
+
+	return i;
 }
 
 inline void FUNC(bubbleSortIterative)(__global Box* arr, int l, int h) {
@@ -128,62 +136,6 @@ inline void FUNC(bubbleSortIterative)(__global Box* arr, int l, int h) {
             break;
     }
 }
-
-inline void FUNC(quickSortIterative)(__global Box* arr, int l, int h) {
-    // Create an auxiliary stack
-    const int kStackSize = 100;
-    int stack[kStackSize];
-
-    // initialize top of stack
-    int top = -1;
-
-    // push initial values of l and h to stack
-    stack[++top] = l;
-    stack[++top] = h;
-
-    // Keep popping from stack while is not empty
-    while (top >= 0) {
-        // Pop h and l
-        h = stack[top--];
-        l = stack[top--];
-        bool all_zeroes = true; //when all zeroes algorithm stuck
-        for(int i=l;i<h;i++) {
-            if(arr[i].score != 0.0f) {
-                all_zeroes = false;
-                break;
-            }
-        }
-        if(all_zeroes) {
-            continue;
-        }
-        // Set pivot element at its correct position
-        // in sorted array
-        int p = FUNC_CALL(partition)(arr, l, h);
-
-        // If there are elements on left side of pivot,
-        // then push left side to stack
-        if (p - 1 > l) {
-            if (top >= (kStackSize - 1)) {
-                FUNC_CALL(bubbleSortIterative)(arr, l, p - 1);
-            } else {
-                stack[++top] = l;
-                stack[++top] = p - 1;
-            }
-        }
-
-        // If there are elements on right side of pivot,
-        // then push right side to stack
-        if (p + 1 < h) {
-            if (top >= (kStackSize - 1)) {
-                FUNC_CALL(bubbleSortIterative)(arr, p + 1, h);
-            } else {
-                stack[++top] = p + 1;
-                stack[++top] = h;
-            }
-        }
-    }
-}
-
 
 inline void FUNC(InsertionSort)(__global Box* data, int count) {
     int i, j, 
@@ -238,20 +190,20 @@ inline void FUNC(HeapSort)(__global Box* boxes, int count) {
 inline void FUNC(QuickSortRecursive)(__global Box* boxes, int left, int right) {
 	if (left < right)
 	{
-		int q = FUNC_CALL(partition)(boxes, left, right);
+		int q = FUNC_CALL(Partitionn)(boxes, left, right);
 		FUNC_CALL(QuickSortRecursive)(boxes, left, q - 1);
 		FUNC_CALL(QuickSortRecursive)(boxes, q + 1, right);
 	}
 }
 
 inline void FUNC(IntroSort)(__global Box* boxes, int count) {
-	int partitionSize = FUNC_CALL(Partition)(boxes, 0, count - 1);
+	int PartitionnSize = FUNC_CALL(Partitionn)(boxes, 0, count - 1);
 
-	if (partitionSize < 16)
+	if (PartitionnSize < 16)
 	{
 		FUNC_CALL(InsertionSort)(boxes, count);
 	}
-	else if (partitionSize >(2 * log(count)))
+	else if (PartitionnSize >(2 * log(count)))
 	{
 		FUNC_CALL(HeapSort)(boxes, count);
 	}
