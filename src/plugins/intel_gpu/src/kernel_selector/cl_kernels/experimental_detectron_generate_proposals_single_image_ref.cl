@@ -101,6 +101,44 @@ inline void FUNC(swap_box)(__global Box* a, __global Box* b) {
     *b = temp;
 }
 
+inline int FUNC(partition_hoare_zeros)(__global Box* arr, int low, int high) {
+   int first_zeroe_idx = -1;
+   for(int i=0;i<high;i++) {
+        if(arr[i].score == 0.0f) {
+            first_zeroe_idx = i;
+            break;
+        }
+   }
+   if (first_zeroe_idx == -1) {
+        return low;
+   }
+
+   INPUT0_TYPE pivotScore = 0.0f;
+   int i = first_zeroe_idx - 1, j = high + 1;
+
+    while (1) {
+      
+        // Find leftmost element greater
+        // than or equal to pivot
+        do {
+            i++;
+        } while (arr[i].score == pivotScore);
+
+        // Find rightmost element smaller 
+        // than or equal to pivot
+        do {
+            j--;
+        } while (arr[j].score > pivotScore);
+
+        // If two pointers met
+        if (i >= j)
+            return j;
+
+        // Swap arr[i] and arr[j]
+        FUNC_CALL(swap_box)(&arr[i], &arr[j]);
+    }
+}
+
 inline int FUNC(partition)(__global Box* arr, int l, int h) {
     INPUT0_TYPE pivotScore = arr[h].score;
     int i = (l - 1);
@@ -133,7 +171,10 @@ inline void FUNC(quickSortIterative)(__global Box* arr, int l, int h) {
     // Create an auxiliary stack
     const int kStackSize = 100;
     int stack[kStackSize];
-
+    int tempPivot = FUNC_CALL(partition_hoare_zeros)(arr, l, h);
+    if(tempPivot!= l && tempPivot + 1 < h) {
+        l = tempPivot + 1;
+    }
     // initialize top of stack
     int top = -1;
 
