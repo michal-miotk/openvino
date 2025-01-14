@@ -95,7 +95,8 @@ typedef struct __attribute__((__packed__)) {
     INPUT0_TYPE score;
 } Box;
 
-typedef struct
+#define heapsizes FUNC(_heapsizes)
+typedef struct __attribute__((__packed__))
 {
     uint mask; // Leo. nums. in use (sizes of existing heaps)
     uint offset;    // Add this to every bit's position ('mask'
@@ -107,129 +108,6 @@ inline void FUNC(swap_box)(__global Box* a, __global Box* b) {
     *b = temp;
 }
 
-inline int FUNC(partition_hoare_zeros)(__global Box* arr, int low, int high) {
-   int first_zeroe_idx = -1;
-   for(int i=0;i<high;i++) {
-        if(arr[i].score == 0.0f) {
-            first_zeroe_idx = i;
-            break;
-        }
-   }
-   if (first_zeroe_idx == -1) {
-        return low;
-   }
-
-   INPUT0_TYPE pivotScore = 0.0f;
-   int i = first_zeroe_idx - 1, j = high + 1;
-
-    while (1) {
-      
-        // Find leftmost element greater
-        // than or equal to pivot
-        do {
-            i++;
-        } while (arr[i].score == pivotScore);
-
-        // Find rightmost element smaller 
-        // than or equal to pivot
-        do {
-            j--;
-        } while (arr[j].score > pivotScore);
-
-        // If two pointers met
-        if (i >= j)
-            return j;
-
-        // Swap arr[i] and arr[j]
-        FUNC_CALL(swap_box)(&arr[i], &arr[j]);
-    }
-}
-
-inline int FUNC(partition)(__global Box* arr, int l, int h) {
-    INPUT0_TYPE pivotScore = arr[h].score;
-    int i = (l - 1);
-    for (int j = l; j <= h - 1; j++) {
-        if (arr[j].score > pivotScore) {
-            i++;
-            FUNC_CALL(swap_box)(&arr[i], &arr[j]);
-        }
-    }
-    FUNC_CALL(swap_box)(&arr[i + 1], &arr[h]);
-    return (i + 1);
-}
-
-inline void FUNC(bubbleSortIterative)(__global Box* arr, int l, int h) {
-    for (int i = 0; i < h - l; i++) {
-        bool swapped = false;
-        for (int j = l; j < h - i; j++) {
-            if ((arr[j].score > arr[j + 1].score)) {
-                FUNC_CALL(swap_box)(&arr[j], &arr[j + 1]);
-                swapped = true;
-            }
-        }
-
-        if (!swapped)
-            break;
-    }
-}
-
-inline void FUNC(quickSortIterative)(__global Box* arr, int l, int h) {
-    // Create an auxiliary stack
-    const int kStackSize = 100;
-    int stack[kStackSize];
-    int tempPivot = FUNC_CALL(partition_hoare_zeros)(arr, l, h);
-    if(tempPivot!= l && tempPivot + 1 < h) {
-        l = tempPivot + 1;
-    }
-    // initialize top of stack
-    int top = -1;
-
-    // push initial values of l and h to stack
-    stack[++top] = l;
-    stack[++top] = h;
-
-    // Keep popping from stack while is not empty
-    while (top >= 0) {
-        // Pop h and l
-        h = stack[top--];
-        l = stack[top--];
-        bool all_zeroes = true; //when all zeroes algorithm stuck
-        for(int i=l;i<h;i++) {
-            if(arr[i].score != 0.0f) {
-                all_zeroes = false;
-                break;
-            }
-        }
-        if(all_zeroes) {
-            continue;
-        }
-        // Set pivot element at its correct position
-        // in sorted array
-        int p = FUNC_CALL(partition)(arr, l, h);
-
-        // If there are elements on left side of pivot,
-        // then push left side to stack
-        if (p - 1 > l) {
-            if (top >= (kStackSize - 1)) {
-                FUNC_CALL(bubbleSortIterative)(arr, l, p - 1);
-            } else {
-                stack[++top] = l;
-                stack[++top] = p - 1;
-            }
-        }
-
-        // If there are elements on right side of pivot,
-        // then push right side to stack
-        if (p + 1 < h) {
-            if (top >= (kStackSize - 1)) {
-                FUNC_CALL(bubbleSortIterative)(arr, p + 1, h);
-            } else {
-                stack[++top] = p + 1;
-                stack[++top] = h;
-            }
-        }
-    }
-}
 inline void FUNC(sift_in)(Box* root, uint size)
 {
     static const uint L[46] =     // Leonardo numbers in [0,1<<32)
@@ -243,7 +121,8 @@ inline void FUNC(sift_in)(Box* root, uint size)
         535828591UL, 866988873UL, 1402817465UL, 2269806339UL,
         3672623805UL
     };
-    Box * left, * right; // Pos. of children heaps
+    Box * left;
+    Box* right; // Pos. of children heaps
     Box * next;          // Chosen child (greater root)
     Box tmp;             // Value to move down
     uint nsz;                        // Size of chosen child heap
@@ -282,8 +161,7 @@ inline void FUNC(sift_in)(Box* root, uint size)
     *root = tmp;         // Write the initial value in its
 }                        // final position
 
-inline void FUNC(interheap_sift)(Box* root,
-                                   heapsizes hsz)
+inline void FUNC(interheap_sift)(Box* root, heapsizes hsz)
 {
     static const uint L[46] =     // Leonardo numbers in [0,1<<32)
     {
