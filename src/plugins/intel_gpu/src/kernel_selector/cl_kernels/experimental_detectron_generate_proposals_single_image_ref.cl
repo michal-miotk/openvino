@@ -184,11 +184,88 @@ inline void FUNC(quickSortIterative)(__global Box* arr, int l, int h) {
     }
 }
 
+
+inline void FUNC(InsertionSort)(__global Box* data, int count) {
+    int i, j, 
+    Box value;
+
+    for (i = 1; i < count; ++i) 
+    {
+        value = data[i];
+        for (j = i - 1; j >= 0 && a[j].score > value.score; --j) 
+        {
+            data[j + 1] = data[j];
+        }
+        data[j + 1] = value;
+    }
+}
+
+inline void FUNC(MaxHeapify)(__global Box* boxes, int heapSize, int index) {
+	int left = (index + 1) * 2 - 1;
+	int right = (index + 1) * 2;
+	int largest = 0;
+
+	if (left < heapSize && data[left].score > data[index].score)
+		largest = left;
+	else
+		largest = index;
+
+	if (right < heapSize && data[right].score > data[largest].score)
+		largest = right;
+
+	if (largest != index)
+	{
+		swap_box(&boxes[largest], &boxes[index]);
+
+		MaxHeapify(data, heapSize, largest);
+	}
+}
+
+inline void FUNC(HeapSort)(__global Box* boxes, int count) {
+	int heapSize = count;
+
+	for (int p = (heapSize - 1) / 2; p >= 0; --p)
+		MaxHeapify(boxes, heapSize, p);
+
+	for (int i = count - 1; i > 0; --i)
+	{
+		swap_box(&boxes[0], &boxes[i]);
+		--heapSize;
+		MaxHeapify(boxes, heapSize, 0);
+	}
+}
+
+inline void FUNC(QuickSortRecursive)(__global Box* boxes, int left, int right) {
+	if (left < right)
+	{
+		int q = partition(boxes, left, right);
+		QuickSortRecursive(boxes, left, q - 1);
+		QuickSortRecursive(boxes, q + 1, right);
+	}
+}
+
+inline void FUNC(IntroSort)(__global Box* boxes, int count) {
+	int partitionSize = Partition(boxes, 0, count - 1);
+
+	if (partitionSize < 16)
+	{
+		InsertionSort(boxes, count);
+	}
+	else if (partitionSize >(2 * log(count)))
+	{
+		HeapSort(boxes, count);
+	}
+	else
+	{
+		QuickSortRecursive(boxes, 0, count - 1);
+	}
+}
+
 // 1. Sort boxes by scores
 KERNEL(edgpsi_ref_stage_1)(__global OUTPUT_TYPE* proposals) {
     __global Box* boxes = (__global Box*)proposals;
 
-    FUNC_CALL(quickSortIterative)(boxes, 0, NUM_PROPOSALS-1);
+    FUNC_CALL(IntroSort)(boxes, NUM_PROPOSALS);
 }
 #undef Box
 #endif /* EDGPSI_STAGE_1 */
