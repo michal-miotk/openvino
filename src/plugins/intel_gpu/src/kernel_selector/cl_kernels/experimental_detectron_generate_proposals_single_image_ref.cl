@@ -183,12 +183,92 @@ inline void FUNC(quickSortIterative)(__global Box* arr, int l, int h) {
         }
     }
 }
+inline int FUNC(leonardo)(int k)
+{
+    if (k < 2) {
+        return 1;
+    }
+    return FUNC_CALL(leonardo)(k - 1) + FUNC_CALL(leonardo)(k - 2) + 1;
+}
+inline void FUNC(heapify)(__global Box* arr, int start, int end)
+{
+    int i = start;
+    int j = 0;
+    int k = 0;
+ 
+    while (k < end - start + 1) {
+        if (k & 0xAAAAAAAA) {
+            j = j + i;
+            i = i >> 1;
+        }
+        else {
+            i = i + j;
+            j = j >> 1;
+        }
+ 
+        k = k + 1;
+    }
+ 
+    while (i > 0) {
+        j = j >> 1;
+        k = i + j;
+        while (k < end) {
+            if (arr[k].score > arr[k - i].score) {
+                break;
+            }
+            FUNC_CALL(swap_box)(&arr[k], &arr[k - i]);
+            k = k + i;
+        }
+ 
+        i = j;
+    }
+}
+ 
+// Smooth Sort function
+inline void FUNC(smooth_sort)(__global Box* arr, int n)
+{
+    int p = n - 1;
+    int q = p;
+    int r = 0;
+ 
+    // Build the Leonardo heap by merging
+    // pairs of adjacent trees
+    while (p > 0) {
+        if ((r & 0x03) == 0) {
+            FUNC_CALL(heapify)(arr, r, q);
+        }
+ 
+        if (FUNC_CALL(leonardo)(r) == p) {
+            r = r + 1;
+        }
+        else {
+            r = r - 1;
+            q = q - FUNC_CALL(leonardo)(r);
+            FUNC_CALL(heapify)(arr, r, q);
+            q = r - 1;
+            r = r + 1;
+        }
+ 
+        FUNC_CALL(swap_box)(&arr[0], &arr[p]);
+        p = p - 1;
+    }
+ 
+    // Convert the Leonardo heap
+    // back into an array
+    for (int i = 0; i < n - 1; i++) {
+        int j = i + 1;
+        while (j > 0 && arr[j].score < arr[j - 1].score) {
+            FUNC_CALL(swap_box)(&arr[j], &arr[j - 1]);
+            j = j - 1;
+        }
+    }
+}
 
 // 1. Sort boxes by scores
 KERNEL(edgpsi_ref_stage_1)(__global OUTPUT_TYPE* proposals) {
     __global Box* boxes = (__global Box*)proposals;
 
-    FUNC_CALL(quickSortIterative)(boxes, 0, NUM_PROPOSALS-1);
+    FUNC_CALL(smooth_sort)(boxes, NUM_PROPOSALS/50);
 }
 #undef Box
 #endif /* EDGPSI_STAGE_1 */
