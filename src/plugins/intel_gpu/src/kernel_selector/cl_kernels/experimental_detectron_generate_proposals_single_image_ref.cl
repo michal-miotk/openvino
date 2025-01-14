@@ -102,14 +102,15 @@ inline void FUNC(swap_box)(__global Box* a, __global Box* b) {
 }
 
 
-inline int FUNC(Partitionn)(__global Box* data, int left, int right) {
+inline int FUNC(Partition)(__global Box* data, int left, int right) {
+    Box pivot = data[right];
     INPUT0_TYPE pivotScore = data[right].score;
 	int temp;
 	int i = left;
 
 	for (int j = left; j < right; ++j)
 	{
-		if (data[j].score <= pivot)
+		if (data[j].score <= pivotScore)
 		{
 			FUNC_CALL(swap_box)(&data[j], &data[i]);
 			i++;
@@ -138,18 +139,23 @@ inline void FUNC(bubbleSortIterative)(__global Box* arr, int l, int h) {
 }
 
 inline void FUNC(InsertionSort)(__global Box* data, int count) {
-    int i, j, 
-    Box value;
+    for (int i = 1; i < count; ++i)
+	{
+		int j = i;
 
-    for (i = 1; i < count; ++i) 
-    {
-        value = data[i];
-        for (j = i - 1; j >= 0 && a[j].score > value.score; --j) 
-        {
-            data[j + 1] = data[j];
-        }
-        data[j + 1] = value;
-    }
+		while (j > 0)
+		{
+			if (data[j - 1].score > data[j].score)
+			{
+				FUNC_CALL(swap_box)(&data[j], &data[j-1]);
+				--j;
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
 }
 
 inline void FUNC(MaxHeapify)(__global Box* boxes, int heapSize, int index) {
@@ -157,19 +163,19 @@ inline void FUNC(MaxHeapify)(__global Box* boxes, int heapSize, int index) {
 	int right = (index + 1) * 2;
 	int largest = 0;
 
-	if (left < heapSize && data[left].score > data[index].score)
+	if (left < heapSize && boxes[left].score > boxes[index].score)
 		largest = left;
 	else
 		largest = index;
 
-	if (right < heapSize && data[right].score > data[largest].score)
+	if (right < heapSize && boxes[right].score > boxes[largest].score)
 		largest = right;
 
 	if (largest != index)
 	{
 		FUNC_CALL(swap_box)(&boxes[largest], &boxes[index]);
 
-		FUNC_CALL(MaxHeapify)(data, heapSize, largest);
+		FUNC_CALL(MaxHeapify)(boxes, heapSize, largest);
 	}
 }
 
@@ -190,20 +196,20 @@ inline void FUNC(HeapSort)(__global Box* boxes, int count) {
 inline void FUNC(QuickSortRecursive)(__global Box* boxes, int left, int right) {
 	if (left < right)
 	{
-		int q = FUNC_CALL(Partitionn)(boxes, left, right);
+		int q = FUNC_CALL(Partition)(boxes, left, right);
 		FUNC_CALL(QuickSortRecursive)(boxes, left, q - 1);
 		FUNC_CALL(QuickSortRecursive)(boxes, q + 1, right);
 	}
 }
 
 inline void FUNC(IntroSort)(__global Box* boxes, int count) {
-	int PartitionnSize = FUNC_CALL(Partitionn)(boxes, 0, count - 1);
+	int PartitionSize = FUNC_CALL(Partition)(boxes, 0, count - 1);
 
-	if (PartitionnSize < 16)
+	if (PartitionSize < 16)
 	{
 		FUNC_CALL(InsertionSort)(boxes, count);
 	}
-	else if (PartitionnSize >(2 * log(count)))
+	else if (PartitionSize >(2 * log((float)(count))))
 	{
 		FUNC_CALL(HeapSort)(boxes, count);
 	}
