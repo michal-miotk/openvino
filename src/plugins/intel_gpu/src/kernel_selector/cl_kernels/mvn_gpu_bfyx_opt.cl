@@ -31,7 +31,7 @@ KERNEL (mvn_gpu_bfyx_opt)(
 
     float my_sum = 0;
     float tmp;
-
+#if NORMALIZE_VARIANCE == 0
     //each WI reads items_num consecutive items from batch*feature
     for (uint i=0; i<iters_num; ++i)
     {
@@ -40,7 +40,7 @@ KERNEL (mvn_gpu_bfyx_opt)(
 
     my_sum = work_group_reduce_add(my_sum) / data_set_size;
 
-#if NORMALIZE_VARIANCE == 0
+
     for (uint i=0; i<iters_num; ++i) {
         uint iteration_in_data_set_offset = i * workers_per_data_set;
         ACTIVATION_TYPE result = TO_ACTIVATION_TYPE(input[my_data_offset + iteration_in_data_set_offset]) - TO_ACTIVATION_TYPE(my_sum);
@@ -52,21 +52,21 @@ KERNEL (mvn_gpu_bfyx_opt)(
 #   endif
     }
 #else
-
+    float my_sum_sq = 0.f;
     float my_variance = 0.f;
     //each WI reads items_num consecutive items from batch*feature
-    for (uint i=0; i<iters_num; ++i)
+     for (uint i=0; i<iters_num; ++i)
     {
-        tmp = (float)input[my_data_offset + i * workers_per_data_set];
-        tmp -= my_sum;
-        my_variance = fma(tmp, tmp, my_variance);
+        float temp = (float)input[my_data_offset + i * workers_per_data_set];
+        my_sum_sq += pow(temp, 2);
+        my_sum += temp;
     }
-
-    my_variance = work_group_reduce_add(my_variance);
-
+    my_sum =  work_group_reduce_add(my_sum)/data_set_size;
+    my_sum_sq = work_group_reduce_add(my_sum_sq);
+    my_variance =  my_sum_sq/data_set_size - pow(my_sum, 2);
+    //printf("myvar %f \n", my_variance);
     if (in_data_set_idx == 0)
     {
-        my_variance /= data_set_size;
 
 #   if defined EPS_OUTSIDE_SQRT
         my_variance = native_powr(native_sqrt(my_variance) + (float)EPSILON, -1.f);
