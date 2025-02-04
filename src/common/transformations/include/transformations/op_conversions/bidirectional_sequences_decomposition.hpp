@@ -69,7 +69,7 @@ class ov::pass::BidirectionalSequenceDecomposition : public ov::pass::GraphRewri
 public:
     OPENVINO_GRAPH_REWRITE_RTTI("BidirectionalSequenceDecomposition");
     BidirectionalSequenceDecomposition() {
-        add_matcher<ov::pass::BidirectionalLSTMSequenceDecomposition>();
+        //add_matcher<ov::pass::BidirectionalLSTMSequenceDecomposition>();
         add_matcher<ov::pass::BidirectionalGRUSequenceDecomposition>();
         add_matcher<ov::pass::BidirectionalRNNSequenceDecomposition>();
     }

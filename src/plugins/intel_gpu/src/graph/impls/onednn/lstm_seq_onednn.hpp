@@ -75,9 +75,10 @@ struct LSTMSeqImplementationManager : public ImplementationManager {
                 continue;
 
             auto target_format = format::get_default_format(out_rank);
-            if (idx == 0)
+            if (idx < 3)
                 in_fmts[idx] = format::fbyx;
-            in_fmts[idx] = target_format;
+            else
+                in_fmts[idx] = target_format;
         }
         out_fmts[0] = format::ybfx;
 

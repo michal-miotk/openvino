@@ -465,7 +465,7 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
         manager.register_pass<ov::pass::TransposeSinking>();
 
         if (!unroll_loop) {
-            manager.register_pass<ov::pass::BidirectionalLSTMSequenceDecomposition>();
+            //manager.register_pass<ov::pass::BidirectionalLSTMSequenceDecomposition>();
             manager.register_pass<ov::pass::BidirectionalGRUSequenceDecomposition>();
             manager.register_pass<ov::pass::BidirectionalRNNSequenceDecomposition>();
         }
@@ -480,7 +480,7 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
         manager.register_pass<ov::pass::RNNCellDecomposition>();
 
         if (unroll_loop) {
-            manager.register_pass<ov::pass::BidirectionalLSTMSequenceDecomposition>();
+            //manager.register_pass<ov::pass::BidirectionalLSTMSequenceDecomposition>();
             manager.register_pass<ov::pass::BidirectionalGRUSequenceDecomposition>();
             manager.register_pass<ov::pass::BidirectionalRNNSequenceDecomposition>();
         }
