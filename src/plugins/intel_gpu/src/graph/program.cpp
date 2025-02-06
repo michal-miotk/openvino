@@ -552,6 +552,7 @@ void program::pre_optimize_graph(bool is_internal) {
     bool optimize_data = _config.get_property(ov::intel_gpu::optimize_data);
     if (optimize_data) {
         apply_opt_pass<prepare_quantization>();
+        apply_opt_pass<propagate_constants>();
     }
 
     _layout_optimizer = std::make_unique<layout_optimizer>(output_size_handling_enabled);
