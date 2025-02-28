@@ -268,7 +268,7 @@ JitConstants EltwiseKernelBase::GetOperationsJitConstants(const eltwise_params& 
                 }
             } break;
             case EltwiseMode::POW:
-                op += cast_type + "pow(" + input0_str + ", " + input1_str + ")";
+                op += cast_type + "(_convert_float16_sat(pow(" + input0_str + ", " + input1_str + ")))";
                 break;
             case EltwiseMode::SQRT:
                 op += cast_type + "sqrt(" + input0_str + ")";
@@ -277,10 +277,10 @@ JitConstants EltwiseKernelBase::GetOperationsJitConstants(const eltwise_params& 
                 op += cast_type + "1/sqrt(" + input0_str + ")";
                 break;
             case EltwiseMode::SQUARED_DIFF:
-                op += cast_type + "((" + input0_str + " - " + input1_str +
+                op += cast_type + "(_convert_float16_sat((" + input0_str + " - " + input1_str +
                       ")"
                       " * (" +
-                      input0_str + " - " + input1_str + "))";
+                      input0_str + " - " + input1_str + ")))";
                 break;
             case EltwiseMode::EQ:
                 op += "(" + input0_str + " == " + input1_str + ")";

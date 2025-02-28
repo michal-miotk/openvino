@@ -1161,7 +1161,7 @@ JitConstants MakeActivationJitConstants(ActivationFunction activation_function,
             break;
         }
         case ActivationFunction::SQUARE:
-            jitConstants.AddConstant(MakeJitConstant(macro_def, "(input*input)"));
+            jitConstants.AddConstant(MakeJitConstant(macro_def, "(_convert_float16_sat((input*input))"));
             break;
         case ActivationFunction::SQRT:
             jitConstants.AddConstant(MakeJitConstant(macro_def, "(sqrt(input))"));
@@ -1197,11 +1197,11 @@ JitConstants MakeActivationJitConstants(ActivationFunction activation_function,
             jitConstants.AddConstant(MakeJitConstant(macro_def, "(log2(input))"));
             break;
         case ActivationFunction::EXP:
-            jitConstants.AddConstant(MakeJitConstant(macro_def, "(exp(input))"));
+            jitConstants.AddConstant(MakeJitConstant(macro_def, "(_convert_float16_sat(exp(input)))"));
             break;
         case ActivationFunction::POW: {
             const JitTerm m = disable_type_conversion ? "m"_jit : to_type("m"_jit);
-            jitConstants.AddConstant(MakeJitConstant(macro_def, "(pow(input," + m.str() + "))"));
+            jitConstants.AddConstant(MakeJitConstant(macro_def, "(_convert_float16_sat(pow(input," + m.str() + ")))"));
             break;
         }
         case ActivationFunction::TAN:

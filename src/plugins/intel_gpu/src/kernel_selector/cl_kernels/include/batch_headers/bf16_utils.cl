@@ -1,3 +1,56 @@
+
+inline float4 __attribute__((overloadable)) _convert_float16_sat(float4 source) {
+    if (source.s0 > 65500) {
+        printf("work %f\n", source.s0);
+        source.s0 = 65500.f;
+    }
+    if (source.s0 < - 65500) {
+        printf("work %f\n", source.s0);
+        source.s0 = -65500.f;
+    }
+
+    if (source.s1 > 65500) {
+        printf("work %f\n", source.s1);
+        source.s1 = 65500.f;
+    }
+    if (source.s1 < - 65500) {
+        printf("work %f\n", source.s1);
+        source.s1 = -65500.f;
+    }
+
+    if (source.s2 > 65500) {
+        printf("work %f\n", source.s2);
+        source.s2 = 65500.f;
+    }
+    if (source.s2 < - 65500) {
+        printf("work %f\n", source.s2);
+        source.s2 = -65500.f;
+    }
+
+    if (source.s3 > 65500) {
+        printf("work %f\n", source.s3);
+        source.s3 = 65500.f;
+    }
+
+    if (source.s3 < - 65500) {
+        printf("work %f\n", source.s3);
+        source.s3 = -65500.f;
+    }
+    return source;
+}
+
+inline float _convert_float16_sat(float source) {
+    if (source > 65500) {
+        printf("work %f\n", source);
+        return 65500.f;
+    }
+    if (source < - 65500) {
+        printf("work %f\n", source);
+        return -65500.f;
+    }
+    return source;
+}
+
 #ifdef intel_convert_as_bfloat16_float
 #define _convert_as_bfloat16_float(val) intel_convert_as_bfloat16_float(val)
 #else
