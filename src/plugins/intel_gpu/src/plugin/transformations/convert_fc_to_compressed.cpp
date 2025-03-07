@@ -24,52 +24,47 @@
 
 namespace ov::intel_gpu {
 
-ConvertFullyConnectedToFullyConnectedCompressed::ConvertFullyConnectedToFullyConnectedCompressed() {
-    using namespace ov::pass::pattern;
+struct A {
+    std::shared_ptr<ov::Node> fully_connected_m;
+    std::shared_ptr<ov::Node> transpose_m;
+    std::shared_ptr<ov::Node> mul_const_m;
+    std::shared_ptr<ov::Node> weights_m;
+    std::shared_ptr<ov::Node> bias_m;
+    std::shared_ptr<ov::Node> convert_m;
+    std::shared_ptr<ov::Node> sub_with_convert_m;
+    std::shared_ptr<ov::Node> sub_no_convert_m;
+    std::shared_ptr<ov::Node> transpose_const_m;
+    std::shared_ptr<ov::Node> sub_const_m;
+    std::shared_ptr<ov::Node> mul2_m;
+    std::shared_ptr<ov::Node> mul2_const_m;
 
-    auto compressed_constant = [](const ov::Output<ov::Node>& output) {
-        return (output.get_element_type() == ov::element::u8 ||
-                output.get_element_type() == ov::element::i8 ||
-                output.get_element_type() == ov::element::u4 ||
-                output.get_element_type() == ov::element::i4);
-    };
+    A(std::shared_ptr<ov::Node> fully_connected_m,
+      std::shared_ptr<ov::Node> transpose_m,
+      std::shared_ptr<ov::Node> mul_const_m,
+      std::shared_ptr<ov::Node> weights_m,
+      std::shared_ptr<ov::Node> bias_m,
+      std::shared_ptr<ov::Node> convert_m,
+      std::shared_ptr<ov::Node> sub_with_convert_m,
+      std::shared_ptr<ov::Node> sub_no_convert_m,
+      std::shared_ptr<ov::Node> transpose_const_m,
+      std::shared_ptr<ov::Node> sub_const_m,
+      std::shared_ptr<ov::Node> mul2_m,
+      std::shared_ptr<ov::Node> mul2_const_m)
+        : 
+        fully_connected_m(fully_connected_m),
+          transpose_m(transpose_m),
+          mul_const_m(mul_const_m),
+          weights_m(weights_m),
+          bias_m(bias_m),
+          convert_m(convert_m),
+          sub_with_convert_m(sub_with_convert_m),
+          sub_no_convert_m(sub_no_convert_m),
+          transpose_const_m(transpose_const_m),
+          sub_const_m(sub_const_m),
+          mul2_m(mul2_m),
+          mul2_const_m(mul2_const_m) {}
 
-    auto reshape_3d_to_2d = [](const ov::Output<ov::Node>& output) {
-        auto in_ps = output.get_node()->get_input_partial_shape(0);
-        auto out_ps = output.get_node()->get_output_partial_shape(0);
-        return in_ps.rank().is_static() && out_ps.rank().is_static() && in_ps.size() == 3 && out_ps.size() == 2;
-    };
-
-    auto weights_m = wrap_type<ov::op::v0::Constant>(compressed_constant);
-    auto convert_m = wrap_type<ov::op::v0::Convert>({weights_m});
-
-    auto sub_const_m = wrap_type<ov::op::v0::Constant>();
-    auto sub_convert_const_m = wrap_type<ov::op::v0::Convert>({sub_const_m});
-    auto sub_with_convert_m = wrap_type<ov::op::v1::Subtract>({convert_m, sub_convert_const_m});
-    auto sub_no_convert_m = wrap_type<ov::op::v1::Subtract>({convert_m, sub_const_m});
-    auto subtract_m = std::make_shared<ov::pass::pattern::op::Or>(OutputVector{sub_with_convert_m, sub_no_convert_m});
-
-    auto mul_const_m = wrap_type<ov::op::v0::Constant>();
-    auto mul_with_sub_m = wrap_type<ov::op::v1::Multiply>({subtract_m, mul_const_m});
-    auto mul_no_sub_m = wrap_type<ov::op::v1::Multiply>({convert_m, mul_const_m});
-    auto mul_m = std::make_shared<ov::pass::pattern::op::Or>(OutputVector{mul_with_sub_m, mul_no_sub_m});
-
-    auto reshape_const_m = wrap_type<ov::op::v0::Constant>();
-    auto reshape_m = wrap_type<ov::op::v1::Reshape>({mul_m, reshape_const_m}, reshape_3d_to_2d);
-
-    auto mul2_const_m = wrap_type<ov::op::v0::Constant>();
-    auto mul2_m = wrap_type<ov::op::v1::Multiply>({reshape_m, mul2_const_m});
-
-    auto transpose_input = std::make_shared<ov::pass::pattern::op::Or>(OutputVector{reshape_m, mul_m});
-    auto transpose_const_m = wrap_type<ov::op::v0::Constant>();
-    auto transpose_m = wrap_type<ov::op::v1::Transpose>({transpose_input, transpose_const_m});
-
-    auto data_m = any_input();
-    auto bias_m = any_input();
-    auto weights_input_m = std::make_shared<ov::pass::pattern::op::Or>(ov::OutputVector{reshape_m, transpose_m, mul_m, mul2_m});
-    auto fully_connected_m = wrap_type<op::FullyConnected>({data_m, weights_input_m, bias_m});
-
-    ov::matcher_pass_callback callback = [OV_CAPTURE_CPY_AND_THIS](ov::pass::pattern::Matcher& m) {
+    bool operator()(ov::pass::pattern::Matcher& m) {
         const auto& pattern_map = m.get_pattern_value_map();
         OPENVINO_ASSERT(pattern_map.count(fully_connected_m));
         OPENVINO_ASSERT(pattern_map.count(mul_const_m));
@@ -77,7 +72,7 @@ ConvertFullyConnectedToFullyConnectedCompressed::ConvertFullyConnectedToFullyCon
         OPENVINO_ASSERT(pattern_map.count(bias_m));
         OPENVINO_ASSERT(pattern_map.count(convert_m));
         auto fc = ov::as_type_ptr<op::FullyConnected>(pattern_map.at(fully_connected_m).get_node_shared_ptr());
-        if (!fc || transformation_callback(fc)) {
+        if (!fc) {
             return false;
         }
 
@@ -184,15 +179,74 @@ ConvertFullyConnectedToFullyConnectedCompressed::ConvertFullyConnectedToFullyCon
         }
 
         result_nodes.push_back(new_fc);
-        new_fc->set_friendly_name(fc->get_friendly_name());
+        new_fc->set_friendly_name(fc->get_friendly_name() + "kompresja");
         ov::copy_runtime_info(m.get_matched_nodes(), result_nodes);
         ov::replace_node(fc, new_fc);
 
         return true;
+    }
+};
+
+ConvertFullyConnectedToFullyConnectedCompressed::ConvertFullyConnectedToFullyConnectedCompressed() {
+    using namespace ov::pass::pattern;
+
+    auto compressed_constant = [](const ov::Output<ov::Node>& output) {
+        return (output.get_element_type() == ov::element::u8 ||
+                output.get_element_type() == ov::element::i8 ||
+                output.get_element_type() == ov::element::u4 ||
+                output.get_element_type() == ov::element::i4);
     };
 
+    auto reshape_3d_to_2d = [](const ov::Output<ov::Node>& output) {
+        auto in_ps = output.get_node()->get_input_partial_shape(0);
+        auto out_ps = output.get_node()->get_output_partial_shape(0);
+        return in_ps.rank().is_static() && out_ps.rank().is_static() && in_ps.size() == 3 && out_ps.size() == 2;
+    };
+
+    auto weights_m = wrap_type<ov::op::v0::Constant>(compressed_constant);
+    auto convert_m = wrap_type<ov::op::v0::Convert>({weights_m});
+
+    auto sub_const_m = wrap_type<ov::op::v0::Constant>();
+    auto sub_convert_const_m = wrap_type<ov::op::v0::Convert>({sub_const_m});
+    auto sub_with_convert_m = wrap_type<ov::op::v1::Subtract>({convert_m, sub_convert_const_m});
+    auto sub_no_convert_m = wrap_type<ov::op::v1::Subtract>({convert_m, sub_const_m});
+    auto subtract_m = std::make_shared<ov::pass::pattern::op::Or>(OutputVector{sub_with_convert_m, sub_no_convert_m});
+
+    auto mul_const_m = wrap_type<ov::op::v0::Constant>();
+    auto mul_with_sub_m = wrap_type<ov::op::v1::Multiply>({subtract_m, mul_const_m});
+    auto mul_no_sub_m = wrap_type<ov::op::v1::Multiply>({convert_m, mul_const_m});
+    auto mul_m = std::make_shared<ov::pass::pattern::op::Or>(OutputVector{mul_with_sub_m, mul_no_sub_m});
+
+    auto reshape_const_m = wrap_type<ov::op::v0::Constant>();
+    auto reshape_m = wrap_type<ov::op::v1::Reshape>({mul_m, reshape_const_m}, reshape_3d_to_2d);
+
+    auto mul2_const_m = wrap_type<ov::op::v0::Constant>();
+    auto mul2_m = wrap_type<ov::op::v1::Multiply>({reshape_m, mul2_const_m});
+
+    auto transpose_input = std::make_shared<ov::pass::pattern::op::Or>(OutputVector{reshape_m, mul_m});
+    auto transpose_const_m = wrap_type<ov::op::v0::Constant>();
+    auto transpose_m = wrap_type<ov::op::v1::Transpose>({transpose_input, transpose_const_m});
+
+    auto data_m = any_input();
+    auto bias_m = any_input();
+    auto weights_input_m = std::make_shared<ov::pass::pattern::op::Or>(ov::OutputVector{reshape_m, transpose_m, mul_m, mul2_m});
+    auto fully_connected_m = wrap_type<op::FullyConnected>({data_m, weights_input_m, bias_m});
+
+    
+
     auto m = std::make_shared<ov::pass::pattern::Matcher>(fully_connected_m, "ConvertFullyConnectedToFullyConnectedCompressed");
-    this->register_matcher(m, callback);
+    this->register_matcher(m, A(fully_connected_m,
+          transpose_m,
+          mul_const_m,
+          weights_m,
+          bias_m,
+          convert_m,
+          sub_with_convert_m,
+          sub_no_convert_m,
+          transpose_const_m,
+          sub_const_m,
+          mul2_m,
+          mul2_const_m));
 }
 
 }  // namespace ov::intel_gpu
