@@ -39,6 +39,8 @@ struct convolution : public primitive_base<convolution> {
                 const input_info& input,
                 const primitive_id& weights,
                 const primitive_id& bias,
+                const primitive_id& scale,
+                const primitive_id& scale_zp,
                 const primitive_id& w_zero_point,
                 const primitive_id& a_zero_point,
                 const primitive_id& compensation,
@@ -60,6 +62,8 @@ struct convolution : public primitive_base<convolution> {
               grouped_weights_shape(grouped_weights_shape),
               weights(weights),
               bias(bias),
+              scale(scale),
+              scale_zp(scale_zp),
               weights_zero_points(w_zero_point),
               activations_zero_points(a_zero_point),
               compensation(compensation) {
@@ -85,6 +89,8 @@ struct convolution : public primitive_base<convolution> {
                 const input_info& input,
                 const primitive_id& weights,
                 const primitive_id& bias,
+                const primitive_id& scale,
+                const primitive_id& scale_zp,
                 uint32_t groups,
                 ov::Strides stride,
                 ov::Strides dilation,
@@ -102,6 +108,8 @@ struct convolution : public primitive_base<convolution> {
           grouped_weights_shape(grouped_weights_shape),
           weights(weights),
           bias(bias),
+          scale(scale),
+          scale_zp(scale_zp),
           weights_zero_points(""),
           activations_zero_points(""),
           compensation("") {
@@ -130,6 +138,8 @@ struct convolution : public primitive_base<convolution> {
                 const std::vector<input_info>& inputs,
                 const primitive_id& weights,
                 const primitive_id& bias,
+                const primitive_id& scale,
+                const primitive_id& scale_zp,
                 bool deformable_mode,
                 uint32_t groups,
                 uint32_t deformable_groups,
@@ -151,6 +161,8 @@ struct convolution : public primitive_base<convolution> {
       grouped_weights_shape(false),
       weights(weights),
       bias(bias),
+      scale(scale),
+      scale_zp(scale_zp),
       weights_zero_points(""),
       activations_zero_points(""),
       compensation("") {
@@ -190,6 +202,8 @@ struct convolution : public primitive_base<convolution> {
     const primitive_id weights;
     /// @brief Primitive id containing bias data.
     const primitive_id bias;
+    const primitive_id scale;
+    const primitive_id scale_zp;
     /// @brief Primitive id containing weights zero points.
     const primitive_id weights_zero_points;
     /// @brief Primitive id containing activations zero points.
