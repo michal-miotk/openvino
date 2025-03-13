@@ -1271,7 +1271,7 @@ public:
             }
         }
         topology.add(data("weights", weights_mem));
-        topology.add(convolution("conv", input_info("concat"), "weights", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
+        topology.add(convolution("conv", input_info("concat"), "weights", "", "", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
 
         ExecutionConfig config = get_test_default_config(engine);
         config.set_property(ov::intel_gpu::optimize_data(true));

@@ -5,6 +5,7 @@
 #include "intel_gpu/plugin/program_builder.hpp"
 #include "intel_gpu/plugin/common_utils.hpp"
 #include "intel_gpu/op/convolution.hpp"
+#include "intel_gpu/op/convolution_compressed.hpp"
 
 #include "openvino/op/convolution.hpp"
 #include "openvino/op/deformable_convolution.hpp"
@@ -19,6 +20,7 @@ namespace ov {
 namespace op {
 namespace internal {
 using Convolution = ov::intel_gpu::op::Convolution;
+using ConvolutionCompressed = ov::intel_gpu::op::ConvolutionCompressed;
 }  // namespace internal
 }  // namespace op
 }  // namespace ov
@@ -26,7 +28,7 @@ using Convolution = ov::intel_gpu::op::Convolution;
 namespace ov {
 namespace intel_gpu {
 
-static void CreateConvolutionCompressedOp(ProgramBuilder& p, const std::shared_ptr<ov::intel_gpu::op::Convolution>& op) {
+static void CreateConvolutionCompressedOp(ProgramBuilder& p, const std::shared_ptr<ov::intel_gpu::op::ConvolutionCompressed>& op) {
     validate_inputs_count(op, {3, 6});
     auto inputs = p.GetInputInfo(op);
     std::string layerName = layer_type_name_ID(op);
@@ -57,8 +59,8 @@ static void CreateConvolutionCompressedOp(ProgramBuilder& p, const std::shared_p
                                                 inputs[op::ConvolutionCompressed::Args::INPUT],
                                                 weights,
                                                 "",
-                                                inputs[op::ConvolutionCompressed::Args::SCALE],
-                                                inputs[op::ConvolutionCompressed::Args::SCALE_ZP],
+                                                inputs[op::ConvolutionCompressed::Args::SCALE].pid,
+                                                inputs[op::ConvolutionCompressed::Args::SCALE_ZP].pid,
                                                 groups,
                                                 strides,
                                                 dilations,
@@ -332,6 +334,8 @@ static void DeformableConvolutionImpl(ProgramBuilder& p,
     auto convPrim = cldnn::convolution(layerName,
                                        inputs,
                                        weights,
+                                       "",
+                                       "",
                                        "",
                                        true,
                                        groups,

@@ -53,6 +53,8 @@ public:
     };
 
 protected:
+    const ov::Output<Node>& weights_scale;
+    const ov::Output<Node>& weights_zero_point;
     int64_t m_groups = -1; // negative value means no groups
     bool m_asymmetric = false;
     ov::element::Type m_output_type = ov::element::undefined;
