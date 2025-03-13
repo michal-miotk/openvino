@@ -194,9 +194,9 @@ public:
         topology.add(data("unused1", bias));
         topology.add(data("unused2", weights));
         topology.add(input_layout("input", input->get_layout()));
-        topology.add(convolution("conv1", input_info("input"), "weights", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
+        topology.add(convolution("conv1", input_info("input"), "weights", "", "", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
         topology.add(pooling("pool", input_info("conv1"), pooling_mode::max, { 1, 1 }, { 1, 1 }));
-        topology.add(convolution("conv2", input_info("pool"), "weights", "bias", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
+        topology.add(convolution("conv2", input_info("pool"), "weights", "bias", "", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
 
         ExecutionConfig config = get_test_default_config(engine);
         config.set_property(ov::intel_gpu::optimize_data(true));

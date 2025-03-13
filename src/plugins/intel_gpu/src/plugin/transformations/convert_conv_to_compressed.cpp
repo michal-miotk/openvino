@@ -33,58 +33,52 @@ namespace ov::intel_gpu {
                 output.get_element_type() == ov::element::u4 ||
                 output.get_element_type() == ov::element::i4);
     };
-
-    auto reshape_3d_to_2d = [](const ov::Output<ov::Node>& output) {
-        auto in_ps = output.get_node()->get_input_partial_shape(0);
-        auto out_ps = output.get_node()->get_output_partial_shape(0);
-        return in_ps.rank().is_static() && out_ps.rank().is_static() && in_ps.size() == 3 && out_ps.size() == 2;
-    };
-
+    std::cout << "oh creating matcher" << std::endl;
     auto weights_m = wrap_type<ov::op::v0::Constant>(compressed_constant);
     auto convert_m = wrap_type<ov::op::v0::Convert>({weights_m});
 
-    auto sub_const_m = wrap_type<ov::op::v0::Constant>();
-    auto sub_convert_const_m = wrap_type<ov::op::v0::Convert>({sub_const_m});
-    auto sub_with_convert_m = wrap_type<ov::op::v1::Subtract>({convert_m, sub_convert_const_m});
-    auto sub_no_convert_m = wrap_type<ov::op::v1::Subtract>({convert_m, sub_const_m});
-    auto subtract_m = std::make_shared<ov::pass::pattern::op::Or>(OutputVector{sub_with_convert_m, sub_no_convert_m});
+    auto sub_const_m = any_input();
+    auto sub = wrap_type<ov::op::v1::Subtract>({convert_m, sub_const_m});
+    /*
+    __attribute_maybe_unused__ auto mul_const_m = wrap_type<ov::op::v0::Constant>();
+    __attribute_maybe_unused__ auto mul_with_sub_m = wrap_type<ov::op::v1::Multiply>({sub, mul_const_m});
 
-    auto mul_const_m = wrap_type<ov::op::v0::Constant>();
-    auto mul_with_sub_m = wrap_type<ov::op::v1::Multiply>({subtract_m, mul_const_m});
-
-    auto data_m = any_input();
-    auto bias_m = any_input();
-    auto weights_input_m = std::make_shared<ov::pass::pattern::op::Or>(ov::OutputVector{weights_m, mul_with_sub_m});
-    auto conv_m = wrap_type<op::Convolution>({data_m, weights_input_m, bias_m});
-
+    __attribute_maybe_unused__ auto data_m = any_input();
+    
+    //auto bias_m = any_input();
+    auto conv_m = wrap_type<op::Convolution>({data_m, mul_with_sub_m});
+    */
     ov::matcher_pass_callback callback = [OV_CAPTURE_CPY_AND_THIS](ov::pass::pattern::Matcher& m) {
+        std::cout << "matcher begin" << std::endl;
         const auto& pattern_map = m.get_pattern_value_map();
-        OPENVINO_ASSERT(pattern_map.count(conv_m));
-        OPENVINO_ASSERT(pattern_map.count(mul_const_m));
+        //OPENVINO_ASSERT(pattern_map.count(conv_m));
+        std::cout << "aa" << std::endl;
+        //OPENVINO_ASSERT(pattern_map.count(mul_const_m));
+        std::cout << "bb" << std::endl;
         OPENVINO_ASSERT(pattern_map.count(weights_m));
-        OPENVINO_ASSERT(pattern_map.count(bias_m));
-        OPENVINO_ASSERT(pattern_map.count(convert_m));
-        auto fc = ov::as_type_ptr<op::Convolution>(pattern_map.at(conv_m).get_node_shared_ptr());
-        if (!fc || transformation_callback(fc)) {
+        std::cout << "cc" << std::endl;
+        //OPENVINO_ASSERT(pattern_map.count(convert_m));
+        /*
+        //
+        std::cout << "dd" << std::endl;
+        auto conv = ov::as_type_ptr<op::Convolution>(pattern_map.at(conv_m).get_node_shared_ptr());
+        if (!conv || transformation_callback(conv)) {
+            std::cout << "it is not match" << std::endl;
             return false;
         }
-
+        std::cout << "is is match" << std::endl;
         auto scale_shape = pattern_map.at(mul_const_m).get_shape();
-        bool grouped = std::count_if(scale_shape.begin(), scale_shape.end(), [](size_t d) { return d > 1; }) > 1;
-        bool sub_with_convert = (pattern_map.count(sub_with_convert_m) > 0) ? true : false;
-
+   
         auto weight_ptr = ov::as_type_ptr<ov::op::v0::Constant>(pattern_map.at(weights_m).get_node_shared_ptr());
-        bool weight_u8 = false;
-        if (weight_ptr->get_element_type() == ov::element::u8 || weight_ptr->get_element_type() == ov::element::i8)
-            weight_u8 = true;
+
 
         std::shared_ptr<ov::Node> optional_zero_point = nullptr;
-        const ov::Output<Node>& fc_input_a = fc->input(0).get_source_output();
+        const ov::Output<Node>& fc_input_a = conv->input(0).get_source_output();
         const auto& scale = mul_const_m;
         std::shared_ptr<ov::Node> fc_input_b = weights_m;
         std::shared_ptr<ov::Node> fc_input_scale = scale;
-        std::shared_ptr<ov::Node> fc_input_zp = optional_zero_point;
-        std::shared_ptr<ov::Node> fc_input_bias = pattern_map.at(bias_m).get_node_shared_ptr();
+        std::shared_ptr<ov::Node> fc_input_zp = pattern_map.at(sub_const_m).get_node_shared_ptr();
+        std::shared_ptr<ov::Node> fc_input_bias = nullptr;//pattern_map.at(bias_m).get_node_shared_ptr();
         std::vector<std::shared_ptr<ov::Node>> result_nodes = {};
 
 
@@ -96,22 +90,22 @@ namespace ov::intel_gpu {
                                                                 fc_input_bias,
                                                                 fc_input_scale,
                                                                 fc_input_zp,
-                                                                fc->get_strides(),
-                                                                fc->get_pads_begin(),
-                                                                fc->get_pads_end(),
-                                                                fc->get_dilations(),
-                                                                fc->get_groups(),
-                                                                fc->get_auto_pad(),
-                                                                fc->get_output_element_type());
+                                                                conv->get_strides(),
+                                                                conv->get_pads_begin(),
+                                                                conv->get_pads_end(),
+                                                                conv->get_dilations(),
+                                                                conv->get_groups(),
+                                                                conv->get_auto_pad(),
+                                                                conv->get_output_element_type(0));
         result_nodes.push_back(new_fc);
-        new_fc->set_friendly_name(fc->get_friendly_name());
+        new_fc->set_friendly_name(conv->get_friendly_name());
         ov::copy_runtime_info(m.get_matched_nodes(), result_nodes);
-        ov::replace_node(fc, new_fc);
-
+        ov::replace_node(conv, new_fc);
+        */
         return true;
     };
 
-    auto m = std::make_shared<ov::pass::pattern::Matcher>(conv_m, "ConvertConvolutionToConvolutionCompressed");
+    auto m = std::make_shared<ov::pass::pattern::Matcher>(sub, "ConvertConvolutionToConvolutionCompressed");
     this->register_matcher(m, callback);
 }
 
