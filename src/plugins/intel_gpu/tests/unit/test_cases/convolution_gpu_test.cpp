@@ -8862,6 +8862,8 @@ public:
                 input_info(input_id),
                 weights_id,
                 bias_id,
+                "",
+                "",
                 wzp_id,
                 azp_id,
                 comp_id,

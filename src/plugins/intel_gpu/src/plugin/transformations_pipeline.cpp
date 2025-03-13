@@ -353,6 +353,13 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
     ov::element::Type infer_precision = ov::element::dynamic;
     bool unroll_loop = config.get_enable_loop_unrolling();
     {
+        std::cout << "disaster bg" << std::endl;
+        ov::pass::Manager manager("GPU:HEHE");
+        manager.set_per_pass_validation(false);
+        manager.register_pass<ov::intel_gpu::ConvertConvolutionToConvolutionCompressed>();
+        manager.run_passes(func);
+    }
+    {
         ov::pass::Manager manager("Plugin:GPU");
         auto pass_config = manager.get_pass_config();
         manager.set_per_pass_validation(false);
@@ -1192,7 +1199,6 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
         });
         manager.register_pass<ov::intel_gpu::KVCacheFusion>();
         manager.register_pass<ov::intel_gpu::FullyConnectedConvertFusion>();
-        manager.register_pass<ov::intel_gpu::ConvertConvolutionToConvolutionCompressed>();
         manager.register_pass<ov::intel_gpu::TransposeFusion>(device_info.supports_immad);
 
         if (!device_info.supports_immad) {
