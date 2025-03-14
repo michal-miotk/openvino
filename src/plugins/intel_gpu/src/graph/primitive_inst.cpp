@@ -163,6 +163,7 @@ static memory::ptr get_memory_from_pool(engine& _engine,
                                 memory* curr_memory = nullptr) {
     OPENVINO_ASSERT(!layout.is_dynamic() || layout.has_upper_bound(),
                     "[GPU] Can't allocate output for dynamic layout without upper bound");
+    std::cout << "trying to get me for" << _node.id() << std::endl;
     // Use layout with max tensor for dynamic shape with upper bound
     if (_node.get_program().get_config().get_enable_memory_pool()) {
         if (curr_memory != nullptr)

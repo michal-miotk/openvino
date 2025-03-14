@@ -57,6 +57,13 @@ ConvertMatMulToFullyConnected::ConvertMatMulToFullyConnected() {
                 }
             }
         }
+        auto input_a = fc_input_b.get_node_shared_ptr();
+        for (auto& user : input_a->get_users()) {
+            if (user != matmul) {
+                std::cout << "ojojo" << std::endl;
+                return false;
+            }
+        }
 
         // fc_input_a and fc_input_b - are the final inputs that will be set to FullyConnected.
         // So in case of adding new operations that takes matmul inputs we need keep update fc_input_a and fc_input_b.
@@ -156,7 +163,7 @@ ConvertMatMulToFullyConnected::ConvertMatMulToFullyConnected() {
 
         // Weights normalization
         bool can_reuse_transpose = false;
-        if (!matmul->get_transpose_b()) {
+        if (false) {
             if (transpose_node && transpose_node->get_input_size() == 2) {
                 auto order_constant = ov::as_type_ptr<ov::op::v0::Constant>(transpose_node->get_input_node_shared_ptr(1));
                 if (order_constant) {
@@ -173,9 +180,11 @@ ConvertMatMulToFullyConnected::ConvertMatMulToFullyConnected() {
             fc_input_b = can_reuse_transpose ? transpose_node
                                              : create_transpose(fc_input_b, matmul->get_friendly_name() + "/transpose_b");
         }
-
+        if (transpose_node) {
+            std::cout << "aalert" << std::endl;
+        }
         // Input normalization
-        if (matmul->get_transpose_a()) {
+        if (!transpose_node) {
             fc_input_a = create_transpose(fc_input_a, matmul->get_friendly_name() + "/transpose_a");
         }
 
@@ -196,11 +205,24 @@ ConvertMatMulToFullyConnected::ConvertMatMulToFullyConnected() {
         auto no_bias = std::make_shared<op::Placeholder>();
 
         // Create FullyConnected
-        auto fc = std::make_shared<op::FullyConnected>(fc_input_a, fc_input_b, no_bias, matmul->get_output_element_type(0));
-        fc->set_friendly_name(matmul->get_friendly_name());
-        new_ops.push_back(fc);
-        ov::copy_runtime_info(matmul, new_ops);
-        ov::replace_node(matmul, fc);
+        std::cout << fc_input_a.get_shape() << " and sh " << fc_input_b.get_shape() << std::endl;
+        try {
+            std::cout << "a" << std::endl;
+            auto fc = std::make_shared<op::FullyConnected>(fc_input_a, fc_input_b, no_bias, matmul->get_output_element_type(0));
+            std::cout << "b" << std::endl;
+            fc->set_friendly_name(matmul->get_friendly_name());
+            std::cout << "c" << std::endl;
+            new_ops.push_back(fc);
+            std::cout << "d" << std::endl;
+            ov::copy_runtime_info(matmul, new_ops);
+            std::cout << "e" << std::endl;
+            ov::replace_node(matmul, fc);
+            std::cout << "f" << std::endl;
+        } catch (std::exception& e) {
+            std::cout << e.what() << std::endl;
+            return false;
+        }
+        std::cout << "success" << matmul->get_friendly_name() << std::endl;
         return true;
     };
 

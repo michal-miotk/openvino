@@ -30,11 +30,11 @@ void FullyConnected::validate_and_infer_types() {
         ", expected at least 3.");
 
     ov::op::v0::MatMul op;
-    op.set_transpose_a(false);
-    op.set_transpose_b(true);
-
+    op.set_transpose_a(true);
+    op.set_transpose_b(false);
     auto out_shapes = ov::op::v0::shape_infer(&op, std::vector<ov::PartialShape>{get_input_partial_shape(0), get_input_partial_shape(1)});
-
+    std::cout << op.get_name() << "__" << op.get_friendly_name() << "in 0 " << get_input_partial_shape(0) << "in 1 " << get_input_partial_shape(1) << "gives ";
+    std::cout << out_shapes[0] << std::endl;
     auto output_type = m_output_type == ov::element::undefined ? get_input_element_type(0) : m_output_type;
     set_output_type(0, output_type, out_shapes[0]);
 }
