@@ -13,6 +13,7 @@
 #include "openvino/op/constant.hpp"
 #include "openvino/op/convert.hpp"
 #include "openvino/op/matmul.hpp"
+#include "openvino/op/convolution.hpp"
 #include "openvino/op/multiply.hpp"
 #include "openvino/op/reshape.hpp"
 #include "openvino/op/subtract.hpp"
@@ -39,73 +40,79 @@ namespace ov::intel_gpu {
 
     auto sub_const_m = any_input();
     auto sub = wrap_type<ov::op::v1::Subtract>({convert_m, sub_const_m});
-    /*
+
     __attribute_maybe_unused__ auto mul_const_m = wrap_type<ov::op::v0::Constant>();
     __attribute_maybe_unused__ auto mul_with_sub_m = wrap_type<ov::op::v1::Multiply>({sub, mul_const_m});
 
     __attribute_maybe_unused__ auto data_m = any_input();
-    
-    //auto bias_m = any_input();
-    auto conv_m = wrap_type<op::Convolution>({data_m, mul_with_sub_m});
-    */
+    auto conv_m = wrap_type<ov::op::v1::Convolution>({data_m, mul_with_sub_m});
+
     ov::matcher_pass_callback callback = [OV_CAPTURE_CPY_AND_THIS](ov::pass::pattern::Matcher& m) {
         std::cout << "matcher begin" << std::endl;
         const auto& pattern_map = m.get_pattern_value_map();
-        //OPENVINO_ASSERT(pattern_map.count(conv_m));
+        OPENVINO_ASSERT(pattern_map.count(conv_m));
         std::cout << "aa" << std::endl;
-        //OPENVINO_ASSERT(pattern_map.count(mul_const_m));
+        OPENVINO_ASSERT(pattern_map.count(mul_const_m));
         std::cout << "bb" << std::endl;
         OPENVINO_ASSERT(pattern_map.count(weights_m));
-        std::cout << "cc" << std::endl;
-        //OPENVINO_ASSERT(pattern_map.count(convert_m));
-        /*
-        //
+        std::cout << "ccdd" << std::endl;
+        OPENVINO_ASSERT(pattern_map.count(convert_m));
+
         std::cout << "dd" << std::endl;
-        auto conv = ov::as_type_ptr<op::Convolution>(pattern_map.at(conv_m).get_node_shared_ptr());
-        if (!conv || transformation_callback(conv)) {
-            std::cout << "it is not match" << std::endl;
+        auto conv = ov::as_type_ptr<ov::op::v1::Convolution>(pattern_map.at(conv_m).get_node_shared_ptr());
+        if (!conv) {
+            std::cout << "it is not match" << conv_m->get_name() << " and " << conv_m->get_friendly_name() << std::endl;
             return false;
         }
-        std::cout << "is is match" << std::endl;
+
+        std::cout << "is is matchs" << std::endl;
         auto scale_shape = pattern_map.at(mul_const_m).get_shape();
-   
+        std::cout << "x" << std::endl;
         auto weight_ptr = ov::as_type_ptr<ov::op::v0::Constant>(pattern_map.at(weights_m).get_node_shared_ptr());
 
-
-        std::shared_ptr<ov::Node> optional_zero_point = nullptr;
-        const ov::Output<Node>& fc_input_a = conv->input(0).get_source_output();
-        const auto& scale = mul_const_m;
-        std::shared_ptr<ov::Node> fc_input_b = weights_m;
-        std::shared_ptr<ov::Node> fc_input_scale = scale;
-        std::shared_ptr<ov::Node> fc_input_zp = pattern_map.at(sub_const_m).get_node_shared_ptr();
-        std::shared_ptr<ov::Node> fc_input_bias = nullptr;//pattern_map.at(bias_m).get_node_shared_ptr();
+        std::cout << "aay" << std::endl;
+        std::cout << "z" << std::endl;
+        const ov::Output<Node>& conv_input_a = pattern_map.at(data_m).get_node_shared_ptr();
+        if (conv_input_a.get_element_type() == ov::element::f32) {
+            std::cout << "f32 on in" << std::endl;
+            //return false;
+        }
+        std::cout << "z" << std::endl;
+        std::shared_ptr<ov::Node> conv_input_b = pattern_map.at(weights_m).get_node_shared_ptr();
+        std::cout << "z" << std::endl;
+        std::shared_ptr<ov::Node> conv_input_scale =  pattern_map.at(mul_const_m).get_node_shared_ptr();
+        std::cout << "z" << std::endl;
+        std::shared_ptr<ov::Node> conv_input_zp = pattern_map.at(sub_const_m).get_node_shared_ptr();
+        std::cout << "z" << std::endl;
         std::vector<std::shared_ptr<ov::Node>> result_nodes = {};
 
 
 
-        std::shared_ptr<ov::Node> new_fc = nullptr;
-
-        new_fc = std::make_shared<op::ConvolutionCompressed>(fc_input_a,
-                                                                fc_input_b,
-                                                                fc_input_bias,
-                                                                fc_input_scale,
-                                                                fc_input_zp,
+        std::shared_ptr<ov::Node> new_conv = nullptr;
+        std::cout << "zl" << std::endl;
+        new_conv = std::make_shared<op::ConvolutionCompressed>(conv_input_a,
+                                                                conv_input_b,
+                                                                conv_input_scale,
+                                                                conv_input_zp,
                                                                 conv->get_strides(),
                                                                 conv->get_pads_begin(),
                                                                 conv->get_pads_end(),
                                                                 conv->get_dilations(),
-                                                                conv->get_groups(),
+                                                                0,
                                                                 conv->get_auto_pad(),
                                                                 conv->get_output_element_type(0));
-        result_nodes.push_back(new_fc);
-        new_fc->set_friendly_name(conv->get_friendly_name());
+        std::cout << "zad" << std::endl;
+        result_nodes.push_back(new_conv);
+        new_conv->set_friendly_name(conv->get_friendly_name());
+        std::cout << "z" << std::endl;
         ov::copy_runtime_info(m.get_matched_nodes(), result_nodes);
-        ov::replace_node(conv, new_fc);
-        */
+        std::cout << "z" << std::endl;
+        ov::replace_node(conv, new_conv);
+
         return true;
     };
 
-    auto m = std::make_shared<ov::pass::pattern::Matcher>(sub, "ConvertConvolutionToConvolutionCompressed");
+    auto m = std::make_shared<ov::pass::pattern::Matcher>(conv_m, "ConvertConvolutionToConvolutionCompressed");
     this->register_matcher(m, callback);
 }
 

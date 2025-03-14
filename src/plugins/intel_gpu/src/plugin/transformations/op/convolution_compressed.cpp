@@ -13,7 +13,6 @@ namespace ov::intel_gpu::op {
 
 ConvolutionCompressed::ConvolutionCompressed(const ov::Output<Node>& data_batch,
                          const ov::Output<Node>& filters,
-                         const ov::Output<Node>& bias,
                          const ov::Output<Node>& weights_scale,
                          const ov::Output<Node>& weights_zero_point,
                          const ov::Strides& strides,
@@ -23,7 +22,7 @@ ConvolutionCompressed::ConvolutionCompressed(const ov::Output<Node>& data_batch,
                          const int64_t& groups,
                          const ov::op::PadType& auto_pad,
                          const ov::element::Type& output_type)
-    : ov::op::util::ConvolutionFwdPropBase({data_batch, filters, bias}, strides, pads_begin, pads_end, dilations, auto_pad)
+    : ov::op::util::ConvolutionFwdPropBase({data_batch, filters, weights_scale, weights_zero_point}, strides, pads_begin, pads_end, dilations, auto_pad)
     , weights_scale(weights_scale)
     , weights_zero_point(weights_zero_point)
     , m_groups(groups)
@@ -79,7 +78,6 @@ std::shared_ptr<Node> ConvolutionCompressed::clone_with_new_inputs(const ov::Out
                                             new_args.at(1),
                                             new_args.at(2),
                                             new_args.at(3),
-                                            new_args.at(4),
                                             m_strides,
                                             m_pads_begin,
                                             m_pads_end,
