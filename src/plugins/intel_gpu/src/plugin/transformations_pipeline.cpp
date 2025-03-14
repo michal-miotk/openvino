@@ -293,13 +293,6 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
     ov::element::Type infer_precision = ov::element::undefined;
     bool unroll_loop = config.get_property(ov::intel_gpu::enable_loop_unrolling);
     {
-        std::cout << "disaster bg" << std::endl;
-        ov::pass::Manager manager("GPU:HEHE");
-        manager.set_per_pass_validation(false);
-        manager.register_pass<ov::intel_gpu::ConvertConvolutionToConvolutionCompressed>();
-        manager.run_passes(func);
-    }
-    {
         ov::pass::Manager manager("Plugin:GPU");
         auto pass_config = manager.get_pass_config();
         manager.set_per_pass_validation(false);
@@ -743,7 +736,13 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
 
         manager.run_passes(func);
     }
-
+    {
+        std::cout << "disaster bg" << std::endl;
+        ov::pass::Manager manager("GPU:HEHE");
+        manager.set_per_pass_validation(false);
+        manager.register_pass<ov::intel_gpu::ConvertConvolutionToConvolutionCompressed>();
+        manager.run_passes(func);
+    }
     if (enableInt8) {
         OV_ITT_SCOPED_TASK(itt::domains::intel_gpu_plugin, "TransformationsPipeline::apply::lpt");
         using namespace ov::pass::low_precision;

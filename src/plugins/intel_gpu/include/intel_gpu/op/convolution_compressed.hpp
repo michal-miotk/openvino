@@ -20,7 +20,6 @@ public:
 
     ConvolutionCompressed(const ov::Output<Node>& data_batch,
                 const ov::Output<Node>& filters,
-                const ov::Output<Node>& bias,
                 const ov::Output<Node>& weights_scale,
                 const ov::Output<Node>& weights_zero_point,
                 const ov::Strides& strides,
