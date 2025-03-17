@@ -59,8 +59,8 @@ static void CreateConvolutionCompressedOp(ProgramBuilder& p, const std::shared_p
                                                 inputs[op::ConvolutionCompressed::Args::INPUT],
                                                 weights,
                                                 "",
-                                                inputs[op::ConvolutionCompressed::Args::SCALE].pid,
-                                                inputs[op::ConvolutionCompressed::Args::SCALE_ZP].pid,
+                                                "", //inputs[op::ConvolutionCompressed::Args::SCALE].pid
+                                                "", //inputs[op::ConvolutionCompressed::Args::SCALE_ZP].pid
                                                 groups,
                                                 strides,
                                                 dilations,
