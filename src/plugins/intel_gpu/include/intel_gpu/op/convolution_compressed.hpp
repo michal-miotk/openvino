@@ -44,8 +44,8 @@ public:
         static constexpr const size_t INPUT = 0;
         static constexpr const size_t WEIGHTS = 1;
         static constexpr const size_t BIAS = 2;
-        static constexpr const size_t SCALE = 3;
-        static constexpr const size_t SCALE_ZP = 4;
+        static constexpr const size_t SCALE = 2;
+        static constexpr const size_t SCALE_ZP = 3;
         static constexpr const size_t AZP = 5;
         static constexpr const size_t WZP = 6;
         static constexpr const size_t COMPENSATION = 7;

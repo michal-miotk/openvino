@@ -65,7 +65,12 @@ JitConstants ConvolutionKernel_Ref::GetJitConstants(const convolution_params& pa
         accumulator_dt = GetAccumulatorType(params);
         activation_dt = GetActivationType(params);
     }
-
+    if (params.has_scale) {
+        jit.AddConstant(MakeJitConstant("SCALE_TERM", true));
+    }
+    if (params.has_scale_zp) {
+        jit.AddConstant(MakeJitConstant("SCALE_ZP_TERM", true));
+    }
     jit.Merge(MakeTypeJitConstants(activation_dt, "ACTIVATION"));
     jit.Merge(MakeTypeJitConstants(accumulator_dt, "ACCUMULATOR"));
     jit.Merge(MakeActivationJitConstants(params.activations, activation_dt, "_TYPED"));

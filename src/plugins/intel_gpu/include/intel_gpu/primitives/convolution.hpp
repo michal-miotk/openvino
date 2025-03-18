@@ -303,6 +303,12 @@ struct convolution : public primitive_base<convolution> {
         if (!bias.empty()) {
             ret.push_back(bias);
         }
+        if (!scale.empty()) {
+            ret.push_back(scale);
+        }
+        if (!scale_zp.empty()) {
+            ret.push_back(scale_zp);
+        }
         if (!weights_zero_points.empty()) {
             ret.push_back(weights_zero_points);
         }
