@@ -13,6 +13,12 @@ KERNEL(kernel_name)(
 #if BIAS_TERM
     , const __global BIAS_TYPE *biases
 #endif
+#if SCALE_TERM
+    , const __global INPUT0_TYPE *scale
+#endif
+#if SCALE_ZP_TERM
+    , const __global INPUT0_TYPE *scale_zp
+#endif
 #if ASYMMETRIC_WEIGHTS_QUANTIZATION
     , const __global WEIGHTS_ZERO_POINTS_TYPE *weights_zp
 #endif
