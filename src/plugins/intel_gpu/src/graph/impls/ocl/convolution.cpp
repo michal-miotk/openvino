@@ -65,8 +65,14 @@ public:
 
         auto conv_params = get_weight_bias_zero_point_default_params<kernel_selector::convolution_params>(impl_param,
                                                                                                           primitive->grouped_weights_shape,
-                                                                                                          is_shape_agnostic);
-
+                                                                                                        is_shape_agnostic);
+        std::cout << "previous inputs size" << conv_params.inputs.size() << std::endl;
+        if (!primitive->scale.empty()) {
+            conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[2]));
+        }
+        if (!primitive->scale_zp.empty()) {
+            conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[3]));
+        }
         if (primitive->deformable_mode) {
             conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[1]));
             conv_params.deformable_mode = true;
@@ -93,7 +99,8 @@ public:
         ov::CoordinateDiff pads_end(primitive->padding_end.begin(), primitive->padding_end.end());
         const auto auto_pad = primitive->auto_pad;
         conv_params.has_explicit_paddings = primitive->auto_pad == ov::op::PadType::EXPLICIT;
-
+        conv_params.has_scale = !primitive->scale.empty();
+        conv_params.has_scale_zp = !primitive->scale_zp.empty();
         if (auto_pad == ov::op::PadType::SAME_UPPER || auto_pad == ov::op::PadType::SAME_LOWER) {
             const auto& input_layout = impl_param.get_input_layout();
             const auto spatial_rank = input_layout.get_spatial_rank();
@@ -157,6 +164,8 @@ public:
                 conv_params.quantization = kernel_selector::QuantizationType::ASYMMETRIC_WEIGHTS;
             } else if (primitive->activations_zero_points.is_valid()) {
                 conv_params.quantization = kernel_selector::QuantizationType::ASYMMETRIC_DATA;
+            } else if (!primitive->scale.empty()) {
+                conv_params.quantization = kernel_selector::QuantizationType::FULL;
             } else {
                 conv_params.quantization = kernel_selector::QuantizationType::SYMMETRIC;
             }

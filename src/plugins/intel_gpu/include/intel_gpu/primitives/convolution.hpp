@@ -202,8 +202,8 @@ struct convolution : public primitive_base<convolution> {
     input_info weights;
     /// @brief Primitive id containing bias data.
     input_info bias;
-    const primitive_id scale;
-    const primitive_id scale_zp;
+    input_info scale;
+    input_info scale_zp;
     /// @brief Primitive id containing weights zero points.
     input_info weights_zero_points;
     /// @brief Primitive id containing activations zero points.
@@ -308,6 +308,12 @@ protected:
 
         if (bias.is_valid())
             ret[idx++] = &bias;
+
+        if (scale.is_valid())
+            ret[idx++] = &scale;
+
+        if (scale_zp.is_valid())
+            ret[idx++] = &scale_zp;
 
         if (weights_zero_points.is_valid())
             ret[idx++] = &weights_zero_points;

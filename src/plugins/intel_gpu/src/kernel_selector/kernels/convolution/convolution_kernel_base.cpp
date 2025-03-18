@@ -245,7 +245,14 @@ KernelsData ConvolutionKernelBase::GetCommonKernelsData(const Params& params,
         if (newParams.deformable_mask_enabled)
             kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 2});
     }
-
+    if (newParams.has_scale) {
+        std::cout << "has scale" << std::endl;
+        kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 1});
+    }
+    if (newParams.has_scale_zp) {
+        std::cout << "has scale zp" << std::endl;
+        kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 2});
+    }
     if (!newParams.weights_zero_points.empty())
         kernel.params.arguments.push_back({ArgumentDescriptor::Types::WEIGHTS_ZERO_POINTS, 1});
     if (!newParams.activations_zero_points.empty())
