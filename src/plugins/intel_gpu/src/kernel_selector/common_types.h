@@ -549,8 +549,7 @@ enum class QuantizationType {
     SYMMETRIC,
     ASYMMETRIC_WEIGHTS,
     ASYMMETRIC_DATA,
-    ASYMMETRIC_DATA_AND_WEIGHTS,
-    FULL
+    ASYMMETRIC_DATA_AND_WEIGHTS
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

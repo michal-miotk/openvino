@@ -54,6 +54,11 @@ static void CreateConvolutionCompressedOp(ProgramBuilder& p, const std::shared_p
     }
 
     std::shared_ptr<cldnn::convolution> prim = nullptr;
+    std::cout << "begin" << std::endl;
+    for (auto x : inputs) {
+        std::cout << "input " << x.pid << std::endl;
+    }
+    std::cout << "end" << std::endl;
 
     prim = std::make_shared<cldnn::convolution>(layerName,
                                                 inputs[op::ConvolutionCompressed::Args::INPUT],
