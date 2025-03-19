@@ -894,7 +894,6 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
         manager.run_passes(func);
     }
     {
-        std::cout << "disaster bg" << std::endl;
         ov::pass::Manager manager("GPU:HEHE");
         manager.set_per_pass_validation(false);
         manager.register_pass<ov::intel_gpu::ConvertConvolutionToConvolutionCompressed>();

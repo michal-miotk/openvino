@@ -60,6 +60,12 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
     const __global UNIT_TYPE* input,
     __global UNIT_TYPE* output,
     const __global UNIT_TYPE* weights
+#if SCALE_TERM
+    , const __global INPUT1_TYPE *scale
+#endif
+#if SCALE_ZP_TERM
+    , const __global INPUT2_TYPE *scale_zp
+#endif
 #if BIAS_TERM
     , const __global UNIT_TYPE* bias
 #endif
@@ -165,7 +171,12 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
 
         for(int pf=0; pf<PREFETCH; pf++) {
             uint weight_addr_safe = min(weight_addr, filter_physical_len - 1);
+#if SCALE_TERM && SCALE_ZP_TERM
+            printf("scale is %f scale zp is %f \n", scale, scale_zp);
+            w[pf] = (TO_ACCUMULATOR_TYPE(weights[weight_addr_safe])-scale_zp)*scale;
+#else
             w[pf] = weights[weight_addr_safe];
+#endif
             weight_addr += OSV_SIZE;
         }
 

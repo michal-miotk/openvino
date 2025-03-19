@@ -66,7 +66,7 @@ public:
         auto conv_params = get_weight_bias_zero_point_default_params<kernel_selector::convolution_params>(impl_param,
                                                                                                           primitive->grouped_weights_shape,
                                                                                                         is_shape_agnostic);
-        std::cout << "previous inputs size" << conv_params.inputs.size() << std::endl;
+
         if (!primitive->scale.empty()) {
             conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[2]));
         }
@@ -100,6 +100,7 @@ public:
         const auto auto_pad = primitive->auto_pad;
         conv_params.has_explicit_paddings = primitive->auto_pad == ov::op::PadType::EXPLICIT;
         conv_params.has_scale = !primitive->scale.empty();
+        std::cout << "setting has scale to " << !primitive->scale.empty() << " because of " << primitive->scale << std::endl;
         conv_params.has_scale_zp = !primitive->scale_zp.empty();
         if (auto_pad == ov::op::PadType::SAME_UPPER || auto_pad == ov::op::PadType::SAME_LOWER) {
             const auto& input_layout = impl_param.get_input_layout();
