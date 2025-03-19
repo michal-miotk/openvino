@@ -50,6 +50,7 @@ namespace ov::intel_gpu {
         const auto& pattern_map = m.get_pattern_value_map();
         OPENVINO_ASSERT(pattern_map.count(conv_m));
         OPENVINO_ASSERT(pattern_map.count(mul_const_m));
+        OPENVINO_ASSERT(pattern_map.count(sub_const_m));
         OPENVINO_ASSERT(pattern_map.count(weights_m));
         OPENVINO_ASSERT(pattern_map.count(convert_m));
         auto conv = ov::as_type_ptr<ov::op::v1::Convolution>(pattern_map.at(conv_m).get_node_shared_ptr());
@@ -68,6 +69,7 @@ namespace ov::intel_gpu {
 
 
         std::shared_ptr<ov::Node> new_conv = nullptr;
+        std::cout << "creating conv compressed" << std::endl;
         new_conv = std::make_shared<op::ConvolutionCompressed>(conv_input_a,
                                                                 conv_input_b,
                                                                 conv_input_scale,
