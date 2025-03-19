@@ -14,10 +14,10 @@ KERNEL(kernel_name)(
     , const __global BIAS_TYPE *biases
 #endif
 #if SCALE_TERM
-    , const __global INPUT0_TYPE *scale
+    , const __global INPUT1_TYPE *scale
 #endif
 #if SCALE_ZP_TERM
-    , const __global INPUT0_TYPE *scale_zp
+    , const __global INPUT2_TYPE *scale_zp
 #endif
 #if ASYMMETRIC_WEIGHTS_QUANTIZATION
     , const __global WEIGHTS_ZERO_POINTS_TYPE *weights_zp
@@ -33,6 +33,11 @@ KERNEL(kernel_name)(
 #endif
     )
 {
+#if SCALE_TERM
+    printf("scale is %f scale zp is %f \n", scale, scale_zp);
+#else
+    printf("scale term not defined \n");
+#endif
     // Convolution part.
     const uint x = get_global_id(0);
 #if  OUTPUT_DIMS > 4
@@ -103,7 +108,12 @@ KERNEL(kernel_name)(
 #if ASYMMETRIC_DATA_QUANTIZATION
                                 in -= TO_ACCUMULATOR_TYPE(activations_zp[g * FILTER_IFM_NUM + k]);
 #endif
+#if SCALE_TERM && SCALE_ZP_TERM
+                                ACCUMULATOR_TYPE wei = TO_ACCUMULATOR_TYPE(weights[filter_idx]-scale_zp)*TO_ACCUMULATOR_TYPE(scale);
+#else
                                 ACCUMULATOR_TYPE wei = TO_ACCUMULATOR_TYPE(weights[filter_idx]);
+#endif
+
 #if ASYMMETRIC_WEIGHTS_QUANTIZATION
                                 wei -= TO_ACCUMULATOR_TYPE(weights_zp[f]);
 #endif
