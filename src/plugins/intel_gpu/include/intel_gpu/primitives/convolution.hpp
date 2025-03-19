@@ -67,6 +67,8 @@ struct convolution : public primitive_base<convolution> {
               weights_zero_points(w_zero_point),
               activations_zero_points(a_zero_point),
               compensation(compensation) {
+            std::cout << "now scale is " << scale << std::endl;
+            std::cout << "now scalez[] is " << scale_zp << std::endl;
     }
 
     /// @brief Constructs convolution primitive.
@@ -113,6 +115,8 @@ struct convolution : public primitive_base<convolution> {
           weights_zero_points(""),
           activations_zero_points(""),
           compensation("") {
+            std::cout << "now scale is " << scale << std::endl;
+            std::cout << "now scalezp is " << scale_zp << std::endl;
     }
 
     /// @brief Constructs convolution primitive.
@@ -166,6 +170,8 @@ struct convolution : public primitive_base<convolution> {
       weights_zero_points(""),
       activations_zero_points(""),
       compensation("") {
+        std::cout << "now scale is " << scale << std::endl;
+        std::cout << "now scalezp is " << scale_zp << std::endl;
     }
 
     /// @brief Number of feature groups (grouped convolution). If more than 1 then weights/bias count needs to be 1.
@@ -226,6 +232,8 @@ struct convolution : public primitive_base<convolution> {
         seed = hash_combine(seed, grouped_weights_shape);
         seed = hash_combine(seed, !weights.is_valid());
         seed = hash_combine(seed, !bias.is_valid());
+        seed = hash_combine(seed, !scale.is_valid());
+        seed = hash_combine(seed, !scale_zp.is_valid());
         seed = hash_combine(seed, !weights_zero_points.is_valid());
         seed = hash_combine(seed, !activations_zero_points.is_valid());
         seed = hash_combine(seed, !compensation.is_valid());
@@ -235,7 +243,7 @@ struct convolution : public primitive_base<convolution> {
     bool operator==(const primitive& rhs) const override {
         if (!compare_common_params(rhs))
             return false;
-
+        std::cout << "ope equal " << std::endl;
         auto rhs_casted = downcast<const convolution>(rhs);
 
         #define cmp_fields(name) name == rhs_casted.name
@@ -250,15 +258,26 @@ struct convolution : public primitive_base<convolution> {
                cmp_fields(bilinear_interpolation_pad) &&
                cmp_fields(transposed) &&
                cmp_fields(grouped_weights_shape) &&
+<<<<<<< HEAD
                cmp_fields(weights.is_valid()) &&
                cmp_fields(bias.is_valid()) &&
                cmp_fields(weights_zero_points.is_valid()) &&
                cmp_fields(activations_zero_points.is_valid()) &&
                cmp_fields(compensation.is_valid());
+=======
+               cmp_fields(weights.empty()) &&
+               cmp_fields(bias.empty()) &&
+               cmp_fields(scale.empty()) &&
+               cmp_fields(scale_zp.empty()) &&
+               cmp_fields(weights_zero_points.empty()) &&
+               cmp_fields(activations_zero_points.empty()) &&
+               cmp_fields(compensation.empty());
+>>>>>>> dba4e0e569 (wip evening)
         #undef cmp_fields
     }
 
     void save(BinaryOutputBuffer& ob) const override {
+        std::cout << "save " << std::endl;
         primitive_base<convolution>::save(ob);
         ob << groups;
         ob << stride;
@@ -273,12 +292,15 @@ struct convolution : public primitive_base<convolution> {
         ob << grouped_weights_shape;
         ob << weights;
         ob << bias;
+        ob << scale;
+        ob << scale_zp;
         ob << weights_zero_points;
         ob << activations_zero_points;
         ob << compensation;
     }
 
     void load(BinaryInputBuffer& ib) override {
+        std::cout << "load " << std::endl;
         primitive_base<convolution>::load(ib);
         ib >> groups;
         ib >> stride;
@@ -291,11 +313,21 @@ struct convolution : public primitive_base<convolution> {
         ib >> bilinear_interpolation_pad;
         ib >> transposed;
         ib >> grouped_weights_shape;
+<<<<<<< HEAD
         ib >> weights;
         ib >> bias;
         ib >> weights_zero_points;
         ib >> activations_zero_points;
         ib >> compensation;
+=======
+        ib >> *const_cast<primitive_id*>(&weights);
+        ib >> *const_cast<primitive_id*>(&bias);
+        ib >> *const_cast<primitive_id*>(&scale);
+        ib >> *const_cast<primitive_id*>(&scale_zp);
+        ib >> *const_cast<primitive_id*>(&weights_zero_points);
+        ib >> *const_cast<primitive_id*>(&activations_zero_points);
+        ib >> *const_cast<primitive_id*>(&compensation);
+>>>>>>> dba4e0e569 (wip evening)
     }
 
 protected:
