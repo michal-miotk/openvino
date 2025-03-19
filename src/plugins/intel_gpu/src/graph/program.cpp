@@ -1636,7 +1636,7 @@ void program::set_layout_optimizer_attributes(layout_optimizer& lo) {
                 lo.add_all_onednn_impls_optimization_attribute();
             } else {
                 if (get_config().get_use_onednn()) {
-                    lo.enable_onednn_for<lstm_seq>();
+                    //lo.enable_onednn_for<lstm_seq>();
                 }
             }
         }

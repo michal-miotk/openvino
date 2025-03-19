@@ -47,6 +47,11 @@ public:
         for (size_t i = 1; i < impl_param.input_layouts.size(); ++i) {
             params.inputs.push_back(convert_data_tensor(impl_param.get_input_layout(i)));
         }
+        std::cout << impl_param.input_layouts.size() << "impl_param.input_layouts.size()" << std::endl;
+        for (size_t i = 1; i < impl_param.output_layouts.size(); ++i) {
+            std::cout << "adding output" << impl_param.get_output_layout(i) << std::endl;
+            params.outputs.push_back(convert_data_tensor(impl_param.get_output_layout(i)));
+        }
 
         if (!primitive->activations.empty()) {
             auto a_sz = primitive->activations.size();

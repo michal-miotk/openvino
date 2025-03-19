@@ -54,6 +54,7 @@ KERNEL(lstm_cell_and_seq_ref)(
     #else
         const uint real_seq_length = 1;
     #endif
+    printf("seq len %d b%d NUM_HIDDEN_TO_DO %d\n", real_seq_length, b, NUM_HIDDEN_TO_DO);
     #if DIRECTION == 2
     unroll_for(uint dir=0;dir<DIRECTION;dir++) {
     #else

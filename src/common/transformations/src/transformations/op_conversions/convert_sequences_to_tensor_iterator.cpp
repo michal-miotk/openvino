@@ -128,8 +128,11 @@ bool convert_sequence_to_ti(const std::shared_ptr<ov::Node>& sequence,
     const auto squeezed_w = ov::op::util::make_try_fold<ov::op::v0::Squeeze>(W, axis_0);
     std::shared_ptr<ov::op::v0::Parameter> W_body_param;
     if (!ov::op::util::is_on_constant_path(squeezed_w))
+    {
         W_body_param = std::make_shared<ov::op::v0::Parameter>(squeezed_w->get_element_type(),
                                                                squeezed_w->get_output_partial_shape(0));
+        std::cout << "body not on constant path" << std::endl;
+    }
     const auto squeezed_r = ov::op::util::make_try_fold<ov::op::v0::Squeeze>(R, axis_0);
     std::shared_ptr<ov::op::v0::Parameter> R_body_param;
     if (!ov::op::util::is_on_constant_path(squeezed_r))
