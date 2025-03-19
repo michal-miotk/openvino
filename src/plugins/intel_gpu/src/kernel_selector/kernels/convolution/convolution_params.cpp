@@ -31,6 +31,7 @@ std::string convolution_params::to_cache_string_v2() const {
 
     s << parent::to_cache_string_v2() << ";";
     s << filterSize.x << "_" << filterSize.y << "_" << filterSize.z << ";";
+    s << has_scale << "_" << has_scale_zp << std::endl;
     s << stride.x << "_" << stride.y << "_" << stride.z << ";";
     s << dilation.x << "_" << dilation.y << "_" << dilation.z << ";";
     s << padding_begin.x << "_" << padding_begin.y << "_" << padding_begin.z << ";";

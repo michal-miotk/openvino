@@ -101,6 +101,8 @@ public:
         conv_params.has_explicit_paddings = primitive->auto_pad == ov::op::PadType::EXPLICIT;
         conv_params.has_scale = !primitive->scale.empty();
         std::cout << "setting has scale to " << !primitive->scale.empty() << " because of " << primitive->scale << std::endl;
+        std::cout << "setting has scale zp to " << !primitive->scale_zp.empty() << " because of " << primitive->scale_zp << std::endl;
+        std::cout << "weights are btw " << primitive->weights << std::endl;
         conv_params.has_scale_zp = !primitive->scale_zp.empty();
         if (auto_pad == ov::op::PadType::SAME_UPPER || auto_pad == ov::op::PadType::SAME_LOWER) {
             const auto& input_layout = impl_param.get_input_layout();
@@ -165,8 +167,6 @@ public:
                 conv_params.quantization = kernel_selector::QuantizationType::ASYMMETRIC_WEIGHTS;
             } else if (!primitive->activations_zero_points.empty()) {
                 conv_params.quantization = kernel_selector::QuantizationType::ASYMMETRIC_DATA;
-            } else if (!primitive->scale.empty()) {
-                conv_params.quantization = kernel_selector::QuantizationType::FULL;
             } else {
                 conv_params.quantization = kernel_selector::QuantizationType::SYMMETRIC;
             }

@@ -35,8 +35,6 @@ KERNEL(kernel_name)(
 {
 #if SCALE_TERM
     printf("scale is %f scale zp is %f \n", scale, scale_zp);
-#else
-    printf("scale term not defined \n");
 #endif
     // Convolution part.
     const uint x = get_global_id(0);
