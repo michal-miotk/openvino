@@ -397,6 +397,8 @@ void prepare_primitive_fusing::fuse_bias(program &p) {
                                                                      desc->input[0],
                                                                      desc->weights.pid,
                                                                      biases,
+                                                                     desc->scale,
+                                                                     desc->scale_zp,
                                                                      "",
                                                                      "",
                                                                      desc->weights_zero_points.pid,
