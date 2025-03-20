@@ -103,7 +103,7 @@ static void CreateConvolutionOp(ProgramBuilder& p, const std::shared_ptr<ov::int
     }
 
     std::shared_ptr<cldnn::convolution> prim = nullptr;
-
+    std::cout << "creating conv" << weights << std::endl;
     if (op->is_asymmetric()) {
         auto azp = inputs[op::Convolution::Args::AZP];
         auto wzp = inputs[op::Convolution::Args::WZP];

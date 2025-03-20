@@ -67,6 +67,10 @@ struct convolution : public primitive_base<convolution> {
               weights_zero_points(w_zero_point),
               activations_zero_points(a_zero_point),
               compensation(compensation) {
+            if (weights == "constant:down_blocks.0.resnets.0.conv2.weight_quantized") {
+                std::cout << "hehe" << std::endl;
+            }
+            std::cout << "weigths are" << weights << std::endl;
             std::cout << "now scale is " << scale << std::endl;
             std::cout << "now scalez[] is " << scale_zp << std::endl;
     }
@@ -115,6 +119,7 @@ struct convolution : public primitive_base<convolution> {
           weights_zero_points(""),
           activations_zero_points(""),
           compensation("") {
+            std::cout << "weigths are" << weights << std::endl;
             std::cout << "now scale is " << scale << std::endl;
             std::cout << "now scalezp is " << scale_zp << std::endl;
     }
@@ -170,6 +175,7 @@ struct convolution : public primitive_base<convolution> {
       weights_zero_points(""),
       activations_zero_points(""),
       compensation("") {
+        std::cout << "weigths are" << weights << std::endl;
         std::cout << "now scale is " << scale << std::endl;
         std::cout << "now scalezp is " << scale_zp << std::endl;
     }
