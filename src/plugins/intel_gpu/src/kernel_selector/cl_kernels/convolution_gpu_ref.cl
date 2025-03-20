@@ -107,7 +107,7 @@ KERNEL(kernel_name)(
                                 in -= TO_ACCUMULATOR_TYPE(activations_zp[g * FILTER_IFM_NUM + k]);
 #endif
 #if SCALE_TERM && SCALE_ZP_TERM
-                                ACCUMULATOR_TYPE wei = TO_ACCUMULATOR_TYPE(weights[filter_idx]-scale_zp)*TO_ACCUMULATOR_TYPE(scale);
+                                ACCUMULATOR_TYPE wei = TO_ACCUMULATOR_TYPE(weights[filter_idx]-TO_ACCUMULATOR_TYPE(scale_zp[0]))*TO_ACCUMULATOR_TYPE(scale[0]);
 #else
                                 ACCUMULATOR_TYPE wei = TO_ACCUMULATOR_TYPE(weights[filter_idx]);
 #endif
