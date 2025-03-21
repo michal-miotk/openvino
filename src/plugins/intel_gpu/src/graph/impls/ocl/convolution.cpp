@@ -43,7 +43,14 @@ struct convolution_impl : typed_primitive_impl_ocl<convolution> {
 protected:
     kernel_arguments_data get_arguments(const typed_primitive_inst<convolution>& instance) const override {
         kernel_arguments_data args = parent::get_arguments(instance);
-
+        auto typed_instance = instance.get_typed_desc<convolution>();
+        if (!typed_instance->scale.empty()) {
+            args.inputs.push_back(instance.scale_points_memory());
+        }
+        if (!typed_instance->scale_zp.empty()) {
+            args.inputs.push_back(instance.scale_zero_points_memory());
+        }
+        std::cout << args.inputs.size() << "ist size of daten" << std::endl;
         args.weights = instance.weights_memory();
         args.bias = instance.bias_term() ? instance.bias_memory() : nullptr;
         args.weights_zero_points = instance.weights_zero_points_term() ? instance.weights_zero_points_memory() : nullptr;
@@ -67,12 +74,6 @@ public:
                                                                                                           primitive->grouped_weights_shape,
                                                                                                         is_shape_agnostic);
 
-        if (!primitive->scale.empty()) {
-            conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[2]));
-        }
-        if (!primitive->scale_zp.empty()) {
-            conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[3]));
-        }
         if (primitive->deformable_mode) {
             conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[1]));
             conv_params.deformable_mode = true;
@@ -104,6 +105,21 @@ public:
         std::cout << "setting has scale zp to " << !primitive->scale_zp.empty() << " because of " << primitive->scale_zp << std::endl;
         std::cout << "weights are btw " << primitive->weights << std::endl;
         conv_params.has_scale_zp = !primitive->scale_zp.empty();
+        if (!primitive->scale.empty()) {
+            std::cout << "scale not emp" << std::endl;
+            conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[3]));
+        } else {
+            std::cout << "oh scale empty" << std::endl;
+        }
+        if (!primitive->scale_zp.empty()) {
+            std::cout << "scalezp not emp" << std::endl;
+            conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[4]));
+        } else {
+            std::cout << "oh scaleZP empty" << std::endl;
+        }
+        std::cout << " wt" << std::endl;
+        std::cout << "official in size" << impl_param.input_layouts.size() << std::endl;
+        std::cout << "Xnow input size is " << conv_params.inputs.size() << std::endl;
         if (auto_pad == ov::op::PadType::SAME_UPPER || auto_pad == ov::op::PadType::SAME_LOWER) {
             const auto& input_layout = impl_param.get_input_layout();
             const auto spatial_rank = input_layout.get_spatial_rank();
