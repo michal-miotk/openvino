@@ -131,6 +131,7 @@ KERNEL(gemm_ref)(
         uint b0 = b;
         uint b1 = b;
         #if INDIRECT_INPUT0
+            printf("indirect 0\n");
             #if INDIRECT_AXIS == 0
                 b0 = BEAM_TABLE_BATCH_NUM > 1 ? beam_table[FUNC_CALL(get_bt_index)(OPTIONAL_SHAPE_INFO_TENSOR b, f, w, z, y, ki)] : b;
             #elif INDIRECT_AXIS == 1
@@ -140,6 +141,7 @@ KERNEL(gemm_ref)(
             #endif
         #endif
         #if INDIRECT_INPUT1
+            printf("indirect 1\n");
             #if INDIRECT_AXIS == 0
                 b1 = BEAM_TABLE_BATCH_NUM > 1 ? beam_table[FUNC_CALL(get_bt_index)(OPTIONAL_SHAPE_INFO_TENSOR b, f, w, z, ki, x)] : b;
             #elif INDIRECT_AXIS == 1
@@ -148,7 +150,9 @@ KERNEL(gemm_ref)(
             #   error gemm_ref.cl : Unsupported indirect axis for beam table
             #endif
         #endif
-
+        printf("IN0B %d F %d %d %d padu %d %d\n", INPUT0_BATCH_NUM, INPUT0_FEATURE_NUM, INPUT0_SIZE_Y, INPUT0_SIZE_X, INPUT0_PAD_AFTER_SIZE_Y, INPUT0_PAD_AFTER_SIZE_X);
+        printf("IN1B %d F %d %d %d\n", INPUT1_BATCH_NUM, INPUT1_FEATURE_NUM, INPUT1_SIZE_Y, INPUT1_SIZE_X);
+        printf("OUTB %d F %d %d %d\n", OUTPUT_BATCH_NUM, OUTPUT_FEATURE_NUM, OUTPUT_SIZE_Y, OUTPUT_SIZE_X);
         uint in0_idx = FUNC_CALL(get_input0_index)(OPTIONAL_SHAPE_INFO_TENSOR b0, f, w, z, y, ki);
         uint in1_idx = FUNC_CALL(get_input1_index)(OPTIONAL_SHAPE_INFO_TENSOR b1, f, w, z, ki, x);
 

@@ -143,7 +143,7 @@ std::string GemmKernelBase::GetDimsOrder(const std::vector<int64_t>& order_idx) 
         }
         return loc;
     };
-
+    std::cout << "order_idx" << order_idx.size() << std::endl;
     std::string dims_order = "";
     if (order_idx.size() == 2) {
         const std::vector<std::string> dims2 = {"y", "x"};

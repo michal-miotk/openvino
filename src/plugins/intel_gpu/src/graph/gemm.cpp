@@ -142,6 +142,20 @@ template std::vector<layout> gemm_inst::calc_output_layouts<ov::PartialShape>(ge
 
 std::vector<layout> gemm_inst::transform_input_layouts(const std::shared_ptr<const gemm> primitive,
                                                        const std::vector<layout>& input_layouts) {
+    auto get_transposed_padding = [&](const padding& input_padding, size_t input_rank, size_t output_rank) {
+        std::vector<int32_t> pad_low(SHAPE_RANK_MAX-input_rank, 0);
+        std::vector<int32_t> pad_up(SHAPE_RANK_MAX-input_rank, 0);
+        for (long unsigned int i=0; i < input_rank; i++) {
+            pad_low.push_back(input_padding._lower_size[i]);
+            std::cout << "for idx " << i << " getting " << input_padding._upper_size[i] << std::endl;
+            pad_up.push_back(input_padding._upper_size[i]);
+        }
+        for (long unsigned int i=0; i < pad_up.size(); i++) {
+            std::cout << pad_up[i] << "_";
+        }
+        return padding(pad_low, pad_up);
+    };
+
     auto get_transposed_input_shape = [&](const ov::PartialShape& input_pshape, size_t input_rank, size_t output_rank, bool transpose, bool first_input) {
         ov::PartialShape transposed_input_pshape;
 
@@ -155,8 +169,10 @@ std::vector<layout> gemm_inst::transform_input_layouts(const std::shared_ptr<con
         } else {
             if (input_pshape.is_static()) {
                 OPENVINO_ASSERT(input_pshape.size() >= input_rank, "[GPU] Requested input rank in gemm primitive is greater than actual shape");
+                std::cout << "input rank" << input_rank << std::endl;
                 std::vector<ov::Dimension> dims(input_pshape.begin(), input_pshape.begin() + input_rank);
                 transposed_input_pshape = ov::PartialShape(dims);
+                std::cout << "transposed_input_pshape" << transposed_input_pshape.to_string() << std::endl;
             } else {
                 transposed_input_pshape = input_pshape;
             }
@@ -189,6 +205,7 @@ std::vector<layout> gemm_inst::transform_input_layouts(const std::shared_ptr<con
 
     std::vector<layout> layouts = input_layouts;
     layouts[0].set_partial_shape(transposed_input0_pshape);
+    layouts[0].data_padding = get_transposed_padding(layouts[0].data_padding, input_rank, output_rank);
     layouts[1].set_partial_shape(transposed_input1_pshape);
 
     if (primitive->input_size() == 3) {

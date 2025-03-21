@@ -274,8 +274,9 @@ public:
     static kernel_impl_params static_canonicalize_shapes(const kernel_impl_params& impl_params) {
         const auto& primitive = impl_params.typed_desc<gemm>();
         auto updated_impl_params = canonicalize_fused_shapes(impl_params);
-
+        std::cout << "before " << updated_impl_params.input_layouts[0] << std::endl;
         updated_impl_params.input_layouts = gemm_inst::transform_input_layouts(primitive, impl_params.input_layouts);
+        std::cout << "after " << updated_impl_params.input_layouts[0] << std::endl;
         updated_impl_params.output_layouts[0] = gemm_inst::transform_output_layout(primitive, updated_impl_params.input_layouts, impl_params.output_layouts[0]);
 
         for (auto& input_layout : updated_impl_params.input_layouts) {

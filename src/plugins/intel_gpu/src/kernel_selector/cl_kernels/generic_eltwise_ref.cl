@@ -175,6 +175,7 @@ KERNEL(eltwise)(
         const uint d4 = (uint)get_global_id(2) / OUTPUT_SIZES[2];
 
         uint output_offset = GET_INDEX(OUTPUT,, OUTPUT_IDX_ORDER);
+        printf("output offset is %d for %d %d %d %d \n", output_offset, d1, d2, d3, d4);
     #endif
 #endif
 
@@ -188,7 +189,6 @@ KERNEL(eltwise)(
 #else
     #define out res
 #endif
-
 #if QUANTIZATION_TERM && !OUTPUT_IS_FP
     output[output_offset] = TO_OUTPUT_TYPE_SAT(ACTIVATION(out, ACTIVATION_PARAMS));
 #else

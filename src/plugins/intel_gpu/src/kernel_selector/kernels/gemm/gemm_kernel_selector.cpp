@@ -11,9 +11,9 @@
 namespace kernel_selector {
 gemm_kernel_selector::gemm_kernel_selector() {
     Attach<GemmKernelRef>();
-    Attach<GemmKernelTiledOpt>();
-    Attach<GemmKernelMMADint8>();
-    Attach<GemmKernelMMADslmInt8>();
+    //Attach<GemmKernelTiledOpt>();
+    //Attach<GemmKernelMMADint8>();
+    //Attach<GemmKernelMMADslmInt8>();
 }
 
 KernelsData gemm_kernel_selector::GetBestKernels(const Params& params) const {
