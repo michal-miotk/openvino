@@ -45,6 +45,8 @@ TEST_P(convolution_si_test, shape_infer) {
                                                                            input_info("data"),
                                                                            "weight",
                                                                            "",
+                                                                           "",
+                                                                           "",
                                                                            p.groups,
                                                                            p.stride,
                                                                            p.dilation,
