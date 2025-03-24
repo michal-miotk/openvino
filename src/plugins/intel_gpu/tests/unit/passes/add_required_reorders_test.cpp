@@ -82,7 +82,7 @@ TEST(add_required_reorders, prevent_input_dt_changing_for_convs) {
     auto input_const = data("input_const", input2_mem);
     auto weights = data("weights", weights_mem);
     auto eltwise1 = eltwise("eltwise1", input_info("input"), input_info("input_const"), eltwise_mode::sum);
-    auto conv1 = convolution("conv1", input_info("eltwise1"), "weights", "", 1, { 1, 1 }, { 1, 1 }, { 1, 1 }, { 2, 2 }, false);
+    auto conv1 = convolution("conv1", input_info("eltwise1"), "weights", "", "", "", 1, { 1, 1 }, { 1, 1 }, { 1, 1 }, { 2, 2 }, false);
     auto output_reorder = reorder("reorder", input_info("conv1"), { data_types::f32, format::bfyx, { output_b, output_f, output_y, output_x } });
 
     topology topology_test(input, input_const, eltwise1, weights, conv1, output_reorder);
@@ -108,7 +108,7 @@ TEST(add_required_reorders, prevent_users_invalidation) {
 
     auto input = input_layout("input", input_mem_padded->get_layout());
     auto weights = data("weights", weights_mem);
-    auto conv = convolution("conv", input_info("input"), "weights", "", 1, { 1, 1 }, { 1, 1 }, { 1, 1 }, { 2, 2 }, false);
+    auto conv = convolution("conv", input_info("input"), "weights", "", "", "", 1, { 1, 1 }, { 1, 1 }, { 1, 1 }, { 2, 2 }, false);
 
     auto prog = program::build_program(engine,
                                        topology(input, weights, conv),

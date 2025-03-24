@@ -539,7 +539,7 @@ TEST_P(conv_fp32_reorder_fsv16_to_bfyx, basic) {
         input_layout("input", get_input_layout(p)),
         data("weights", get_mem(get_weights_layout(p))),
         reorder("reorder_fsv16", input_info("input"), format::b_fs_yx_fsv16, data_types::f32),
-        convolution("conv_prim", input_info("reorder_fsv16"), "weights", "", p.groups, p.stride, p.dilation, p.pad, p.pad, format::is_grouped(get_weights_layout(p).format)),
+        convolution("conv_prim", input_info("reorder_fsv16"), "weights", "", "", "",  p.groups, p.stride, p.dilation, p.pad, p.pad, format::is_grouped(get_weights_layout(p).format)),
         reorder("reorder_bfyx", input_info("conv_prim"), format::bfyx, data_types::f32)
     );
 
@@ -575,7 +575,7 @@ TEST_P(conv_fp32_reorder_fsv16_to_bfyx_conv, basic) {
         data("weights", get_mem(get_weights_layout(p), -127, 127)),
         data("weights_dw", get_mem(dw_weights_layout, -127, 127)),
         reorder("reorder_fsv16", input_info("input"), format::b_fs_yx_fsv16, data_types::f32),
-        convolution("conv_prim", input_info("reorder_fsv16"), "weights", "", "", p.groups, p.stride, p.dilation, p.pad, p.pad, format::is_grouped(get_weights_layout(p).format)),
+        convolution("conv_prim", input_info("reorder_fsv16"), "weights", "", "", "", p.groups, p.stride, p.dilation, p.pad, p.pad, format::is_grouped(get_weights_layout(p).format)),
         reorder("reorder_bfyx", input_info("conv_prim"), format::bfyx, data_types::f32),
         convolution("conv_output", input_info("reorder_bfyx"), "weights_dw", "", "", "", p.out_shape[1].get_length(), dw_stride, p.dilation, dw_pad, dw_pad, true),
         activation("activation", input_info("conv_output"), activation_func::abs),
@@ -1817,7 +1817,7 @@ TEST_P(conv_fp32_group_conv_eltwise_sum, basic) {
         input_layout("input", get_input_layout(p)),
         data("weights", get_mem(get_weights_layout(p))),
         data("eltwise_data", get_mem(layout{ p.eltw_shape, p.data_type, p.input_format })),
-        convolution("conv_prim", input_info("input"), "weights", "", p.groups, p.stride, p.dilation, p.pad, p.pad, true),
+        convolution("conv_prim", input_info("input"), "weights", "", "", "",  p.groups, p.stride, p.dilation, p.pad, p.pad, true),
         eltwise("sum", { input_info("conv_prim"), input_info("eltwise_data") }, eltwise_mode::sum, data_types::f32),
         reorder("reorder_bfyx", input_info("sum"), p.default_format, data_types::f32)
     );
@@ -2918,7 +2918,7 @@ TEST_P(conv_fp32_reorder_bfyx_to_fsv32_conv_basic, basic) {
         input_layout("input", get_input_layout(p)),
         data("weights", get_mem(get_weights_layout(p), -127, 127)),
         reorder("reorder_fsv32", input_info("input"), format::fs_b_yx_fsv32, data_types::f32),
-        convolution("conv_prim", input_info("reorder_fsv32"), "weights", "", 1, { 1, 1 }, p.dilation, p.pad, p.pad, false),
+        convolution("conv_prim", input_info("reorder_fsv32"), "weights", "", "", "",  1, { 1, 1 }, p.dilation, p.pad, p.pad, false),
         activation("activation", input_info("conv_prim"), activation_func::abs),
         reorder("reorder_out", input_info("activation"), format::bfyx, data_types::f32)
     );
@@ -2944,7 +2944,7 @@ TEST_P(conv_fp32_reorder_bfyx_to_fsv32_conv_mean, have_mean) {
         data("mul", mul),
         data("weights", get_mem(get_weights_layout(p), -127, 127)),
         reorder("reorder_fsv32", input_info("input"), format::fs_b_yx_fsv32, data_types::f32, "mul", reorder_mean_mode::mul),
-        convolution("conv_prim", input_info("reorder_fsv32"), "weights", "", 1, { 1, 1 }, p.dilation, p.pad, p.pad, false),
+        convolution("conv_prim", input_info("reorder_fsv32"), "weights", "", "", "",  1, { 1, 1 }, p.dilation, p.pad, p.pad, false),
         activation("activation", input_info("conv_prim"), activation_func::abs)
     );
 
@@ -2972,9 +2972,9 @@ TEST_P(conv_fp32_reorder_bfyx_to_fsv32_conv_subtract, have_subtract_per_feature)
         input_layout("input", get_input_layout(p)),
         data("weights", get_mem(get_weights_layout(p), -127, 127)),
         data("weights_dw", get_mem(dw_weights_layout, -127, 127)),
-        convolution("conv_prim", input_info("input"), "weights", "", p.groups, p.stride, p.dilation, p.pad, p.pad, format::is_grouped(get_weights_layout(p).format)),
+        convolution("conv_prim", input_info("input"), "weights", "", "", "", p.groups, p.stride, p.dilation, p.pad, p.pad, format::is_grouped(get_weights_layout(p).format)),
         reorder("reorder_fsv32", input_info("conv_prim"), format::fs_b_yx_fsv32, data_types::f32, values_to_subtract),
-        convolution("conv_output", input_info("reorder_fsv32"), "weights_dw", "", p.out_shape[1].get_length(), dw_stride, p.dilation, p.pad, p.pad, true)
+        convolution("conv_output", input_info("reorder_fsv32"), "weights_dw", "", "", "", p.out_shape[1].get_length(), dw_stride, p.dilation, p.pad, p.pad, true)
     );
 
     ov::intel_gpu::ImplementationDesc conv_impl = { format::fs_b_yx_fsv32, "", impl_types::ocl };
@@ -3025,10 +3025,10 @@ TEST_P(conv_fp32_reorder_bfyx_to_fsv32_conv_fused_through_activation, have_fused
         input_layout("input", get_input_layout(p)),
         data("weights", get_mem(get_weights_layout(p), -127, 127)),
         data("weights_dw", get_mem(dw_weights_layout, -127, 127)),
-        convolution("conv_prim", input_info("input"), "weights", "", p.groups, p.stride, p.dilation, p.pad, p.pad, false),
+        convolution("conv_prim", input_info("input"), "weights", "", "", "", p.groups, p.stride, p.dilation, p.pad, p.pad, false),
         reorder("reorder_fsv32", input_info("conv_prim"), format::fs_b_yx_fsv32, data_types::f32),
         activation("activation_quantize", input_info("reorder_fsv32"), activation_func::relu),
-        convolution("conv_prim2", input_info("activation_quantize"), "weights_dw", "", p.out_shape[1].get_length(), dw_stride, p.dilation, p.pad, p.pad, true),
+        convolution("conv_prim2", input_info("activation_quantize"), "weights_dw", "", "", "", p.out_shape[1].get_length(), dw_stride, p.dilation, p.pad, p.pad, true),
         activation("activation", input_info("conv_prim2"), activation_func::abs)
     );
 
@@ -3051,9 +3051,9 @@ TEST_P(conv_fp32_reorder_bfyx_to_fsv32_conv_data_padding, have_data_padding) {
         input_layout("input", get_input_layout(p)),
         data("weights", get_mem(get_weights_layout(p), -127, 127)),
         data("weights_dw", get_mem(dw_weights_layout, -127, 127)),
-        convolution("conv_prim", input_info("input"), "weights", "", p.groups, p.stride, p.dilation, p.pad, p.pad, format::is_grouped(get_weights_layout(p).format)),
+        convolution("conv_prim", input_info("input"), "weights", "", "", "", p.groups, p.stride, p.dilation, p.pad, p.pad, format::is_grouped(get_weights_layout(p).format)),
         reorder("reorder_fsv32", input_info("conv_prim"), format::fs_b_yx_fsv32, data_types::f32, std::vector<float>{}, reorder_mean_mode::subtract, padding{ { 0, 0, 1, 1 }, 0 }),
-        convolution("conv_prim2", input_info("reorder_fsv32"), "weights_dw", "", p.out_shape[1].get_length(), dw_stride, p.dilation, p.pad, p.pad, true),
+        convolution("conv_prim2", input_info("reorder_fsv32"), "weights_dw", "", "", "", p.out_shape[1].get_length(), dw_stride, p.dilation, p.pad, p.pad, true),
         reorder("reorder_out", input_info("conv_prim2"), format::fs_b_yx_fsv32, data_types::f32)
     );
 
