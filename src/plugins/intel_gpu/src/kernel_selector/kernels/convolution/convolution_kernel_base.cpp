@@ -82,7 +82,12 @@ JitConstants ConvolutionKernelBase::GetJitConstants(const convolution_params& pa
             mem_consts.AddConstant(MakeJitConstant("SKIP_BATCH", 1));
         }
     }
-
+    if (params.has_scale) {
+        mem_consts.AddConstant(MakeJitConstant("SCALE_TERM", true));
+    }
+    if (params.has_scale_zp) {
+        mem_consts.AddConstant(MakeJitConstant("SCALE_ZP_TERM", true));
+    }
     return mem_consts;
 }
 

@@ -34,7 +34,7 @@ KERNEL(kernel_name)(
     )
 {
 #if SCALE_TERM
-    printf("scale is %f scale zp is %f \n", scale, scale_zp);
+    //printf("scale is %f scale zp is %f \n", scale, scale_zp);
 #endif
     // Convolution part.
     const uint x = get_global_id(0);
