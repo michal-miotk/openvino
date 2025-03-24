@@ -21,7 +21,7 @@ TEST(onednn_tests, profiling) {
     topology.add(data("weights", weights));
     topology.add(input_layout("input", input->get_layout()));
     topology.add(reorder("reorder", input_info("input"), format::b_fs_yx_fsv16, data_types::f16));
-    topology.add(convolution("conv", input_info("reorder"), "weights", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
+    topology.add(convolution("conv", input_info("reorder"), "weights", "", "", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
 
     ExecutionConfig config = get_test_default_config(engine);
     ov::intel_gpu::ImplementationDesc impl = { format::b_fs_yx_fsv16, std::string(""), impl_types::onednn };

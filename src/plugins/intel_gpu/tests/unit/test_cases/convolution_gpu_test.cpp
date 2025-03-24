@@ -5837,7 +5837,7 @@ TEST(convolution_f32_fw_gpu, convolution_int8_b_fs_yx_fsv4_to_bfyx) {
     auto biases = engine.allocate_memory({ data_types::i8, format::bfyx, biases_size });
     set_values(biases, biases_data_bfyx);
 
-    auto conv_ref = convolution("conv", input_info("to_int"), "weights", "biases", 1, { 1, 1 }, { 1, 1 }, { input_padding, input_padding }, { input_padding, input_padding }, false, ov::op::PadType::EXPLICIT);
+    auto conv_ref = convolution("conv", input_info("to_int"), "weights", "biases", "", "", 1, { 1, 1 }, { 1, 1 }, { input_padding, input_padding }, { input_padding, input_padding }, false, ov::op::PadType::EXPLICIT);
     conv_ref.output_paddings = { padding{ { 0, 0, output_padding, output_padding }, 0 }};
     topology topology_ref(
         input_layout("input", input->get_layout()),

@@ -170,7 +170,7 @@ TEST_P(test_fused_reorder_deep_depth, no_removal_for_deep_depth_conv)
     topology.add(input_layout("input", input->get_layout()));
     topology.add(data("weights", weights));
     topology.add(reorder("reorder_input", input_info("input"), p.output_format, p.input_data_type));
-    topology.add(cldnn::convolution("conv", input_info("reorder_input"), "weights", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
+    topology.add(cldnn::convolution("conv", input_info("reorder_input"), "weights", "", "", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
     topology.add(reorder("reorder_conv", input_info("conv"), reorder_layout));
 
     ExecutionConfig cfg = get_test_default_config(engine);
@@ -273,7 +273,7 @@ TEST_P(test_can_fuse_reorder_onednn, reorder_for_firstconv_onednn)
     topology.add(data("weights", weights));
     topology.add(reorder("reorder_input", input_info("input"), p.input_format, p.output_data_type));
     topology.add(reorder("reorder_conv", input_info("reorder_input"), p.output_format, p.output_data_type));
-    topology.add(cldnn::convolution("conv", input_info("reorder_input"), "weights", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
+    topology.add(cldnn::convolution("conv", input_info("reorder_input"), "weights", "", "", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
     topology.add(reorder("reorder_result", input_info("conv"), reorder_layout));
 
     ExecutionConfig cfg = get_test_default_config(engine);
@@ -329,7 +329,7 @@ TEST_P(can_fuse_reorder, surface_input_reorder) {
     surface_input_reorder_prim.input_mem_type = reorder::memory_type::surface;
     auto conv_input_reorder_prim = reorder("reorder_conv", input_info(reorder_prim_id), req_format, req_data_type);
     auto transpose = permute("permute",  input_info("reorder_conv"), {0, 3, 1, 2});
-    auto conv_prim = cldnn::convolution("conv", input_info("permute"), "weights", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false);
+    auto conv_prim = cldnn::convolution("conv", input_info("permute"), "weights", "", "", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false);
 
     topology.add(input_layout_prim, weights_data_prim, surface_input_reorder_prim, conv_input_reorder_prim, transpose, conv_prim);
 
@@ -450,7 +450,7 @@ TEST_P(test_can_fuse_reorder_onednn_errata, errata_case_for_conv) {
     topology.add(data("weights", weights));
     topology.add(reorder("reorder_input", input_info("input"), p.input_layout.format, p.input_layout.data_type));
     topology.add(reorder("reorder_conv", input_info("reorder_input"), p.reorder_layout.format, p.reorder_layout.data_type));
-    topology.add(convolution("conv", input_info("reorder_conv"), "weights", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
+    topology.add(convolution("conv", input_info("reorder_conv"), "weights", "", "", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
     topology.add(reorder("reorder_result", input_info("conv"), p.conv_layout));
 
     ExecutionConfig cfg = get_test_default_config(engine);

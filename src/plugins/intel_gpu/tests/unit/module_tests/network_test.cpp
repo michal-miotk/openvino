@@ -176,7 +176,7 @@ TEST(network_test, has_proper_event_for_in_order_queue_onednn) {
     topology topology;
     topology.add(input_layout("input", in_layout));
     topology.add(data("weights", weights));
-    topology.add(convolution("conv", input_info("input"), "weights", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
+    topology.add(convolution("conv", input_info("input"), "weights", "", "", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
     topology.add(activation("activation", input_info("conv"), activation_func::relu));
     topology.add(reorder("reorder", input_info("conv"), in_layout));
 
