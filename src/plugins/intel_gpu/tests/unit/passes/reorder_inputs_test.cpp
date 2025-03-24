@@ -49,9 +49,9 @@ TEST(reorder_inputs, propagation) {
     topology topology;
     topology.add(data("weights", weights));
     topology.add(input_layout("input", input->get_layout()));
-    topology.add(convolution("conv1", input_info("input"), "weights", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
+    topology.add(convolution("conv1", input_info("input"), "weights", "", "", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
     topology.add(pooling("pool", input_info("conv1"), pooling_mode::max, { 1, 1 }, { 1, 1 }));
-    topology.add(convolution("conv2", input_info("pool"), "weights", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
+    topology.add(convolution("conv2", input_info("pool"), "weights", "", "", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
 
     ExecutionConfig config = get_test_default_config(engine);
     config.set_property(ov::intel_gpu::optimize_data(true));
@@ -129,6 +129,8 @@ TEST(reorder_inputs, mixed_ranks_gather) {
     topology.add(convolution("conv",
                              input_info("input"),
                              "weights",
+                             "",
+                             "",
                              "",
                              1,
                              ov::Strides{1, 1},
@@ -382,7 +384,7 @@ TEST(reorder_inputs, no_need_of_reorder_to_change_input_rank_for_rdft) {
         input_layout("input2", in_layout2),
         data("weights", weights),
         data("bias", bias),
-        convolution("conv", input_info("input1"), "weights", "bias", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false),
+        convolution("conv", input_info("input1"), "weights", "bias", "", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false),
         eltwise("eltwise", input_info("input2"), input_info("conv"), eltwise_mode::sum),
         dft("rdft", input_info("conv"), {1, 1}, {1, 1}, {1, 120, 96, 49, 2}, dft_direction::forward, dft_mode::real),
         reorder("reorder", input_info("rdft"), format::bfzyx, data_types::f16)
@@ -551,7 +553,7 @@ TEST(reorder_inputs, has_reshape_user) {
     topology.add(input_layout("input", input->get_layout()));
     topology.add(data("weights", weights)),
     topology.add(data("biases", biases)),
-    topology.add(convolution("conv", input_info("input"), "weights", "biases", 1, {1, 1, 1}, {1, 1, 1}, {0, 0, 0}, {0, 0, 0}, false));
+    topology.add(convolution("conv", input_info("input"), "weights", "biases", "", "", 1, {1, 1, 1}, {1, 1, 1}, {0, 0, 0}, {0, 0, 0}, false));
     topology.add(reshape("reshape1", input_info("conv"), false, { 1, 1, 3, 3, 3 }, { 1, 1, 3, 3, 3 }));
     topology.add(permute("permute", input_info("reshape1"), { 0, 1, 2, 3, 4 }));
     topology.add(reshape("reshape2", input_info("permute"), false, { 1, 3, 3, 3 }, { 1, 3, 3, 3 }));
