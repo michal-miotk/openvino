@@ -57,9 +57,9 @@ REQD_SUB_GROUP_SIZE(SUB_GROUP_SIZE)
 __attribute__((reqd_work_group_size(1, 1, SUB_GROUP_SIZE)))
 KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
     OPTIONAL_SHAPE_INFO_ARG
-    const __global UNIT_TYPE* input,
+    const __global INPUT0_TYPE* input,
     __global UNIT_TYPE* output,
-    const __global UNIT_TYPE* weights
+    const __global FILTER_TYPE* weights
 #if BIAS_TERM
     , const __global UNIT_TYPE* bias
 #endif
@@ -96,7 +96,7 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
 #endif
     UNIT_TYPE in[IN_BLOCK_ARRAY_SIZE];
     UNIT_TYPE out[OUTPUT_BLOCK_WIDTH * OUTPUT_BLOCK_HEIGHT];
-    UNIT_TYPE w[PREFETCH];
+    INPUT0_TYPE w[PREFETCH];
     uint in_addr;
     uint weight_addr = fmg * FILTER_IFM_NUM * FILTER_SIZE_X * FILTER_SIZE_Y * OSV_SIZE + lid;
 
@@ -172,8 +172,10 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
         for(int pf=0; pf<PREFETCH; pf++) {
             uint weight_addr_safe = min(weight_addr, filter_physical_len - 1);
 #if SCALE_TERM && SCALE_ZP_TERM
-            //printf("hello from osv16 scale is %f scale zp is %f \n", scale, scale_zp);
-            w[pf] = (weights[weight_addr_safe]-scale_zp[0])*scale[0];
+            //uint s = scale_zp[0];
+            //printf("hello from osv16 scale is %f zp is %u\n", scale[0], s);
+            w[pf] = (float(weights[weight_addr_safe])-float(scale_zp[0]))*scale[0];
+            //printf("%f = ( %u -%u )* %f \n", w[pf], (uint)(weights[weight_addr_safe]), (uint)(scale_zp[0]), scale[0]);
 #else
             w[pf] = weights[weight_addr_safe];
 #endif
