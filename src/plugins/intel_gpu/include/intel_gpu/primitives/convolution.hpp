@@ -14,6 +14,35 @@ struct convolution : public primitive_base<convolution> {
     CLDNN_DECLARE_PRIMITIVE(convolution)
 
     convolution() : primitive_base("", {}) {}
+    convolution(const primitive_id& id,
+        const input_info& input,
+        const primitive_id& weights,
+        const primitive_id& bias,
+        const primitive_id& w_zero_point,
+        const primitive_id& a_zero_point,
+        const primitive_id& compensation,
+        uint32_t groups,
+        ov::Strides stride,
+        ov::Strides dilation,
+        ov::CoordinateDiff padding_begin,
+        ov::CoordinateDiff padding_end,
+        bool grouped_weights_shape,
+        data_types output_data_type,
+        const ov::op::PadType& auto_pad = ov::op::PadType::EXPLICIT)
+    : primitive_base(id, {input}, 1, {optional_data_type{output_data_type}}),
+      groups(groups),
+      stride(stride),
+      dilation(dilation),
+      padding_begin(padding_begin),
+      padding_end(padding_end),
+      auto_pad(auto_pad),
+      grouped_weights_shape(grouped_weights_shape),
+      weights(weights),
+      bias(bias),
+      weights_zero_points(w_zero_point),
+      activations_zero_points(a_zero_point),
+      compensation(compensation) {
+    }
 
     /// @brief Constructs convolution primitive
     /// @param id This primitive id.
@@ -74,7 +103,31 @@ struct convolution : public primitive_base<convolution> {
             std::cout << "now scale is " << scale << std::endl;
             std::cout << "now scalez[] is " << scale_zp << std::endl;
     }
-
+    convolution(const primitive_id& id,
+        const input_info& input,
+        const primitive_id& weights,
+        const primitive_id& bias,
+        uint32_t groups,
+        ov::Strides stride,
+        ov::Strides dilation,
+        ov::CoordinateDiff padding_begin,
+        ov::CoordinateDiff padding_end,
+        bool grouped_weights_shape,
+        const ov::op::PadType& auto_pad = ov::op::PadType::EXPLICIT)
+    : primitive_base(id, {input}),
+    groups(groups),
+    stride(stride),
+    dilation(dilation),
+    padding_begin(padding_begin),
+    padding_end(padding_end),
+    auto_pad(auto_pad),
+    grouped_weights_shape(grouped_weights_shape),
+    weights(weights),
+    bias(bias),
+    weights_zero_points(""),
+    activations_zero_points(""),
+    compensation("") {
+    }
     /// @brief Constructs convolution primitive.
     /// @param id This primitive id.
     /// @param input Input primitive id.
@@ -122,6 +175,36 @@ struct convolution : public primitive_base<convolution> {
             std::cout << "weigths are" << weights << std::endl;
             std::cout << "now scale is " << scale << std::endl;
             std::cout << "now scalezp is " << scale_zp << std::endl;
+    }
+
+    convolution(const primitive_id& id,
+        const std::vector<input_info>& inputs,
+        const primitive_id& weights,
+        primitive_id bias,
+        bool deformable_mode,
+        uint32_t groups,
+        uint32_t deformable_groups,
+        ov::Strides stride,
+        ov::Strides dilation,
+        ov::CoordinateDiff padding_begin,
+        ov::CoordinateDiff padding_end,
+        bool bilinear_interpolation_pad = false)
+    : primitive_base(id, inputs),
+    groups(groups),
+    stride(stride),
+    dilation(dilation),
+    padding_begin(padding_begin),
+    padding_end(padding_end),
+    auto_pad(ov::op::PadType::EXPLICIT),
+    deformable_mode(deformable_mode),
+    deformable_groups(deformable_groups),
+    bilinear_interpolation_pad(bilinear_interpolation_pad),
+    grouped_weights_shape(false),
+    weights(weights),
+    bias(bias),
+    weights_zero_points(""),
+    activations_zero_points(""),
+    compensation("") {
     }
 
     /// @brief Constructs convolution primitive.

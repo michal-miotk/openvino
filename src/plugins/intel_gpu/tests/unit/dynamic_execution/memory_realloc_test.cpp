@@ -333,6 +333,8 @@ TEST(memory_reuse_realloc_reset_test, basic_conv_with_padding_reorder) {
                                   input_info("reorder"),
                                   "weights",
                                   "",     /*bias*/
+                                  "",
+                                  "",
                                   1,
                                   {1, 1}, /*stride*/
                                   {1, 1}, /*dilation*/
