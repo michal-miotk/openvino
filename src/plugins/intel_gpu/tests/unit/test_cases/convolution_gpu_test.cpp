@@ -1824,6 +1824,7 @@ TEST(convolution_f16_fw_gpu, convolution_big_size_weights) {
     }
 }
 
+
 TEST(convolution_f32_fw_gpu, basic_convolution_bfyx_weights_as_input_layout) {
     //Same params as convolution_f32_fw_gpu, basic_convolution but with bfyx optimized data and weights set as input_layout
     auto& engine = get_test_engine();
@@ -4274,17 +4275,17 @@ TEST(convolution_f32_fw_gpu, byte_activation_dequanitize_linear) {
     ExecutionConfig config = get_test_default_config(engine);
     config.set_property(ov::intel_gpu::optimize_data(true));
 
-    set_values<uint8_t>(input, { 202,  204, 194,  208, 190,
-                                102, 98,  97, 96,  106,
-                                97,  103, 97,  105, 99,
-                                99, 99, 99, 99, 99 });
+    set_values<int8_t>(input, {  1,  2, -3,  4, -5,
+        2, -2,  3, -4,  6,
+       -3,  3, -3,  5, -1,
+       -1, -1, -1, -1, -1 });
     auto weights = engine.allocate_memory({ data_types::u8, format::bfyx, { 2, 1, 3, 2 } });
 
-    std::vector<int8_t> weights_values = { 1,  2,  1,
-                                           2,  1,  2,
-                                          19, 17, -1,
-                                         -10, 32, 23 };
-    set_values<int8_t>(weights, weights_values);
+    std::vector<uint8_t> weights_values = { 102,  104,  102,
+                                           104,  102,  104,
+                                          138, 134, 98,
+                                         80, 164, 146 };
+    set_values<uint8_t>(weights, weights_values);
     auto biases = engine.allocate_memory({ data_types::f32, format::bfyx, { 1, 2, 1, 1 } });
     
     set_values(biases, { 1.0f, -8.0f });

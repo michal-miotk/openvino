@@ -33,6 +33,7 @@ KERNEL(kernel_name)(
 #endif
     )
 {
+    printf("ref\n");
 #if SCALE_TERM
     printf("scale is %f scale zp is %u \n", (float)(scale[0]), (uint)(scale_zp[0]));
 #endif
@@ -107,8 +108,8 @@ KERNEL(kernel_name)(
                                 in -= TO_ACCUMULATOR_TYPE(activations_zp[g * FILTER_IFM_NUM + k]);
 #endif
 #if SCALE_TERM && SCALE_ZP_TERM
-                                ACCUMULATOR_TYPE wei = TO_ACCUMULATOR_TYPE(weights[filter_idx]-TO_ACCUMULATOR_TYPE(scale_zp[0]))*TO_ACCUMULATOR_TYPE(scale[0]);
-#else
+                                ACCUMULATOR_TYPE wei = TO_ACCUMULATOR_TYPE(((float)(weights[filter_idx])-(float)(scale_zp[0]))*(float)(scale[0]));
+#else                           
                                 ACCUMULATOR_TYPE wei = TO_ACCUMULATOR_TYPE(weights[filter_idx]);
 #endif
 

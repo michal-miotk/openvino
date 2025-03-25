@@ -74,6 +74,7 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
 #endif
 )
 {
+    printf("hello from special\n");
     const uint oc  = (uint)get_global_id(0) * OUTPUT_BLOCK_WIDTH;  // oc = Output Column
     const uint or  = (uint)get_global_id(1) * OUTPUT_BLOCK_HEIGHT; // or = Output Row
     const uint fm  = get_global_id(2);                             // fm = Feature Map = od = Output Depth
