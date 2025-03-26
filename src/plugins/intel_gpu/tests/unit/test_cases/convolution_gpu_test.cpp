@@ -1806,9 +1806,9 @@ TEST(convolution_f32_fw_gpu, convolution_big_size_weights_dequantize_linear) {
             input_layout("input", input->get_layout()),
             data("weights", weights),
             data("biases", biases),
-            data("zp", zp),
             data("scale", scale),
-            convolution( "conv", input_info("input"), "weights", "biases", "zp", "scale", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
+            data("zp", zp),
+            convolution( "conv", input_info("input"), "weights", "biases", "scale", "zp", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
 
         ExecutionConfig config = get_test_default_config(engine);
         config.set_property(ov::intel_gpu::optimize_data(true));
