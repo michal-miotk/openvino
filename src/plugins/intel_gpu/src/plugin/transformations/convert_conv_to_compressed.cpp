@@ -44,7 +44,8 @@ namespace ov::intel_gpu {
     __attribute_maybe_unused__ auto mul_with_sub_m = wrap_type<ov::op::v1::Multiply>({sub, mul_const_m});
 
     __attribute_maybe_unused__ auto data_m = any_input();
-    auto conv_m = wrap_type<ov::op::v1::Convolution>({data_m, mul_with_sub_m});
+    auto bias_m = wrap_type<ov::op::v0::Constant>();
+    auto conv_m = wrap_type<ov::op::v1::Convolution>({data_m, mul_with_sub_m, bias_m});
 
     ov::matcher_pass_callback callback = [OV_CAPTURE_CPY_AND_THIS](ov::pass::pattern::Matcher& m) {
         const auto& pattern_map = m.get_pattern_value_map();
@@ -53,6 +54,7 @@ namespace ov::intel_gpu {
         OPENVINO_ASSERT(pattern_map.count(sub_const_m));
         OPENVINO_ASSERT(pattern_map.count(weights_m));
         OPENVINO_ASSERT(pattern_map.count(convert_m));
+        OPENVINO_ASSERT(!pattern_map.count(bias_m));
         auto conv = ov::as_type_ptr<ov::op::v1::Convolution>(pattern_map.at(conv_m).get_node_shared_ptr());
         if (!conv) {
             return false;
