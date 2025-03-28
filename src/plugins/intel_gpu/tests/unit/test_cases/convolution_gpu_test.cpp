@@ -4315,7 +4315,7 @@ TEST(convolution_gpu, basic_yxfb_4_4_yxfb_2_2_b16_if2_of16_st2_2_p0_sp1_fp32)
 #undef USE_OLD_WEIGHTS_FORMAT
 }
 
-TEST(convolution_f32_fw_gpu, byte_activation_dequanitize_linear) {
+TEST(convolution_f32_fw_gpu, byte_activation_dequantize_linear) {
     //  Filter : 2x3
     //  Stride : 2x1
     //  Input  : 4x5
