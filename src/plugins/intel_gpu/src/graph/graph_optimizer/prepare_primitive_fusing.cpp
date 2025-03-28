@@ -390,6 +390,8 @@ void prepare_primitive_fusing::fuse_bias(program &p) {
                                                                      desc->input[0],
                                                                      desc->weights,
                                                                      biases,
+                                                                     desc->scale,
+                                                                     desc->scale_zp,
                                                                      desc->weights_zero_points,
                                                                      desc->activations_zero_points,
                                                                      desc->compensation,

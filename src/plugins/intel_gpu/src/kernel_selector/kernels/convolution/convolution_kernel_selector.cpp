@@ -50,7 +50,8 @@
 namespace kernel_selector {
 convolution_kernel_selector::convolution_kernel_selector() {
     Attach<ConvolutionKernel_Ref>();
-
+    Attach<ConvolutionKernel_bfyx_os_iyx_osv16>();
+    /*
     // b_fs_yx_fsv16 and b_fs_zyx_fsv16 int8
     Attach<Convolution_kernel_b_fs_yx_fsv16_imad_1x1>();
     Attach<Convolution_kernel_b_fs_zyx_fsv16_imad>();
@@ -111,6 +112,7 @@ convolution_kernel_selector::convolution_kernel_selector() {
 
     Attach<DeformableConvolutionKernel_bfyx_Ref>();
     Attach<DeformableConvolutionKernel_bfyx_opt>();
+    */
 }
 
 KernelsData convolution_kernel_selector::GetBestKernels(const Params& params) const {

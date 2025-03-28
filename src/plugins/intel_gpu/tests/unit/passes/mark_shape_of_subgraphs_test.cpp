@@ -333,7 +333,7 @@ TEST(mark_shape_of_subgraphs, broadcast_not_existed_after_shapeof) {
     topology.add(data("weights", weights));
     topology.add(shape_of("shape_of", input_info("input"), data_types::i32));
     topology.add(reshape("reshape", input_info("shape_of"), input_info("data_0"), false, {}));
-    topology.add(convolution("convolution", input_info("reshape"), "weights", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
+    topology.add(convolution("convolution", input_info("reshape"), "weights", "", "", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
 
     ExecutionConfig config = get_test_default_config(engine);
     config.set_property(ov::intel_gpu::allow_new_shape_infer(true));
@@ -360,7 +360,7 @@ TEST(mark_shape_of_subgraphs, broadcast_w_data_and_direct_shapeof_no_mark) {
     topology.add(shape_of("shape_of", input_info("input"), data_types::i32));
     topology.add(broadcast("broadcast", input_info("data_0"), input_info("shape_of"), {}, ov::op::BroadcastType::BIDIRECTIONAL));
     topology.add(data("weights", weights));
-    topology.add(convolution("convolution", input_info("broadcast"), "weights", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
+    topology.add(convolution("convolution", input_info("broadcast"), "weights", "", "", "", 1, {1, 1}, {1, 1}, {0, 0}, {0, 0}, false));
 
     ExecutionConfig config = get_test_default_config(engine);
     config.set_property(ov::intel_gpu::allow_new_shape_infer(true));

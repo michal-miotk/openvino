@@ -293,6 +293,7 @@ REGISTER_FACTORY(internal, Gemm);
 REGISTER_FACTORY(internal, GLU);
 REGISTER_FACTORY(internal, IndirectGemm);
 REGISTER_FACTORY(internal, Convolution);
+REGISTER_FACTORY(internal, ConvolutionCompressed);
 REGISTER_FACTORY(internal, Placeholder);
 REGISTER_FACTORY(internal, SDPA);
 REGISTER_FACTORY(internal, IndirectSDPA);

@@ -5,6 +5,7 @@
 #include "intel_gpu/plugin/program_builder.hpp"
 #include "intel_gpu/plugin/common_utils.hpp"
 #include "intel_gpu/op/convolution.hpp"
+#include "intel_gpu/op/convolution_compressed.hpp"
 
 #include "openvino/op/convolution.hpp"
 #include "openvino/op/deformable_convolution.hpp"
@@ -19,12 +20,61 @@ namespace ov {
 namespace op {
 namespace internal {
 using Convolution = ov::intel_gpu::op::Convolution;
+using ConvolutionCompressed = ov::intel_gpu::op::ConvolutionCompressed;
 }  // namespace internal
 }  // namespace op
 }  // namespace ov
 
 namespace ov::intel_gpu {
 
+static void CreateConvolutionCompressedOp(ProgramBuilder& p, const std::shared_ptr<ov::intel_gpu::op::ConvolutionCompressed>& op) {
+    validate_inputs_count(op, {4, 6});
+    auto inputs = p.GetInputInfo(op);
+    std::string layerName = layer_type_name_ID(op);
+
+    auto outDims = op->get_output_partial_shape(0);
+
+    cldnn::primitive_id weights = inputs[op::ConvolutionCompressed::Args::WEIGHTS].pid;
+    const uint32_t groups = std::max<int64_t>(op->get_groups(), 1);
+    const bool weights_have_group_dim = op->get_groups() > 0;
+
+    auto strides = op->get_strides();
+    auto dilations = op->get_dilations();
+    auto pads_begin = op->get_pads_begin();
+    auto pads_end = op->get_pads_end();
+    auto auto_pad = op->get_auto_pad();
+
+    if (!op->is_dynamic() && !p.use_new_shape_infer()) {
+        // Extend 1d vectors to 2d as 1d can't be handled properly by the graph optimizer for now
+        strides.resize(std::max<size_t>(2, strides.size()), 1);
+        dilations.resize(std::max<size_t>(2, strides.size()), 1);
+        pads_begin.resize(std::max<size_t>(2, pads_begin.size()), 0);
+        pads_end.resize(std::max<size_t>(2, pads_end.size()), 0);
+    }
+
+    std::shared_ptr<cldnn::convolution> prim = nullptr;
+    std::cout << "begin" << std::endl;
+    for (auto x : inputs) {
+        std::cout << "input " << x.pid << std::endl;
+    }
+    std::cout << "end" << std::endl;
+
+    prim = std::make_shared<cldnn::convolution>(layerName,
+                                                inputs[op::ConvolutionCompressed::Args::INPUT],
+                                                weights,
+                                                "",
+                                                inputs[op::ConvolutionCompressed::Args::SCALE].pid,
+                                                inputs[op::ConvolutionCompressed::Args::SCALE_ZP].pid,
+                                                groups,
+                                                strides,
+                                                dilations,
+                                                pads_begin,
+                                                pads_end,
+                                                weights_have_group_dim,
+                                                auto_pad);
+
+    p.add_primitive(*op, prim);
+}
 
 static void CreateConvolutionOp(ProgramBuilder& p, const std::shared_ptr<ov::intel_gpu::op::Convolution>& op) {
     validate_inputs_count(op, {3, 6});
@@ -52,7 +102,7 @@ static void CreateConvolutionOp(ProgramBuilder& p, const std::shared_ptr<ov::int
     }
 
     std::shared_ptr<cldnn::convolution> prim = nullptr;
-
+    std::cout << "creating conv" << weights << std::endl;
     if (op->is_asymmetric()) {
         auto azp = inputs[op::Convolution::Args::AZP];
         auto wzp = inputs[op::Convolution::Args::WZP];
@@ -60,6 +110,8 @@ static void CreateConvolutionOp(ProgramBuilder& p, const std::shared_ptr<ov::int
         prim = std::make_shared<cldnn::convolution>(layerName,
                                                     inputs[op::Convolution::Args::INPUT],
                                                     weights,
+                                                    "",
+                                                    "",
                                                     "",
                                                     wzp.pid,
                                                     azp.pid,
@@ -76,6 +128,8 @@ static void CreateConvolutionOp(ProgramBuilder& p, const std::shared_ptr<ov::int
         prim = std::make_shared<cldnn::convolution>(layerName,
                                                     inputs[op::Convolution::Args::INPUT],
                                                     weights,
+                                                    "",
+                                                    "",
                                                     "",
                                                     groups,
                                                     strides,
@@ -285,6 +339,8 @@ static void DeformableConvolutionImpl(ProgramBuilder& p,
                                        inputs,
                                        weights,
                                        "",
+                                       "",
+                                       "",
                                        true,
                                        groups,
                                        deformable_groups_num,
@@ -333,6 +389,7 @@ static void CreateDeformableConvolutionOp(ProgramBuilder& p, const std::shared_p
 }
 
 REGISTER_FACTORY_IMPL(internal, Convolution);
+REGISTER_FACTORY_IMPL(internal, ConvolutionCompressed);
 REGISTER_FACTORY_IMPL(v1, ConvolutionBackpropData);
 REGISTER_FACTORY_IMPL(v1, GroupConvolutionBackpropData);
 REGISTER_FACTORY_IMPL(v1, DeformableConvolution);

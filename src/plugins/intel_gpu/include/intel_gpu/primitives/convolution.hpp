@@ -14,6 +14,35 @@ struct convolution : public primitive_base<convolution> {
     CLDNN_DECLARE_PRIMITIVE(convolution)
 
     convolution() : primitive_base("", {}) {}
+    convolution(const primitive_id& id,
+        const input_info& input,
+        const primitive_id& weights,
+        const primitive_id& bias,
+        const primitive_id& w_zero_point,
+        const primitive_id& a_zero_point,
+        const primitive_id& compensation,
+        uint32_t groups,
+        ov::Strides stride,
+        ov::Strides dilation,
+        ov::CoordinateDiff padding_begin,
+        ov::CoordinateDiff padding_end,
+        bool grouped_weights_shape,
+        data_types output_data_type,
+        const ov::op::PadType& auto_pad = ov::op::PadType::EXPLICIT)
+    : primitive_base(id, {input}, 1, {optional_data_type{output_data_type}}),
+      groups(groups),
+      stride(stride),
+      dilation(dilation),
+      padding_begin(padding_begin),
+      padding_end(padding_end),
+      auto_pad(auto_pad),
+      grouped_weights_shape(grouped_weights_shape),
+      weights(weights),
+      bias(bias),
+      weights_zero_points(w_zero_point),
+      activations_zero_points(a_zero_point),
+      compensation(compensation) {
+    }
 
     /// @brief Constructs convolution primitive
     /// @param id This primitive id.
@@ -39,6 +68,8 @@ struct convolution : public primitive_base<convolution> {
                 const input_info& input,
                 const primitive_id& weights,
                 const primitive_id& bias,
+                const primitive_id& scale,
+                const primitive_id& scale_zp,
                 const primitive_id& w_zero_point,
                 const primitive_id& a_zero_point,
                 const primitive_id& compensation,
@@ -60,11 +91,43 @@ struct convolution : public primitive_base<convolution> {
               grouped_weights_shape(grouped_weights_shape),
               weights(weights),
               bias(bias),
+              scale(scale),
+              scale_zp(scale_zp),
               weights_zero_points(w_zero_point),
               activations_zero_points(a_zero_point),
               compensation(compensation) {
+            if (weights == "constant:down_blocks.0.resnets.0.conv2.weight_quantized") {
+                std::cout << "hehe" << std::endl;
+            }
+            std::cout << "weigths are" << weights << std::endl;
+            std::cout << "now scale is " << scale << std::endl;
+            std::cout << "now scalez[] is " << scale_zp << std::endl;
     }
-
+    convolution(const primitive_id& id,
+        const input_info& input,
+        const primitive_id& weights,
+        const primitive_id& bias,
+        uint32_t groups,
+        ov::Strides stride,
+        ov::Strides dilation,
+        ov::CoordinateDiff padding_begin,
+        ov::CoordinateDiff padding_end,
+        bool grouped_weights_shape,
+        const ov::op::PadType& auto_pad = ov::op::PadType::EXPLICIT)
+    : primitive_base(id, {input}),
+    groups(groups),
+    stride(stride),
+    dilation(dilation),
+    padding_begin(padding_begin),
+    padding_end(padding_end),
+    auto_pad(auto_pad),
+    grouped_weights_shape(grouped_weights_shape),
+    weights(weights),
+    bias(bias),
+    weights_zero_points(""),
+    activations_zero_points(""),
+    compensation("") {
+    }
     /// @brief Constructs convolution primitive.
     /// @param id This primitive id.
     /// @param input Input primitive id.
@@ -85,6 +148,8 @@ struct convolution : public primitive_base<convolution> {
                 const input_info& input,
                 const primitive_id& weights,
                 const primitive_id& bias,
+                const primitive_id& scale,
+                const primitive_id& scale_zp,
                 uint32_t groups,
                 ov::Strides stride,
                 ov::Strides dilation,
@@ -102,9 +167,44 @@ struct convolution : public primitive_base<convolution> {
           grouped_weights_shape(grouped_weights_shape),
           weights(weights),
           bias(bias),
+          scale(scale),
+          scale_zp(scale_zp),
           weights_zero_points(""),
           activations_zero_points(""),
           compensation("") {
+            std::cout << "weigths are" << weights << std::endl;
+            std::cout << "now scale is " << scale << std::endl;
+            std::cout << "now scalezp is " << scale_zp << std::endl;
+    }
+
+    convolution(const primitive_id& id,
+        const std::vector<input_info>& inputs,
+        const primitive_id& weights,
+        primitive_id bias,
+        bool deformable_mode,
+        uint32_t groups,
+        uint32_t deformable_groups,
+        ov::Strides stride,
+        ov::Strides dilation,
+        ov::CoordinateDiff padding_begin,
+        ov::CoordinateDiff padding_end,
+        bool bilinear_interpolation_pad = false)
+    : primitive_base(id, inputs),
+    groups(groups),
+    stride(stride),
+    dilation(dilation),
+    padding_begin(padding_begin),
+    padding_end(padding_end),
+    auto_pad(ov::op::PadType::EXPLICIT),
+    deformable_mode(deformable_mode),
+    deformable_groups(deformable_groups),
+    bilinear_interpolation_pad(bilinear_interpolation_pad),
+    grouped_weights_shape(false),
+    weights(weights),
+    bias(bias),
+    weights_zero_points(""),
+    activations_zero_points(""),
+    compensation("") {
     }
 
     /// @brief Constructs convolution primitive.
@@ -129,7 +229,9 @@ struct convolution : public primitive_base<convolution> {
     convolution(const primitive_id& id,
                 const std::vector<input_info>& inputs,
                 const primitive_id& weights,
-                const primitive_id& bias,
+                primitive_id bias,
+                primitive_id scale,
+                primitive_id scale_zp,
                 bool deformable_mode,
                 uint32_t groups,
                 uint32_t deformable_groups,
@@ -151,9 +253,14 @@ struct convolution : public primitive_base<convolution> {
       grouped_weights_shape(false),
       weights(weights),
       bias(bias),
+      scale(scale),
+      scale_zp(scale_zp),
       weights_zero_points(""),
       activations_zero_points(""),
       compensation("") {
+        std::cout << "weigths are" << weights << std::endl;
+        std::cout << "now scale is " << scale << std::endl;
+        std::cout << "now scalezp is " << scale_zp << std::endl;
     }
 
     /// @brief Number of feature groups (grouped convolution). If more than 1 then weights/bias count needs to be 1.
@@ -190,6 +297,8 @@ struct convolution : public primitive_base<convolution> {
     const primitive_id weights;
     /// @brief Primitive id containing bias data.
     const primitive_id bias;
+    const primitive_id scale;
+    const primitive_id scale_zp;
     /// @brief Primitive id containing weights zero points.
     const primitive_id weights_zero_points;
     /// @brief Primitive id containing activations zero points.
@@ -212,6 +321,8 @@ struct convolution : public primitive_base<convolution> {
         seed = hash_combine(seed, grouped_weights_shape);
         seed = hash_combine(seed, !weights.empty());
         seed = hash_combine(seed, !bias.empty());
+        seed = hash_combine(seed, !scale.empty());
+        seed = hash_combine(seed, !scale_zp.empty());
         seed = hash_combine(seed, !weights_zero_points.empty());
         seed = hash_combine(seed, !activations_zero_points.empty());
         seed = hash_combine(seed, !compensation.empty());
@@ -221,7 +332,7 @@ struct convolution : public primitive_base<convolution> {
     bool operator==(const primitive& rhs) const override {
         if (!compare_common_params(rhs))
             return false;
-
+        std::cout << "ope equal " << std::endl;
         auto rhs_casted = downcast<const convolution>(rhs);
 
         #define cmp_fields(name) name == rhs_casted.name
@@ -238,6 +349,8 @@ struct convolution : public primitive_base<convolution> {
                cmp_fields(grouped_weights_shape) &&
                cmp_fields(weights.empty()) &&
                cmp_fields(bias.empty()) &&
+               cmp_fields(scale.empty()) &&
+               cmp_fields(scale_zp.empty()) &&
                cmp_fields(weights_zero_points.empty()) &&
                cmp_fields(activations_zero_points.empty()) &&
                cmp_fields(compensation.empty());
@@ -245,6 +358,7 @@ struct convolution : public primitive_base<convolution> {
     }
 
     void save(BinaryOutputBuffer& ob) const override {
+        std::cout << "save " << std::endl;
         primitive_base<convolution>::save(ob);
         ob << groups;
         ob << stride;
@@ -259,12 +373,15 @@ struct convolution : public primitive_base<convolution> {
         ob << grouped_weights_shape;
         ob << weights;
         ob << bias;
+        ob << scale;
+        ob << scale_zp;
         ob << weights_zero_points;
         ob << activations_zero_points;
         ob << compensation;
     }
 
     void load(BinaryInputBuffer& ib) override {
+        std::cout << "load " << std::endl;
         primitive_base<convolution>::load(ib);
         ib >> groups;
         ib >> stride;
@@ -279,6 +396,8 @@ struct convolution : public primitive_base<convolution> {
         ib >> grouped_weights_shape;
         ib >> *const_cast<primitive_id*>(&weights);
         ib >> *const_cast<primitive_id*>(&bias);
+        ib >> *const_cast<primitive_id*>(&scale);
+        ib >> *const_cast<primitive_id*>(&scale_zp);
         ib >> *const_cast<primitive_id*>(&weights_zero_points);
         ib >> *const_cast<primitive_id*>(&activations_zero_points);
         ib >> *const_cast<primitive_id*>(&compensation);
@@ -288,6 +407,12 @@ struct convolution : public primitive_base<convolution> {
         std::vector<input_info> ret = {weights};
         if (!bias.empty()) {
             ret.push_back(bias);
+        }
+        if (!scale.empty()) {
+            ret.push_back(scale);
+        }
+        if (!scale_zp.empty()) {
+            ret.push_back(scale_zp);
         }
         if (!weights_zero_points.empty()) {
             ret.push_back(weights_zero_points);
