@@ -64,10 +64,10 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
     , const __global UNIT_TYPE* bias
 #endif
 #if SCALE_TERM
-    , const __global UNIT_TYPE *scale
+    , const __global INPUT1_TYPE* scale
 #endif
 #if SCALE_ZP_TERM
-    , const __global UNIT_TYPE *scale_zp
+    , const __global INPUT2_TYPE* scale_zp
 #endif
 #if HAS_FUSED_OPS_DECLS
     , FUSED_OPS_DECLS
@@ -216,7 +216,16 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
                     }
                 }
                 uint weight_addr_safe = min(weight_addr, filter_physical_len - 1);
+#if SCALE_TERM && SCALE_ZP_TERM
+                //uint s = scale_zp[0];
+                //printf("hello from osv16 scale is %f zp is %u\n", scale[0], s);
+                printf("2ndscale zp is %f scale is %f\n", (float)(scale_zp[0]), (float)(scale[0]));
+                w[wi % PREFETCH] = ((float)(weights[weight_addr_safe])-(float)(scale_zp[0]))*((float)(scale[0]));
+                //printf("before %f now weights are %f\n", (float)(weights[weight_addr_safe]), w[pf]);
+                //printf("%f = ( %u -%u )* %f \n", w[pf], (uint)(weights[weight_addr_safe]), (uint)(scale_zp[0]), scale[0]);
+#else
                 w[wi % PREFETCH] = weights[weight_addr_safe];
+#endif
                 weight_addr += OSV_SIZE; // weights must be stored in just the right SIMD swizzled format for this to work, see host code for details.
                 wi++;
 #ifdef DISABLE_MANUAL_UNROLL
