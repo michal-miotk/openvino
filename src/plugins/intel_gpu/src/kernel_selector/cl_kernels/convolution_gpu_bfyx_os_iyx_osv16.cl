@@ -57,24 +57,23 @@ REQD_SUB_GROUP_SIZE(SUB_GROUP_SIZE)
 __attribute__((reqd_work_group_size(1, 1, SUB_GROUP_SIZE)))
 KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
     OPTIONAL_SHAPE_INFO_ARG
-    const __global INPUT0_TYPE* input,
+    const __global UNIT_TYPE* input,
     __global UNIT_TYPE* output,
-    const __global FILTER_TYPE* weights
+    const __global UNIT_TYPE* weights
 #if BIAS_TERM
     , const __global UNIT_TYPE* bias
 #endif
 #if SCALE_TERM
-    , const __global INPUT1_TYPE *scale
+    , const __global UNIT_TYPE *scale
 #endif
 #if SCALE_ZP_TERM
-    , const __global INPUT2_TYPE *scale_zp
+    , const __global UNIT_TYPE *scale_zp
 #endif
 #if HAS_FUSED_OPS_DECLS
     , FUSED_OPS_DECLS
 #endif
 )
 {
-    printf("hello from special\n");
     const uint oc  = (uint)get_global_id(0) * OUTPUT_BLOCK_WIDTH;  // oc = Output Column
     const uint or  = (uint)get_global_id(1) * OUTPUT_BLOCK_HEIGHT; // or = Output Row
     const uint fm  = get_global_id(2);                             // fm = Feature Map = od = Output Depth
@@ -177,7 +176,7 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
             //printf("hello from osv16 scale is %f zp is %u\n", scale[0], s);
             printf("scale zp is %f scale is %f\n", (float)(scale_zp[0]), (float)(scale[0]));
             w[pf] = ((float)(weights[weight_addr_safe])-(float)(scale_zp[0]))*((float)(scale[0]));
-            printf("before %f now weights are %f\n", (float)(weights[weight_addr_safe]), w[pf]);
+            //printf("before %f now weights are %f\n", (float)(weights[weight_addr_safe]), w[pf]);
             //printf("%f = ( %u -%u )* %f \n", w[pf], (uint)(weights[weight_addr_safe]), (uint)(scale_zp[0]), scale[0]);
 #else
             w[pf] = weights[weight_addr_safe];

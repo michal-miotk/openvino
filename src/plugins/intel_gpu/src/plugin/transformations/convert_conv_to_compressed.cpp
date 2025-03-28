@@ -14,6 +14,7 @@
 #include "openvino/op/convert.hpp"
 #include "openvino/op/matmul.hpp"
 #include "openvino/op/convolution.hpp"
+#include "openvino/op/group_conv.hpp"
 #include "openvino/op/multiply.hpp"
 #include "openvino/op/reshape.hpp"
 #include "openvino/op/subtract.hpp"
@@ -44,8 +45,7 @@ namespace ov::intel_gpu {
     __attribute_maybe_unused__ auto mul_with_sub_m = wrap_type<ov::op::v1::Multiply>({sub, mul_const_m});
 
     __attribute_maybe_unused__ auto data_m = any_input();
-    auto bias_m = wrap_type<ov::op::v0::Constant>();
-    auto conv_m = wrap_type<ov::op::v1::Convolution>({data_m, mul_with_sub_m, bias_m});
+    auto conv_m = wrap_type<ov::op::v1::Convolution>({data_m, mul_with_sub_m});
 
     ov::matcher_pass_callback callback = [OV_CAPTURE_CPY_AND_THIS](ov::pass::pattern::Matcher& m) {
         const auto& pattern_map = m.get_pattern_value_map();
@@ -54,7 +54,6 @@ namespace ov::intel_gpu {
         OPENVINO_ASSERT(pattern_map.count(sub_const_m));
         OPENVINO_ASSERT(pattern_map.count(weights_m));
         OPENVINO_ASSERT(pattern_map.count(convert_m));
-        OPENVINO_ASSERT(!pattern_map.count(bias_m));
         auto conv = ov::as_type_ptr<ov::op::v1::Convolution>(pattern_map.at(conv_m).get_node_shared_ptr());
         if (!conv) {
             return false;
@@ -69,9 +68,14 @@ namespace ov::intel_gpu {
         std::vector<std::shared_ptr<ov::Node>> result_nodes = {};
 
 
-
+        int64_t groups = 0;
+        if (auto grouped_conv = ov::as_type_ptr<ov::op::v1::GroupConvolution>(conv_m)) {
+            auto weights_shape = grouped_conv->get_input_partial_shape(1);
+            if (weights_shape[0].is_dynamic())
+                return false;
+            groups = weights_shape[0].get_length();
+        }
         std::shared_ptr<ov::Node> new_conv = nullptr;
-        std::cout << "creating conv compressed" << std::endl;
         new_conv = std::make_shared<op::ConvolutionCompressed>(conv_input_a,
                                                                 conv_input_b,
                                                                 conv_input_scale,
@@ -80,7 +84,7 @@ namespace ov::intel_gpu {
                                                                 conv->get_pads_begin(),
                                                                 conv->get_pads_end(),
                                                                 conv->get_dilations(),
-                                                                0,
+                                                                groups,
                                                                 conv->get_auto_pad(),
                                                                 conv->get_output_element_type(0));
         result_nodes.push_back(new_conv);

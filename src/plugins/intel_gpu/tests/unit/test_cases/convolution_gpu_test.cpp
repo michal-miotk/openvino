@@ -1797,11 +1797,10 @@ TEST(convolution_f32_fw_gpu, convolution_big_size_weights_dequantize_linear) {
         }
 
         output_sum /= 2.0f;
-
-        auto zp = engine.allocate_memory({ data_types::u8, format::bfyx, {1, 1, 1, 1} });
-        set_values(zp, { 0 });
         auto scale = engine.allocate_memory({ data_types::f32, format::bfyx, {1, 1, 1, 1} });
         set_values(scale, { 0.5f });
+        auto zp = engine.allocate_memory({ data_types::u8, format::bfyx, {1, 1, 1, 1} });
+        set_values(zp, { 0 });
         topology topology(
             input_layout("input", input->get_layout()),
             data("weights", weights),
