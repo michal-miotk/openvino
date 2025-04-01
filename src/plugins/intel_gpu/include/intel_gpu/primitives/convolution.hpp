@@ -96,12 +96,6 @@ struct convolution : public primitive_base<convolution> {
               weights_zero_points(w_zero_point),
               activations_zero_points(a_zero_point),
               compensation(compensation) {
-            if (weights == "constant:down_blocks.0.resnets.0.conv2.weight_quantized") {
-                std::cout << "hehe" << std::endl;
-            }
-            std::cout << "weigths are" << weights << std::endl;
-            std::cout << "now scale is " << scale << std::endl;
-            std::cout << "now scalez[] is " << scale_zp << std::endl;
     }
     convolution(const primitive_id& id,
         const input_info& input,
@@ -172,9 +166,6 @@ struct convolution : public primitive_base<convolution> {
           weights_zero_points(""),
           activations_zero_points(""),
           compensation("") {
-            std::cout << "weigths are" << weights << std::endl;
-            std::cout << "now scale is " << scale << std::endl;
-            std::cout << "now scalezp is " << scale_zp << std::endl;
     }
 
     convolution(const primitive_id& id,
@@ -258,9 +249,6 @@ struct convolution : public primitive_base<convolution> {
       weights_zero_points(""),
       activations_zero_points(""),
       compensation("") {
-        std::cout << "weigths are" << weights << std::endl;
-        std::cout << "now scale is " << scale << std::endl;
-        std::cout << "now scalezp is " << scale_zp << std::endl;
     }
 
     /// @brief Number of feature groups (grouped convolution). If more than 1 then weights/bias count needs to be 1.
@@ -332,7 +320,6 @@ struct convolution : public primitive_base<convolution> {
     bool operator==(const primitive& rhs) const override {
         if (!compare_common_params(rhs))
             return false;
-        std::cout << "ope equal " << std::endl;
         auto rhs_casted = downcast<const convolution>(rhs);
 
         #define cmp_fields(name) name == rhs_casted.name
@@ -358,7 +345,6 @@ struct convolution : public primitive_base<convolution> {
     }
 
     void save(BinaryOutputBuffer& ob) const override {
-        std::cout << "save " << std::endl;
         primitive_base<convolution>::save(ob);
         ob << groups;
         ob << stride;
@@ -381,7 +367,6 @@ struct convolution : public primitive_base<convolution> {
     }
 
     void load(BinaryInputBuffer& ib) override {
-        std::cout << "load " << std::endl;
         primitive_base<convolution>::load(ib);
         ib >> groups;
         ib >> stride;
