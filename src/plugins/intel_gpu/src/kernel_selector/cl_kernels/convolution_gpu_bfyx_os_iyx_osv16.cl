@@ -57,11 +57,11 @@ REQD_SUB_GROUP_SIZE(SUB_GROUP_SIZE)
 __attribute__((reqd_work_group_size(1, 1, SUB_GROUP_SIZE)))
 KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
     OPTIONAL_SHAPE_INFO_ARG
-    const __global UNIT_TYPE* input,
-    __global UNIT_TYPE* output,
-    const __global UNIT_TYPE* weights
+    const __global INPUT0_TYPE* input,
+    __global OUTPUT_TYPE* output,
+    const __global FILTER_TYPE* weights
 #if BIAS_TERM
-    , const __global UNIT_TYPE* bias
+    , const __global BIAS_TYPE* bias
 #endif
 #if SCALE_TERM
     , const __global INPUT1_TYPE* scale
