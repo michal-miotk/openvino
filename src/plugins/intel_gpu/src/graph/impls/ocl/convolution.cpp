@@ -100,25 +100,13 @@ public:
         const auto auto_pad = primitive->auto_pad;
         conv_params.has_explicit_paddings = primitive->auto_pad == ov::op::PadType::EXPLICIT;
         conv_params.has_scale = !primitive->scale.empty();
-        std::cout << "setting has scale to " << !primitive->scale.empty() << " because of " << primitive->scale << std::endl;
-        std::cout << "setting has scale zp to " << !primitive->scale_zp.empty() << " because of " << primitive->scale_zp << std::endl;
-        std::cout << "weights are btw " << primitive->weights << std::endl;
         conv_params.has_scale_zp = !primitive->scale_zp.empty();
         if (!primitive->scale.empty()) {
-            std::cout << "scale not emp" << std::endl;
             conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[3]));
-        } else {
-            std::cout << "oh scale empty" << std::endl;
         }
         if (!primitive->scale_zp.empty()) {
-            std::cout << "scalezp not emp" << std::endl;
             conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[4]));
-        } else {
-            std::cout << "oh scaleZP empty" << std::endl;
         }
-        std::cout << " wt" << std::endl;
-        std::cout << "official in size" << impl_param.input_layouts.size() << std::endl;
-        std::cout << "Xnow input size is " << conv_params.inputs.size() << std::endl;
         if (auto_pad == ov::op::PadType::SAME_UPPER || auto_pad == ov::op::PadType::SAME_LOWER) {
             const auto& input_layout = impl_param.get_input_layout();
             const auto spatial_rank = input_layout.get_spatial_rank();

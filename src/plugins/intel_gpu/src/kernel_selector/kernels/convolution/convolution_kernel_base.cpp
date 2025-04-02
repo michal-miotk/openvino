@@ -251,11 +251,9 @@ KernelsData ConvolutionKernelBase::GetCommonKernelsData(const Params& params,
             kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 2});
     }
     if (newParams.has_scale) {
-        std::cout << "has scale" << std::endl;
         kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 1});
     }
     if (newParams.has_scale_zp) {
-        std::cout << "has scale zp" << std::endl;
         kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 2});
     }
     if (!newParams.weights_zero_points.empty())

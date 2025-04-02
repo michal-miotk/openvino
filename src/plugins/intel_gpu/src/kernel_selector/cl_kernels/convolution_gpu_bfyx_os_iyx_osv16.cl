@@ -94,9 +94,9 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
     const uint g = 0;
     const uint feature_num = feature_idx; // feature index for fused operations
 #endif
-    UNIT_TYPE in[IN_BLOCK_ARRAY_SIZE];
-    UNIT_TYPE out[OUTPUT_BLOCK_WIDTH * OUTPUT_BLOCK_HEIGHT];
-    INPUT0_TYPE w[PREFETCH];
+    INPUT0_TYPE in[IN_BLOCK_ARRAY_SIZE];
+    OUTPUT_TYPE out[OUTPUT_BLOCK_WIDTH * OUTPUT_BLOCK_HEIGHT];
+    FILTER_TYPE w[PREFETCH];
     uint in_addr;
     uint weight_addr = fmg * FILTER_IFM_NUM * FILTER_SIZE_X * FILTER_SIZE_Y * OSV_SIZE + lid;
 
@@ -174,7 +174,7 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
 #if SCALE_TERM && SCALE_ZP_TERM
             //uint s = scale_zp[0];
             //printf("hello from osv16 scale is %f zp is %u\n", scale[0], s);
-            printf("scale zp is %f scale is %f\n", (float)(scale_zp[0]), (float)(scale[0]));
+            //printf("scale zp is %f scale is %f\n", (float)(scale_zp[0]), (float)(scale[0]));
             w[pf] = ((float)(weights[weight_addr_safe])-(float)(scale_zp[0]))*((float)(scale[0]));
             //printf("before %f now weights are %f\n", (float)(weights[weight_addr_safe]), w[pf]);
             //printf("%f = ( %u -%u )* %f \n", w[pf], (uint)(weights[weight_addr_safe]), (uint)(scale_zp[0]), scale[0]);
@@ -207,10 +207,10 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
 
 #if IN_BLOCK_WIDTH != SUB_GROUP_SIZE
                         //if we fix the programming model, then we could use a nice simple 2d array: val = in[br * STRIDE_SIZE_Y + kr][bc * STRIDE_SIZE_X + kc];
-                        UNIT_TYPE val = _sub_group_shuffle( in[(((br * STRIDE_SIZE_Y + kr * DILATION_SIZE_Y) * IN_BLOCK_WIDTH) + (bc * STRIDE_SIZE_X + kc * DILATION_SIZE_X)) / SUB_GROUP_SIZE],
+                        INPUT0_TYPE val = _sub_group_shuffle( in[(((br * STRIDE_SIZE_Y + kr * DILATION_SIZE_Y) * IN_BLOCK_WIDTH) + (bc * STRIDE_SIZE_X + kc * DILATION_SIZE_X)) / SUB_GROUP_SIZE],
                                                                     (((br * STRIDE_SIZE_Y + kr * DILATION_SIZE_Y) * IN_BLOCK_WIDTH) + (bc * STRIDE_SIZE_X + kc * DILATION_SIZE_X)) % SUB_GROUP_SIZE);
 #else
-                        UNIT_TYPE val = _sub_group_shuffle( in[br * STRIDE_SIZE_Y + kr * DILATION_SIZE_Y], bc * STRIDE_SIZE_X + kc * DILATION_SIZE_X);
+                        INPUT0_TYPE val = _sub_group_shuffle( in[br * STRIDE_SIZE_Y + kr * DILATION_SIZE_Y], bc * STRIDE_SIZE_X + kc * DILATION_SIZE_X);
 #endif
                         out[br * OUTPUT_BLOCK_WIDTH + bc] = mad(w[wi % PREFETCH], val, out[br * OUTPUT_BLOCK_WIDTH + bc]);
                     }
@@ -219,9 +219,9 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
 #if SCALE_TERM && SCALE_ZP_TERM
                 //uint s = scale_zp[0];
                 //printf("hello from osv16 scale is %f zp is %u\n", scale[0], s);
-                printf("2ndscale zp is %f scale is %f\n", (float)(scale_zp[0]), (float)(scale[0]));
+                //printf("2ndscale zp is %f scale is %f\n", (float)(scale_zp[0]), (float)(scale[0]));
                 w[wi % PREFETCH] = ((float)(weights[weight_addr_safe])-(float)(scale_zp[0]))*((float)(scale[0]));
-                //printf("before %f now weights are %f\n", (float)(weights[weight_addr_safe]), w[pf]);
+                //printf("before %f now weights are %f\n", (float)(weights[weight_addr_safe]), w[wi % PREFETCH]);
                 //printf("%f = ( %u -%u )* %f \n", w[pf], (uint)(weights[weight_addr_safe]), (uint)(scale_zp[0]), scale[0]);
 #else
                 w[wi % PREFETCH] = weights[weight_addr_safe];
@@ -266,10 +266,11 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
     for(uint r = 0; r < OUTPUT_BLOCK_HEIGHT; r++) {
         for(uint c = 0; c < OUTPUT_BLOCK_WIDTH; c++) {
 #if HAS_FUSED_OPS
-            UNIT_TYPE dst = out[r * OUTPUT_BLOCK_WIDTH + c];
+            OUTPUT_TYPE dst = out[r * OUTPUT_BLOCK_WIDTH + c];
             FUSED_OPS;
             out[r * OUTPUT_BLOCK_WIDTH + c] = FUSED_OPS_RESULT;
 #else
+
             out[r * OUTPUT_BLOCK_WIDTH + c] = ACTIVATION(out[r * OUTPUT_BLOCK_WIDTH + c], ACTIVATION_PARAMS);
 #endif
         }
@@ -296,7 +297,7 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
 #ifdef CAN_SKIP_CHECK // in this case we don't need to check if we're outside of X boundaries
             uint out_vstore_offset = 0;
             #if (OUT_BLOCK_WIDTH % 8) > 3
-            MAKE_VECTOR_TYPE(UNIT_TYPE, 4) tmp = MAKE_VECTOR_TYPE(UNIT_TYPE, 4)(
+            MAKE_VECTOR_TYPE(OUTPUT_TYPE, 4) tmp = MAKE_VECTOR_TYPE(OUTPUT_TYPE, 4)(
                 out[out_vstore_offset + 0 + r * OUTPUT_BLOCK_WIDTH],
                 out[out_vstore_offset + 1 + r * OUTPUT_BLOCK_WIDTH],
                 out[out_vstore_offset + 2 + r * OUTPUT_BLOCK_WIDTH],
@@ -308,7 +309,7 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
             #endif
 
             #if (OUT_BLOCK_WIDTH % 4) > 1
-            MAKE_VECTOR_TYPE(UNIT_TYPE, 2) tmp2 = MAKE_VECTOR_TYPE(UNIT_TYPE, 2)(
+            MAKE_VECTOR_TYPE(OUTPUT_TYPE, 2) tmp2 = MAKE_VECTOR_TYPE(OUTPUT_TYPE, 2)(
                 out[out_vstore_offset + 0 + r * OUTPUT_BLOCK_WIDTH],
                 out[out_vstore_offset + 1 + r * OUTPUT_BLOCK_WIDTH]
             );
@@ -323,8 +324,9 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
 #else
             for(uint c = 0; c < OUTPUT_BLOCK_WIDTH; c++) {
                 // this does a scattered write to 16 different feature maps, so that data within one map is contiguous, thus ready for input to next layer.
-                if(!(oc + c >= OUTPUT_SIZE_X))
+                if(!(oc + c >= OUTPUT_SIZE_X)) {
                     output[out_addr + r * OUTPUT_Y_PITCH + c] = out[r * OUTPUT_BLOCK_WIDTH + c];
+                }
             }
 #endif
         }
