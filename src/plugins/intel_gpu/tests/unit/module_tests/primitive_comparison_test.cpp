@@ -42,19 +42,19 @@ TEST(primitive_comparison, common_params) {
 }
 
 TEST(primitive_comparison, convolution) {
-    auto conv_prim = convolution("conv", input_info("input"), "weights", "bias", 1,
+    auto conv_prim = convolution("conv", input_info("input"), "weights", "bias", "", "", 1,
                                  {2, 2}, {1, 1}, {0, 0}, {0, 0}, false);
 
-    auto conv_prim_eq = convolution("conv_eq", input_info("input_eq"), "weights_eq", "bias_eq", 1,
+    auto conv_prim_eq = convolution("conv_eq", input_info("input_eq"), "weights_eq", "bias_eq", "", "", 1,
                                     {2, 2}, {1, 1}, {0, 0}, {0, 0}, false);
 
-    auto conv_prim_stride = convolution("conv", input_info("input"), "weights", "bias", 1,
+    auto conv_prim_stride = convolution("conv", input_info("input"), "weights", "bias", "", "", 1,
                                         {1, 1}, {1, 1}, {0, 0}, {0, 0}, false);
 
-    auto conv_prim_no_bias = convolution("conv", input_info("input"), {"weights"}, {}, 1,
+    auto conv_prim_no_bias = convolution("conv", input_info("input"), {"weights"}, {}, "", "", 1,
                                          {2, 2}, {1, 1}, {0, 0}, {0, 0}, false);
 
-    auto conv_prim_grouped = convolution("conv", input_info("input"), "weights", "bias", 2,
+    auto conv_prim_grouped = convolution("conv", input_info("input"), "weights", "bias", "", "", 2,
                                          {2, 2}, {1, 1}, {0, 0}, {0, 0}, true);
 
     ASSERT_EQ(conv_prim, conv_prim_eq);

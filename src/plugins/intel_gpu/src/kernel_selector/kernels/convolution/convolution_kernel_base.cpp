@@ -82,7 +82,12 @@ JitConstants ConvolutionKernelBase::GetJitConstants(const convolution_params& pa
             mem_consts.AddConstant(MakeJitConstant("SKIP_BATCH", 1));
         }
     }
-
+    if (params.has_scale) {
+        mem_consts.AddConstant(MakeJitConstant("SCALE_TERM", true));
+    }
+    if (params.has_scale_zp) {
+        mem_consts.AddConstant(MakeJitConstant("SCALE_ZP_TERM", true));
+    }
     return mem_consts;
 }
 
@@ -245,7 +250,12 @@ KernelsData ConvolutionKernelBase::GetCommonKernelsData(const Params& params,
         if (newParams.deformable_mask_enabled)
             kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 2});
     }
-
+    if (newParams.has_scale) {
+        kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 1});
+    }
+    if (newParams.has_scale_zp) {
+        kernel.params.arguments.push_back({ArgumentDescriptor::Types::INPUT, 2});
+    }
     if (!newParams.weights_zero_points.empty())
         kernel.params.arguments.push_back({ArgumentDescriptor::Types::WEIGHTS_ZERO_POINTS, 1});
     if (!newParams.activations_zero_points.empty())

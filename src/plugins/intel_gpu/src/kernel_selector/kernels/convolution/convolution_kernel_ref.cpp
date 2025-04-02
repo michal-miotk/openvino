@@ -24,6 +24,7 @@ ParamsKey ConvolutionKernel_Ref::GetSupportedKey() const {
     k.EnableInputWeightsType(WeightsType::F16);
     k.EnableInputWeightsType(WeightsType::F32);
     k.EnableInputWeightsType(WeightsType::INT8);
+    k.EnableInputWeightsType(WeightsType::UINT8);
 
     k.EnableDifferentTypes();
     k.EnableDifferentInputWeightsTypes();
@@ -130,7 +131,9 @@ bool ConvolutionKernel_Ref::Validate(const Params& params) const {
     // (u)int8 input + fp weights
     if (weights_type == WeightsType::F32 || weights_type == WeightsType::F16)
         return true;
-
+    if (weights_type == WeightsType::UINT8) {
+        return true;
+    }
     bool is_quantization = (input_type == Datatype::INT8 || input_type == Datatype::UINT8) &&
                            (output_type == Datatype::INT8 || output_type == Datatype::UINT8 ||
                             output_type == Datatype::F32 || output_type == Datatype::F16) &&

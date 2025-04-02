@@ -165,6 +165,14 @@ public:
         return dep_memory_ptr(2 + 1 * bias_term() + _deform_conv_dep_offset);
     }
 
+    memory::ptr scale_zero_points_memory() const {
+        return dep_memory_ptr(3 + 1 * bias_term() + _deform_conv_dep_offset);
+    }
+
+    memory::ptr scale_points_memory() const {
+        return dep_memory_ptr(2 + 1 * bias_term() + _deform_conv_dep_offset);
+    }
+
     memory::ptr trans_memory() const {
         if (_deform_conv_dep_offset == 0)
             throw std::range_error("trans input exists only in deformable mode");
@@ -184,7 +192,6 @@ public:
     }
 
     bool bias_term() const { return _impl_params->bias_layout.has_value(); }
-
     bool weights_zero_points_term() const { return _impl_params->weights_zero_points_layout.has_value(); }
     bool compensation_term() const { return _impl_params->compensation_layout.has_value(); }
     bool activations_zero_points_term() const { return _impl_params->activations_zero_points_layout.has_value(); }

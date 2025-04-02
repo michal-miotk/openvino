@@ -43,7 +43,13 @@ struct convolution_impl : typed_primitive_impl_ocl<convolution> {
 protected:
     kernel_arguments_data get_arguments(const typed_primitive_inst<convolution>& instance) const override {
         kernel_arguments_data args = parent::get_arguments(instance);
-
+        auto typed_instance = instance.get_typed_desc<convolution>();
+        if (!typed_instance->scale.empty()) {
+            args.inputs.push_back(instance.scale_points_memory());
+        }
+        if (!typed_instance->scale_zp.empty()) {
+            args.inputs.push_back(instance.scale_zero_points_memory());
+        }
         args.weights = instance.weights_memory();
         args.bias = instance.bias_term() ? instance.bias_memory() : nullptr;
         args.weights_zero_points = instance.weights_zero_points_term() ? instance.weights_zero_points_memory() : nullptr;
@@ -65,7 +71,7 @@ public:
 
         auto conv_params = get_weight_bias_zero_point_default_params<kernel_selector::convolution_params>(impl_param,
                                                                                                           primitive->grouped_weights_shape,
-                                                                                                          is_shape_agnostic);
+                                                                                                        is_shape_agnostic);
 
         if (primitive->deformable_mode) {
             conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[1]));
@@ -93,7 +99,14 @@ public:
         ov::CoordinateDiff pads_end(primitive->padding_end.begin(), primitive->padding_end.end());
         const auto auto_pad = primitive->auto_pad;
         conv_params.has_explicit_paddings = primitive->auto_pad == ov::op::PadType::EXPLICIT;
-
+        conv_params.has_scale = !primitive->scale.empty();
+        conv_params.has_scale_zp = !primitive->scale_zp.empty();
+        if (!primitive->scale.empty()) {
+            conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[3]));
+        }
+        if (!primitive->scale_zp.empty()) {
+            conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[4]));
+        }
         if (auto_pad == ov::op::PadType::SAME_UPPER || auto_pad == ov::op::PadType::SAME_LOWER) {
             const auto& input_layout = impl_param.get_input_layout();
             const auto spatial_rank = input_layout.get_spatial_rank();

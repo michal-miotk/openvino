@@ -29,7 +29,7 @@ TEST(prepare_padding, groupconv_with_output) {
     topology topo;
     topo.add(input_layout("input", in_layout));
     topo.add(data("weight", weights_mem));
-    topo.add(convolution("conv", input_info("input"), "weight", "", 1, {1, 1}, {1, 1}, {0, 0}, {2, 2}, true));
+    topo.add(convolution("conv", input_info("input"), "weight", "", "", "", 1, {1, 1}, {1, 1}, {0, 0}, {2, 2}, true));
     topo.add(reorder("reorder", input_info("conv"), format::bfyx, data_types::f32));
 
     ExecutionConfig config = get_test_default_config(engine);
@@ -55,7 +55,7 @@ TEST(prepare_padding, mvn_conv) {
     topo.add(input_layout("input", in_layout));
     topo.add(mvn("mvn", input_info("input"), true, 1e-10f, true, { 2 }));
     topo.add(data("weight", weights_mem));
-    topo.add(convolution("conv", input_info("mvn"), "weight", "", 1, {1, 1}, {1, 1}, {1, 1}, {1, 1}, false));
+    topo.add(convolution("conv", input_info("mvn"), "weight", "", "", "", 1, {1, 1}, {1, 1}, {1, 1}, {1, 1}, false));
     topo.add(reorder("reorder_output", input_info("conv"), format::bfyx, data_types::f16));
 
     ExecutionConfig config = get_test_default_config(engine);
