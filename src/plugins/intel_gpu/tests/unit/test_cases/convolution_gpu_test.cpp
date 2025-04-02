@@ -1782,10 +1782,14 @@ TEST(convolution_f32_fw_gpu, convolution_big_size_weights_dequantize_linear) {
         VF<float> input_rnd_vec = flatten_4d<float>(format::yxfb, input_rnd);
         VVVVF<float> filter_rnd = rg.generate_random_4d<float>(1, 1, in_y, in_x, -10, 10);
         VF<float> filter_rnd_vec = flatten_4d<float>(format::bfyx, filter_rnd);
-
-        set_values(biases, { 0.0f });
+        VF<float> filter_rnd_vec_moved_zp;
+        for (size_t i=0;i<filter_rnd_vec.size();i++) {
+            filter_rnd_vec_moved_zp.push_back(filter_rnd_vec[i]+10);
+        }
+        float bias_val = 3.0f;
+        set_values(biases, { bias_val });
         set_values(input, input_rnd_vec);
-        set_values(weights, filter_rnd_vec);
+        set_values(weights, filter_rnd_vec_moved_zp);
 
         float output_sum = 0.f;
         size_t idx = 0;
@@ -1797,10 +1801,11 @@ TEST(convolution_f32_fw_gpu, convolution_big_size_weights_dequantize_linear) {
         }
 
         output_sum /= 2.0f;
+        output_sum += bias_val;
         auto scale = engine.allocate_memory({ data_types::f32, format::bfyx, {1, 1, 1, 1} });
         set_values(scale, { 0.5f });
         auto zp = engine.allocate_memory({ data_types::u8, format::bfyx, {1, 1, 1, 1} });
-        set_values(zp, { 0 });
+        set_values(zp, { 10 });
         topology topology(
             input_layout("input", input->get_layout()),
             data("weights", weights),
