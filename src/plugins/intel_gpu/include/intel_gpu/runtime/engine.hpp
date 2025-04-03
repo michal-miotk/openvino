@@ -175,7 +175,7 @@ protected:
     /// Create engine for given @p device and @p configuration
     engine(const device::ptr device);
     const device::ptr _device;
-    std::map<std::string, uint64_t> statistics;
+    std::set<std::string> used_statistics_keys; //legacy
 
     std::array<std::atomic<uint64_t>, static_cast<size_t>(allocation_type::max_value)> _memory_usage_data{};
     std::array<std::atomic<uint64_t>, static_cast<size_t>(allocation_type::max_value)> _peak_memory_usage_data{};

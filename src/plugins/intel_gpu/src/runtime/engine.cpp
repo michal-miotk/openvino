@@ -212,12 +212,13 @@ uint64_t engine::get_used_device_memory(allocation_type type) const {
 }
 
 std::map<std::string, uint64_t> engine::get_memory_statistics() {
+    std::map<std::string, uint64_t> statistics;
     const auto add_stat = [&](allocation_type type) {
         auto idx = static_cast<size_t>(type);
         auto value = _memory_usage_data[idx].load();
         std::ostringstream oss;
         oss << type;
-        if (value != 0 || statistics.count(oss.str())) {
+        if (value != 0 || used_statistics_keys.find(oss.str()) != used_statistics_keys.end()) {
             statistics[oss.str()] = value;
         }
     };
@@ -231,6 +232,9 @@ std::map<std::string, uint64_t> engine::get_memory_statistics() {
 }
 
 void engine::add_memory_used(uint64_t bytes, allocation_type type) {
+    std::ostringstream oss;
+    oss << type;
+    used_statistics_keys.insert(oss.str());
     auto idx = static_cast<size_t>(type);
     const auto new_val = _memory_usage_data[idx].fetch_add(bytes) + bytes;
     // Make sure actual maximum value is stored
