@@ -431,9 +431,12 @@ private:
 
     template<typename T>
     static void set_values(stream& stream, memory::ptr mem, T* vals, size_t size, size_t dst_offset) {
-        mem_lock<T> mem_ptr(mem, stream);
+        //mem_lock<T> mem_ptr(mem, stream);
         for (size_t i = 0; i < size; i++) {
-            mem_ptr[dst_offset + i] = vals[i];
+            auto ev = mem->copy_from(stream, (void*)(vals), i, dst_offset + i, sizeof(T), true);
+            if (ev)
+                ev->wait();
+            //mem_ptr[dst_offset + i] = vals[i];
         }
     }
 
@@ -644,7 +647,7 @@ private:
         OPENVINO_ASSERT(scores_output->count() == static_cast<size_t>(num_heads * num_queries * num_keys));
 
         std::vector<ov::float16> output_scores(num_keys, 0);
-        mem_lock<ov::float16> mem_ptr(scores_output, test_stream);
+        mem_lock<ov::float16, mem_lock_type::read> mem_ptr(scores_output, test_stream);
         for (int head_idx = 0; head_idx < num_heads; head_idx++) {
             for (int score_idx = 0; score_idx < num_keys; score_idx++) {
                 output_scores[score_idx] += mem_ptr[head_idx * num_queries * num_keys +
@@ -663,7 +666,7 @@ private:
         OPENVINO_ASSERT(data_output->count() == static_cast<size_t>(num_queries * num_heads * head_size));
 
         std::vector<ov::float16> output_data(data_output->count());
-        mem_lock<ov::float16> mem_ptr(data_output, test_stream);
+        mem_lock<ov::float16, cldnn::mem_lock_type::read> mem_ptr(data_output, test_stream);
         for (size_t i = 0; i < data_output->count(); i++)
             output_data[i] = mem_ptr[i];
 
@@ -710,11 +713,18 @@ private:
         auto mask_mem = test_engine.allocate_memory(mask_layout);
 
         int past_len = num_keys - num_queries + 1;
-        mem_lock<ov::float16> mem_ptr(mask_mem, test_stream);
         for (int i = 0; i < num_queries; i++) {
             for (int j = 0; j < num_keys; j++) {
-                mem_ptr[i * num_keys + j] = j >= past_len + i ? std::numeric_limits<ov::float16>::lowest()
-                                                              : ov::float16(0.f);
+                if(mask_mem->get_allocation_type() == cldnn::allocation_type::usm_host) {
+                    ov::float16 x = j >= past_len + i ? std::numeric_limits<ov::float16>::lowest() : ov::float16(0.f);
+                    auto ev = mask_mem->copy_from(get_test_stream(), &x, 0, i * num_keys + j, 2, true);
+                    if (ev)
+                        ev->wait();
+                } else {
+                    mem_lock<ov::float16> mem_ptr(mask_mem, test_stream);
+                    mem_ptr[i * num_keys + j] = j >= past_len + i ? std::numeric_limits<ov::float16>::lowest()
+                                                                : ov::float16(0.f);
+                }
             }
         }
 
@@ -852,18 +862,20 @@ public:
 
             auto new_query_memory = get_test_engine().allocate_memory(padded_query_data_layout, false);
 
-            mem_lock<ov::float16> query_mem_lock(query_mem, get_test_stream());
-            mem_lock<ov::float16> new_query_mem_lock(new_query_memory, get_test_stream());
+            mem_lock<ov::float16, mem_lock_type::read> query_mem_lock(query_mem, get_test_stream());
+            //mem_lock<ov::float16> new_query_mem_lock(new_query_memory, get_test_stream());
 
             auto query_data_shape = query_data_layout.get_shape();
             for (size_t b = 0; b < query_data_shape[0]; b++) {
                 for (size_t f = 0; f < query_data_shape[1]; f++) {
-                    auto input_offset =
+                    size_t input_offset =
                         query_data_layout.get_linear_offset(cldnn::tensor(static_cast<int32_t>(b), static_cast<int32_t>(f), 0, 0, 0, 0));
-                    auto output_offset =
+                    size_t output_offset =
                         padded_query_data_layout.get_linear_offset(cldnn::tensor(static_cast<int32_t>(b), static_cast<int32_t>(f), 0, 0, 0, 0));
 
-                    new_query_mem_lock[output_offset] = query_mem_lock[input_offset];
+                    auto ev = new_query_memory->copy_from(get_test_stream(), (void*)(query_mem_lock.data()), input_offset, output_offset, ov::element::Type(query_data_layout.data_type).size(), true);
+                    if (ev)
+                        ev->wait();
                 }
             }
             query_mem = new_query_memory;
@@ -975,7 +987,7 @@ public:
     void compare(memory::ptr data_output_mem, memory::ptr scores_output_mem, std::pair<std::vector<ov::float16>, std::vector<ov::float16>> ref_data) {
         if (data_output_mem) {
             ASSERT_EQ(data_output_mem->count(), ref_data.first.size());
-            mem_lock<ov::float16> mem_ptr(data_output_mem, get_test_stream());
+            mem_lock<ov::float16, mem_lock_type::read> mem_ptr(data_output_mem, get_test_stream());
             for (size_t i = 0; i < data_output_mem->count(); i++) {
                 ASSERT_NEAR(mem_ptr[i], ref_data.first[i], tolerance);
             }
@@ -983,7 +995,7 @@ public:
 
         if (scores_output_mem) {
             ASSERT_EQ(scores_output_mem->count(), ref_data.second.size());
-            mem_lock<ov::float16> mem_ptr(scores_output_mem, get_test_stream());
+            mem_lock<ov::float16, mem_lock_type::read> mem_ptr(scores_output_mem, get_test_stream());
             for (size_t i = 0; i < scores_output_mem->count(); i++) {
                 ASSERT_NEAR(mem_ptr[i], ref_data.second[i], tolerance);
             }
