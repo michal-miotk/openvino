@@ -40,10 +40,10 @@ namespace ov::intel_gpu {
     auto sub_const_m = any_input();
     auto sub = wrap_type<ov::op::v1::Subtract>({convert_m, sub_const_m});
 
-    __attribute_maybe_unused__ auto mul_const_m = wrap_type<ov::op::v0::Constant>();
-    __attribute_maybe_unused__ auto mul_with_sub_m = wrap_type<ov::op::v1::Multiply>({sub, mul_const_m});
+    auto mul_const_m = wrap_type<ov::op::v0::Constant>();
+    auto mul_with_sub_m = wrap_type<ov::op::v1::Multiply>({sub, mul_const_m});
 
-    __attribute_maybe_unused__ auto data_m = any_input();
+    auto data_m = any_input();
     auto conv_m = wrap_type<ov::op::v1::Convolution>({data_m, mul_with_sub_m});
 
     ov::matcher_pass_callback callback = [OV_CAPTURE_CPY_AND_THIS](ov::pass::pattern::Matcher& m) {
