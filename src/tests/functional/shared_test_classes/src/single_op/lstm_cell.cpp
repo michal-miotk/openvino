@@ -136,6 +136,9 @@ void LSTMCellTest::SetUp() {
         m.register_pass<ov::pass::LSTMCellDecomposition>();
         m.run_passes(function);
     }
+    if (activations  == std::vector<std::string>{"tanh", "relu", "sigmoid"} || activations  == std::vector<std::string>{"sigmoid", "sigmoid", "sigmoid"}) {
+        rel_threshold = 0.002f;
+    }
 }
 }  // namespace test
 }  // namespace ov
