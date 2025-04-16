@@ -48,12 +48,10 @@ std::vector<layout> gru_seq_inst::calc_output_layouts(gru_seq_node const& node, 
         second_out_fmt = node.get_preferred_output_fmt(1);
         third_out_fmt = node.get_preferred_output_fmt(2);
         return {cldnn::layout{ShapeType{gru_seq_length, gru_batch_size, gru_hidden_size, 1}, input_layout_x.data_type, first_out_fmt}, \
-            cldnn::layout{ShapeType{gru_batch_size, 1, gru_hidden_size}, input_layout_x.data_type, second_out_fmt}, \
-            cldnn::layout{ShapeType{gru_batch_size, 1, gru_hidden_size}, input_layout_x.data_type, third_out_fmt}};
+            cldnn::layout{ShapeType{gru_batch_size, 1, gru_hidden_size}, input_layout_x.data_type, second_out_fmt}};
     } else {
         return {cldnn::layout{ShapeType{gru_batch_size, 1, gru_seq_length, gru_hidden_size}, input_layout_x.data_type, first_out_fmt}, \
-                cldnn::layout{ShapeType{gru_batch_size, 1, gru_hidden_size}, input_layout_x.data_type, second_out_fmt}, \
-                cldnn::layout{ShapeType{gru_batch_size, 1, gru_hidden_size}, input_layout_x.data_type, third_out_fmt}};
+                cldnn::layout{ShapeType{gru_batch_size, 1, gru_hidden_size}, input_layout_x.data_type, second_out_fmt}};
     }
 }
 

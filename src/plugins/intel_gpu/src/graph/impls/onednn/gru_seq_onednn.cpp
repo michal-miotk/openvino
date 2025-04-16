@@ -84,8 +84,8 @@ protected:
         }
 
         {
-            auto& output = instance.input_memory(6);
-            auto offset = onednn::get_offset(instance.get_input_layout(6), _pd.dnnl::primitive_desc_base::dst_desc(1));
+            auto& output = instance.output_memory(1);
+            auto offset = onednn::get_offset(instance.get_output_layout(1), _pd.dnnl::primitive_desc_base::dst_desc(1));
             auto mem = output.get_onednn_memory(_pd.dnnl::primitive_desc_base::dst_desc(1), offset);
             args.insert({DNNL_ARG_DST_ITER, mem});
         }
@@ -119,6 +119,7 @@ protected:
                                                                                              const dnnl::primitive_attr& attr,
                                                                                              ov::op::RecurrentSequenceDirection direction) {
         auto prim = impl_params.typed_desc<gru_seq>();
+        std::cout << "get gru" << std::endl;
         const auto& src_shape = impl_params.get_input_layout(0).get_shape();
         auto mod_src_shape = src_shape;
         std::swap(mod_src_shape[0], mod_src_shape[1]);

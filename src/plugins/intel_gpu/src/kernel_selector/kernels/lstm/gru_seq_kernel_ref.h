@@ -4,12 +4,12 @@
 
 #pragma once
 
-#include "lstm_kernel_base.h"
+#include "gru_kernel_base.h"
 
 namespace kernel_selector {
-class GRUSeqKernelRef : public LSTMKernelBase {
+class GRUSeqKernelRef : public GRUKernelBase {
 public:
-    GRUSeqKernelRef() : LSTMKernelBase("gru_cell_and_seq_ref") {}
+    GRUSeqKernelRef() : GRUKernelBase("gru_cell_and_seq_ref") {}
     virtual ~GRUSeqKernelRef() {}
 
     KernelsData GetKernelsData(const Params& params) const override;

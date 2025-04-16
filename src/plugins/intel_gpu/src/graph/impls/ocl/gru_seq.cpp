@@ -7,7 +7,7 @@
 #include "gru_seq_inst.h"
 #include "gru_seq.hpp"
 #include "lstm/gru_seq_kernel_selector.h"
-#include "lstm/gru_kernel_params.h"
+#include "lstm/gru_kernel_base.h"
 #include "lstm/lstm_kernel_base.h"
 #include "openvino/op/gru_sequence.hpp"
 #include "registry/implementation_manager.hpp"
@@ -30,16 +30,12 @@ struct gru_seq_impl : typed_primitive_impl_ocl<gru_seq> {
 protected:
     kernel_arguments_data get_arguments(const typed_primitive_inst<gru_seq>& instance) const override {
         kernel_arguments_data args;
-        size_t op_input_size = 6;
-        for (size_t i = 0; i < op_input_size; i++) {
+        for (size_t i = 0; i < instance.inputs_memory_count(); i++) {
             args.inputs.push_back(instance.input_memory_ptr(i));
         }
 
         for (size_t i = 0; i < instance.outputs_memory_count(); i++) {
             args.outputs.push_back(instance.output_memory_ptr(i));
-        }
-        for (size_t i = op_input_size; i < instance.inputs_memory_count(); i++) {
-            args.outputs.push_back(instance.dep_memory_ptr(i));
         }
         return args;
     }
@@ -70,8 +66,7 @@ public:
         params.SetOffsetOrder(static_cast<int32_t>(primitive->offset_order));
         params.clip = primitive->clip;
         params.direction = primitive->direction;
-        //Legacy multi-output
-        params.outputs.push_back(convert_data_tensor(impl_param.input_layouts[1]));
+        params.sequential = true;
 
         return params;
     }

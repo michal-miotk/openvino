@@ -311,8 +311,18 @@ protected:
                             const std::vector<input_info>& input,
                             const size_t num_outputs = 1,
                             const std::vector<optional_data_type> output_data_types = {optional_data_type()},
+<<<<<<< HEAD
                             const std::vector<padding>& output_paddings = {padding()})
         : primitive(PType::type_id(), id, input, output_paddings, output_data_types, num_outputs) {}
+=======
+                            const size_t num_outputs = 1)
+        : primitive(PType::type_id(), id, input, output_paddings, output_data_types, num_outputs) {
+            if ( id == "lstmsequence:LSTMSequence_7435.out0" || id == "lstmsequence:LSTMSequence_7434.out0" ) {
+                int a = 4;
+                a++;
+            }
+        }
+>>>>>>> d461e6623f (19jul)
 };
 
 struct primitive_info {
