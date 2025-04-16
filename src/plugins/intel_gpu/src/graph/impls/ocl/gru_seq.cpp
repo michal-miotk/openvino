@@ -10,7 +10,7 @@
 #include "lstm/gru_kernel_params.h"
 #include "lstm/lstm_kernel_base.h"
 #include "openvino/op/gru_sequence.hpp"
-#include "impls/registry/implementation_manager.hpp"
+#include "registry/implementation_manager.hpp"
 
 namespace cldnn {
 namespace ocl {
@@ -24,7 +24,7 @@ struct gru_seq_impl : typed_primitive_impl_ocl<gru_seq> {
     DECLARE_OBJECT_TYPE_SERIALIZATION(cldnn::ocl::gru_seq_impl)
 
     std::unique_ptr<primitive_impl> clone() const override {
-        return make_unique<gru_seq_impl>(*this);
+        return std::make_unique<gru_seq_impl>(*this);
     }
 
 protected:

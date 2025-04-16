@@ -24,7 +24,7 @@ ParamsKey GRUSeqKernelRef::GetSupportedKey() const {
 }
 
 KernelsData GRUSeqKernelRef::GetKernelsData(const Params& params) const {
-    return GetCommonKernelsData(params, true, true);
+    return GetCommonKernelsData(params);
 }
 
 KernelsPriority GRUSeqKernelRef::GetKernelsPriority(const Params& /*params*/) const {

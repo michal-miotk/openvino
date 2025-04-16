@@ -6,7 +6,7 @@
 #include "gru_seq_inst.h"
 #include "primitive_onednn_base.h"
 #include "gru_seq_onednn.hpp"
-#include "impls/registry/implementation_map.hpp"
+#include "registry/implementation_map.hpp"
 
 #include "kernel_selector_common.h"
 
@@ -25,7 +25,7 @@ struct gru_seq_onednn : typed_primitive_onednn_impl<gru_seq> {
 
 protected:
     std::unique_ptr<primitive_impl> clone() const override {
-        return make_unique<gru_seq_onednn>(*this);
+        return std::make_unique<gru_seq_onednn>(*this);
     }
 
     std::unordered_map<int, dnnl::memory> get_arguments(gru_seq_inst& instance) const override {
@@ -218,7 +218,7 @@ public:
             auto direction = arg.direction();
             auto prim_desc = get_gru_primitive_descriptor(impl_params, engine, *attr, direction);
             auto wr = get_weights_reorder(impl_params, *prim_desc);
-            return cldnn::make_unique<gru_seq_onednn>(engine, config, attr, *prim_desc, wr);
+            return std::make_unique<gru_seq_onednn>(engine, config, attr, *prim_desc, wr);
     }
 };
 

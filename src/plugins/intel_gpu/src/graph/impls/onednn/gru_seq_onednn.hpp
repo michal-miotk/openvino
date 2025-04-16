@@ -4,7 +4,7 @@
 
 #include "gru_seq_inst.h"
 #include "intel_gpu/runtime/utils.hpp"
-#include "impls/registry/implementation_manager.hpp"
+#include  "registry/implementation_manager.hpp"
 #include "transformations/utils/utils.hpp"
 
 #include <memory>

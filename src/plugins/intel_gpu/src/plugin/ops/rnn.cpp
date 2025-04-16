@@ -14,6 +14,7 @@
 #include "intel_gpu/primitives/mutable_data.hpp"
 #include "intel_gpu/primitives/fully_connected.hpp"
 #include "intel_gpu/primitives/lstm_cell.hpp"
+#include "intel_gpu/primitives/gru_seq.hpp"
 #include "intel_gpu/primitives/crop.hpp"
 #include "intel_gpu/primitives/concatenation.hpp"
 #include "intel_gpu/primitives/data.hpp"
@@ -106,35 +107,14 @@ static void CreateGRUSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op:
     float clip = op->get_clip();
     if (op->get_input_shape(2).size() != 1 || op->get_input_shape(3).size() != 3 \
             || op->get_input_shape(4).size() != 3 || op->get_input_shape(5).size() != 2)
-            OPENVINO_THROW("Wrong input shapes for LSTMSequence op ", op->get_friendly_name());
-    auto mutable_precision_firstsecond = op->get_output_element_type(1);
+            OPENVINO_THROW("Wrong input shapes for GRUSequence op ", op->get_friendly_name());
     auto direction = op->get_direction();
 
-    if (p.use_new_shape_infer()) {
-        cldnn::gru_seq prim(layerName, inputs[0], inputs[1], \
-            cldnn::input_info(""), inputs[3], inputs[4], inputs[5], inputs[2], "", "", \
-            clip, false, activations, activation_params, cldnn::lstm_weights_order::fizo, direction, cldnn::padding(), \
-            static_cast<int>(op->get_output_size()));
-        prim.output_data_types = get_output_data_types(op);
-        p.add_primitive(*op, prim);
-        return;
-    }
-
-    cldnn::layout out12Layout = cldnn::layout(
-                cldnn::element_type_to_data_type(mutable_precision_firstsecond),
-                cldnn::format::bfyx,
-                tensor_from_dims(op->get_output_shape(1)));
-
-    std::vector<cldnn::memory::ptr> shared_memories;
-    shared_memories.push_back(p.get_engine().allocate_memory(out12Layout));
-    const cldnn::primitive_id mutable_id_1 = layerName + "_md_write1";
-    const cldnn::mutable_data mutable_prim_1{mutable_id_1, shared_memories.front()};
-    p.add_primitive(*op, mutable_prim_1);
-    cldnn::gru_seq prim(layerName + ".out0", inputs[0], inputs[1], \
-        cldnn::input_info(""), inputs[3], inputs[4], inputs[5], inputs[2], mutable_id_1, "", \
+    OPENVINO_ASSERT(p.use_new_shape_infer());
+    cldnn::gru_seq prim(layerName + ".out0", inputs[0], inputs[1], inputs[2], inputs[3], inputs[4], inputs[5], cldnn::input_info(""),
         clip, false, activations, activation_params, cldnn::lstm_weights_order::fizo, direction);
+    prim.output_data_types = get_output_data_types(op);
     p.add_primitive(*op, prim);
-    p.add_primitive(*op, cldnn::mutable_data(layerName + ".out1", {cldnn::input_info(layerName + ".out0")}, shared_memories.front()));
 }
 
 static void CreateLSTMCellOp(ProgramBuilder& p, const std::shared_ptr<ov::op::v4::LSTMCell>& op) {

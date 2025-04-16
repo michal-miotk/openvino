@@ -23,7 +23,7 @@ ParamsKey LSTMCellKernelRef::GetSupportedKey() const {
 }
 
 KernelsData LSTMCellKernelRef::GetKernelsData(const Params& params) const {
-    return GetCommonKernelsData(params, false);
+    return GetCommonKernelsData(params);
 }
 
 KernelsPriority LSTMCellKernelRef::GetKernelsPriority(const Params& /*params*/) const {
