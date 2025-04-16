@@ -118,8 +118,9 @@ JitConstants DynamicQuantizeKernelKVCache::GetJitConstants(const dynamic_quantiz
 
     const auto& input_dims = get_normalized_dims(params.inputs[0]);
     const auto total_grouped_elements = get_elements_number_per_group(params);
-    const auto per_iter_elements_number = get_per_iter_elements_number(params);
     const auto total_subgroups_number = total_grouped_elements / input_dims.back().v;
+    const auto per_iter_elements_number = get_per_iter_elements_number(params);
+    OPENVINO_ASSERT(per_iter_elements_number > 0, "[GPU] per_iter_elements_number is zero, division by zero would occur.");
 
     // Drop the last dimensions, since it will be processed in the kernel's loop
     grouped_dims.pop_back();
@@ -140,6 +141,9 @@ JitConstants DynamicQuantizeKernelKVCache::GetJitConstants(const dynamic_quantiz
     jit.AddConstant(MakeJitConstant("ITERATIONS_NUMBER", iterations_number));
     jit.AddConstant(MakeJitConstant("ASYMMETRIC_QUANTIZATION", params.use_asymmetric_quantization));
     jit.AddConstant(MakeJitConstant("GROUP_SCALES_WITH_ZP", params.combine_scales_and_zp));
+
+    // Use FP32 accumulator type for scale/zp calculation
+    jit.Merge(MakeTypeJitConstants(Datatype::F32, "ACCUMULATOR"));
 
     bool rearrange_scales_order = false;
     const auto& scales_output_order = params.scales_output_order;

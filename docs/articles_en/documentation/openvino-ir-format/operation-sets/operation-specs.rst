@@ -118,7 +118,7 @@ Operation Specifications
    IsNaN-10 <operation-specs/comparison/isnan-10>
    LRN-1 <operation-specs/normalization/lrn-1>
    LSTMCell-1 <operation-specs/sequence/lstm-cell-1>
-   LSTMSequence-1 <operation-specs/sequence/lstm-sequence-1>
+   LSTMSequence-5 <operation-specs/sequence/lstm-sequence-5>
    LessEqual-1 <operation-specs/comparison/lessequal-1>
    Less-1 <operation-specs/comparison/less-1>
    Log-1 <operation-specs/arithmetic/log-1>
@@ -226,6 +226,7 @@ Operation Specifications
    Sqrt-1 <operation-specs/arithmetic/sqrt-1>
    SquaredDifference-1 <operation-specs/arithmetic/squared-difference-1>
    Squeeze-1 <operation-specs/shape/squeeze-1>
+   Squeeze-15 <operation-specs/shape/squeeze-15>
    STFT-15 <operation-specs/signals/stft-15>
    StridedSlice-1 <operation-specs/movement/strided-slice-1>
    StringTensorPack-15 <operation-specs/type/string-tensor-pack-15>

@@ -1,11 +1,11 @@
-// Copyright (C) 2018-2024 Intel Corporation
+// Copyright (C) 2024 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 //
 
 #include "primitive_base.hpp"
 
 #include "lstm_cell_inst.h"
-#include "lstm/lstm_cell_kernel_selector.h"
+#include "lstm/lstm_cell_and_seq_kernel_selector.h"
 #include "lstm/lstm_kernel_base.h"
 #include "openvino/op/lstm_cell.hpp"
 #include "lstm_cell.hpp"
@@ -16,28 +16,24 @@ namespace ocl {
 struct lstm_cell_impl : typed_primitive_impl_ocl<lstm_cell> {
     using parent = typed_primitive_impl_ocl<lstm_cell>;
     using parent::parent;
-    using kernel_selector_t = kernel_selector::lstm_cell_kernel_selector;
+    using kernel_selector_t = kernel_selector::lstm_cell_and_seq_kernel_selector;
     using kernel_params_t = kernel_selector::lstm_params;
 
     DECLARE_OBJECT_TYPE_SERIALIZATION(cldnn::ocl::lstm_cell_impl)
 
     std::unique_ptr<primitive_impl> clone() const override {
-        return make_unique<lstm_cell_impl>(*this);
+        return std::make_unique<lstm_cell_impl>(*this);
     }
 
 protected:
     kernel_arguments_data get_arguments(const typed_primitive_inst<lstm_cell>& instance) const override {
         kernel_arguments_data args;
-        size_t op_input_size = 6;
-        for (size_t i = 0; i < op_input_size; i++) {
+        for (size_t i = 0; i < instance.inputs_memory_count(); i++) {
             args.inputs.push_back(instance.input_memory_ptr(i));
         }
 
         for (size_t i = 0; i < instance.outputs_memory_count(); i++) {
             args.outputs.push_back(instance.output_memory_ptr(i));
-        }
-        for (size_t i = op_input_size; i < instance.inputs_memory_count(); i++) {
-            args.outputs.push_back(instance.dep_memory_ptr(i));
         }
         return args;
     }
@@ -68,8 +64,6 @@ public:
         params.SetOffsetOrder(static_cast<int32_t>(primitive->offset_order));
         params.clip = primitive->clip;
         params.direction = primitive->direction;
-        //Legacy multi-output
-        params.outputs.push_back(convert_data_tensor(impl_param.input_layouts[1]));
 
         return params;
     }
