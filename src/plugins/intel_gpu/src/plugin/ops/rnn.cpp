@@ -113,6 +113,7 @@ static void CreateGRUSequenceOp(ProgramBuilder& p, const std::shared_ptr<ov::op:
     OPENVINO_ASSERT(p.use_new_shape_infer());
     cldnn::gru_seq prim(layerName,  inputs[0], inputs[1], cldnn::input_info(""), inputs[3], inputs[4], inputs[5], inputs[2],
         clip, false, activations, activation_params, cldnn::lstm_weights_order::fizo, direction, static_cast<int>(op->get_output_size()));
+    prim.linear_before_reset = op->get_linear_before_reset();
     prim.output_data_types = get_output_data_types(op);
     p.add_primitive(*op, prim);
 }

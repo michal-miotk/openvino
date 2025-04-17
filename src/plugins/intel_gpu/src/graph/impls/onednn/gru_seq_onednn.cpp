@@ -115,10 +115,11 @@ protected:
                                                             false,
                                                             grouped_weights);
     }
-    static std::shared_ptr<dnnl::gru_forward::primitive_desc> get_gru_primitive_descriptor(const kernel_impl_params& impl_params, cldnn::engine& engine,
+    static std::shared_ptr<dnnl::lbr_gru_forward::primitive_desc> get_gru_primitive_descriptor(const kernel_impl_params& impl_params, cldnn::engine& engine,
                                                                                              const dnnl::primitive_attr& attr,
                                                                                              ov::op::RecurrentSequenceDirection direction) {
         auto prim = impl_params.typed_desc<gru_seq>();
+        assert(prim->linear_before_reset);
         std::cout << "get gru" << std::endl;
         const auto& src_shape = impl_params.get_input_layout(0).get_shape();
         auto mod_src_shape = src_shape;
@@ -138,7 +139,7 @@ protected:
         r_layout.format = cldnn::format::bfzyx;
         auto R_md = onednn::layout_to_memory_desc(r_layout);
         auto B_shape_mod = impl_params.get_input_layout(4).get_shape();
-        B_shape_mod = {1, 1, 3, B_shape_mod[1]/3};
+        B_shape_mod = {1, 1, 4, B_shape_mod[1]/4};
         auto b_layout = impl_params.get_input_layout(4).clone_with_other_shape(B_shape_mod);
         b_layout.format = cldnn::format::bfyx;
         auto B_md = onednn::layout_to_memory_desc(b_layout);
@@ -154,7 +155,7 @@ protected:
         dnnl::memory::desc emptyMemDescriptor;
 
         auto eng = engine.get_onednn_engine();
-        return std::make_shared<dnnl::gru_forward::primitive_desc>(
+        return std::make_shared<dnnl::lbr_gru_forward::primitive_desc>(
             eng,
             dnnl::prop_kind::forward_inference,
             dnnl::rnn_direction::unidirectional_right2left,

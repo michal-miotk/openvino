@@ -25,6 +25,7 @@ struct gru_seq : public RNNParams<gru_seq> {
     gru_seq(const gru_seq&) = default;
     primitive_id input;
     primitive_id weights;
+    bool linear_before_reset;
 };
 
 }  // namespace cldnn

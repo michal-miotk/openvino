@@ -710,7 +710,7 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
                     max_seq_len != 1 &&
                     !ov::op::util::is_seq_len_provided(gru_seq->get_input_node_shared_ptr(0),
                                                        gru_seq->get_input_node_shared_ptr(2)) &&
-                    gru_seq->get_linear_before_reset() == false;
+                    gru_seq->get_linear_before_reset() == true;
             } else if (const auto &lstm_seq = ov::as_type_ptr<const ov::op::v5::LSTMSequence>(node)) {
                 return lstm_seq->get_clip() == 0.0f &&
                        lstm_seq->get_activations() == std::vector<std::string>{"sigmoid", "tanh", "tanh"} &&
