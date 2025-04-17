@@ -53,16 +53,6 @@ public:
     std::pair<std::shared_ptr<primitive>, bool> get_weights_reorder(primitive_id input_id,
                                                                     std::shared_ptr<WeightsReorderParams> reorder_params);
 
-    void get_out_reorder(program& p, cldnn::program_node* prev, cldnn::program_node* node, int i);
-
-    void add_lstm_weights_reorder(primitive_id input_id, std::shared_ptr<WeightsReorderParams> reorder_params, program& p, cldnn::program_node&, \
-                           cldnn::program_node&, size_t);
-
-    void add_lstm_bias_reorder(primitive_id input_id, std::shared_ptr<WeightsReorderParams> reorder_params, program& p, cldnn::program_node&, \
-                        cldnn::program_node&);
-
-    void select_implementation(program& p, program_node& node);
-
 private:
     struct cache_key {
         primitive_id data_source;
