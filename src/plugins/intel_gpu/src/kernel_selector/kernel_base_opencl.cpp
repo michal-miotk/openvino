@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2018-2025 Intel Corporation
+﻿// Copyright (C) 2018-2024 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 //
 
@@ -164,19 +164,7 @@ std::shared_ptr<KernelString> KernelBaseOpenCL::GetKernelString(const std::strin
                                                                   const EngineInfo& engine_info,
                                                                   const std::string& exe_mode) const {
     std::shared_ptr<KernelString> kernel_string = std::make_shared<KernelString>();
-    std::vector<std::string> names;
-    for (auto n : db.get_batch_headers()) {
-        names.push_back(n.first);
-    }
-    if ( name == "lstm_seq_gpu_bfyx_ref" ) {
-        int ab = 9;
-        ab++;
-    }
 
-    if ( name == "lstm_elt_gpu_bfyx_ref" ) {
-        int ab = 9;
-        ab++;
-    }
     auto codes = db.get(name);
 
     if (codes.size()) {
@@ -187,11 +175,11 @@ std::shared_ptr<KernelString> KernelBaseOpenCL::GetKernelString(const std::strin
             kernel_string->options = exe_mode + " -cl-mad-enable";
             if (engine_info.bOptHintsSupport)
                 kernel_string->options += " -DOPT_HINTS_SUPPORTED=1";
+            if (engine_info.bLocalBlockIOSupport)
+                kernel_string->options += " -Dcl_intel_subgroup_local_block_io -DLOCAL_BLOCK_IO_SUPPORTED=1";
         }
 
-#if CL_TARGET_OPENCL_VERSION >= 300
-        kernel_string->options += " -cl-std=CL3.0";
-#elif CL_TARGET_OPENCL_VERSION >= 200
+#if CL_TARGET_OPENCL_VERSION >= 200
         kernel_string->options += " -cl-std=CL2.0";
 #endif
 

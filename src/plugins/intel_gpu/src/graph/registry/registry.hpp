@@ -140,6 +140,7 @@ REGISTER_IMPLS(gemm);
 REGISTER_IMPLS(group_normalization);
 REGISTER_IMPLS(lstm_cell);
 REGISTER_IMPLS(lstm_seq);
+REGISTER_IMPLS(gru_seq);
 REGISTER_IMPLS(non_max_suppression);
 REGISTER_IMPLS(pooling);
 REGISTER_IMPLS(reduce);
@@ -154,7 +155,6 @@ REGISTER_IMPLS(softmax);
 REGISTER_IMPLS(shape_of);
 REGISTER_IMPLS(strided_slice);
 REGISTER_IMPLS(tile);
-REGISTER_IMPLS(gru_seq);
 
 REGISTER_DEFAULT_IMPLS(assign, CPU_S, CPU_D);
 REGISTER_DEFAULT_IMPLS(read_value, CPU_S, CPU_D);
