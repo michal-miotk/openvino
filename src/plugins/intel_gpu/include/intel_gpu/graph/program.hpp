@@ -273,8 +273,6 @@ public:
                              std::shared_ptr<ov::threading::IStreamsExecutor> task_executor,
                              bool is_internal);
 
-    static bool has_lstm_or_gru(topology const& topology);
-
     static void init_primitives();
     kernels_cache& get_kernels_cache() const;
 

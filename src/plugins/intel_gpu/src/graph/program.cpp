@@ -142,14 +142,6 @@ std::shared_ptr<ICompilationContext> program::make_compilation_context(const Exe
                                                                  "Task executor config for CompilationContext in GPU plugin", _num_async_build_threads));
 }
 
-bool program::has_lstm_or_gru(topology const& topology) {
-    for (auto primitive_pair : topology.get_primitives()) {
-        if (primitive_pair.second->type_string() == "lstm_seq" || primitive_pair.second->type_string() == "gru_seq") {
-            return true;
-        }
-    }
-    return false;
-}
 
 program::program(engine& engine_ref,
                  topology const& topology,

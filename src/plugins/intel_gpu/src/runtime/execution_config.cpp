@@ -150,7 +150,7 @@ void ExecutionConfig::apply_model_specific_options(const IRemoteContext* context
         }
 
         // Allow using onednn for models with LSTMSequence op as it's much more performant than existing ocl impl
-        if (ov::is_type<ov::op::v5::LSTMSequence>(op)) {
+        if (ov::is_type<ov::op::v5::LSTMSequence>(op) || ov::is_type<ov::op::v5::GRUSequence>(op)) {
             m_use_onednn = true;
         }
 
