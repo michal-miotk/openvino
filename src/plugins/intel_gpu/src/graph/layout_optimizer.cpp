@@ -1536,7 +1536,7 @@ void layout_optimizer::add_all_onednn_impls_optimization_attribute() {
 
 bool layout_optimizer::has_all_enabled_onednn_impls_optimization_attribute() {
     return is_enabled_onednn_for<concatenation>() && is_enabled_onednn_for<convolution>() && is_enabled_onednn_for<deconvolution>() &&
-        is_enabled_onednn_for<fully_connected>() && is_enabled_onednn_for<gemm>() && is_enabled_onednn_for<lstm_seq>() &&
+        is_enabled_onednn_for<fully_connected>() && is_enabled_onednn_for<gemm>() && is_enabled_onednn_for<lstm_seq>() && is_enabled_onednn_for<gru_seq>() &&
         is_enabled_onednn_for<pooling>() && is_enabled_onednn_for<reduce>() && is_enabled_onednn_for<reorder>();
 }
 
