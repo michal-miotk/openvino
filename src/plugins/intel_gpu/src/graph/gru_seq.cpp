@@ -18,41 +18,24 @@ template<typename ShapeType>
 std::vector<layout> gru_seq_inst::calc_output_layouts(gru_seq_node const& node, kernel_impl_params const& impl_param) {
     auto desc = impl_param.typed_desc<gru_seq>();
 
-    auto input_layout_x = impl_param.get_input_layout(0);
-    auto input_pshape_x = input_layout_x.get_partial_shape();
-    auto input_layout_hidden = impl_param.get_input_layout(1);
-    auto input_pshape_hidden = input_layout_hidden.get_partial_shape();
-    int gru_batch_size, gru_seq_length, gru_hidden_size;
-    if (input_pshape_x[0].is_static()) {
-        gru_batch_size = input_pshape_x[0].get_length();
-    } else {
-        gru_batch_size = -1;
-    }
+    const auto& input_layout = impl_param.get_input_layout(0);
+    const auto& input_pshape = input_layout.get_partial_shape();
+    const auto& input_layout_hidden = impl_param.get_input_layout(1);
+    const auto& input_pshape_hidden = input_layout_hidden.get_partial_shape();
+    const auto& gru_batch_size = input_pshape[0];
+    const auto& gru_seq_length = input_pshape[1];
+    const auto& gru_hidden_size = input_pshape_hidden[2];
 
-    if (input_pshape_x[1].is_static()) {
-        gru_seq_length = input_pshape_x[1].get_length();
-    } else {
-        gru_seq_length = -1;
-    }
-
-    if (input_pshape_hidden[2].is_static()) {
-        gru_hidden_size = input_pshape_hidden[2].get_length();
-    } else {
-        gru_hidden_size = -1;
-    }
     auto first_out_fmt = cldnn::format::bfyx;
-    auto second_out_fmt = input_layout_x.format;
-    auto third_out_fmt = input_layout_x.format;
-    if (node.permute_inserted) {
+    auto second_out_fmt = input_layout.format;
+    if (node.get_preferred_output_fmt() != format::any) {
         first_out_fmt = node.get_preferred_output_fmt();
         second_out_fmt = node.get_preferred_output_fmt(1);
-        third_out_fmt = node.get_preferred_output_fmt(2);
-        return {cldnn::layout{ShapeType{gru_seq_length, gru_batch_size, gru_hidden_size, 1}, input_layout_x.data_type, first_out_fmt}, \
-            cldnn::layout{ShapeType{gru_batch_size, 1, gru_hidden_size}, input_layout_x.data_type, second_out_fmt}};
-    } else {
-        return {cldnn::layout{ShapeType{gru_batch_size, 1, gru_seq_length, gru_hidden_size}, input_layout_x.data_type, first_out_fmt}, \
-                cldnn::layout{ShapeType{gru_batch_size, 1, gru_hidden_size}, input_layout_x.data_type, second_out_fmt}};
     }
+    auto num_directions = desc->num_directions();
+
+    return {cldnn::layout{ShapeType{gru_batch_size, num_directions, gru_seq_length, gru_hidden_size}, input_layout.data_type, first_out_fmt},
+            cldnn::layout{ShapeType{gru_batch_size, num_directions, gru_hidden_size}, input_layout.data_type, second_out_fmt}};
 }
 
 template std::vector<layout> gru_seq_inst::calc_output_layouts<ov::PartialShape>(gru_seq_node const& node, const kernel_impl_params& impl_param);

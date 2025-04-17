@@ -115,7 +115,7 @@ protected:
                                                             false,
                                                             grouped_weights);
     }
-    static std::shared_ptr<dnnl::lbr_gru_forward::primitive_desc> get_gru_primitive_descriptor(const kernel_impl_params& impl_params, cldnn::engine& engine,
+    static std::shared_ptr<dnnl::gru_forward::primitive_desc> get_gru_primitive_descriptor(const kernel_impl_params& impl_params, cldnn::engine& engine,
                                                                                              const dnnl::primitive_attr& attr,
                                                                                              ov::op::RecurrentSequenceDirection direction) {
         auto prim = impl_params.typed_desc<gru_seq>();
@@ -138,14 +138,14 @@ protected:
         r_layout.format = cldnn::format::bfzyx;
         auto R_md = onednn::layout_to_memory_desc(r_layout);
         auto B_shape_mod = impl_params.get_input_layout(4).get_shape();
-        B_shape_mod = {1, 1, 4, B_shape_mod[1]/4};
+        B_shape_mod = {1, 1, 3, B_shape_mod[1]/3};
         auto b_layout = impl_params.get_input_layout(4).clone_with_other_shape(B_shape_mod);
         b_layout.format = cldnn::format::bfyx;
         auto B_md = onednn::layout_to_memory_desc(b_layout);
         auto out_shape = impl_params.get_output_layout().get_shape();
         out_shape = {out_shape[2], out_shape[0], out_shape[3], 1};
         auto output_md = onednn::layout_to_memory_desc(impl_params.get_output_layout().clone_with_other_shape(out_shape), dnnl::memory::format_tag::abc);
-        auto output1_md = onednn::layout_to_memory_desc(impl_params.get_input_layout(6).clone_with_other_shape(initial_hidden_shape_mod));
+        auto output1_md = onednn::layout_to_memory_desc(impl_params.get_output_layout().clone_with_other_shape(initial_hidden_shape_mod));
         OPENVINO_ASSERT(input_md.get_format_kind() != dnnl::memory::format_kind::any,
                         "[GPU] The format kind of the input memory descriptor of onednn gru_seq cannot be 'any'.");
         OPENVINO_ASSERT(output_md.get_format_kind() != dnnl::memory::format_kind::any,
@@ -154,7 +154,7 @@ protected:
         dnnl::memory::desc emptyMemDescriptor;
 
         auto eng = engine.get_onednn_engine();
-        return std::make_shared<dnnl::lbr_gru_forward::primitive_desc>(
+        return std::make_shared<dnnl::gru_forward::primitive_desc>(
             eng,
             dnnl::prop_kind::forward_inference,
             dnnl::rnn_direction::unidirectional_right2left,
@@ -186,14 +186,13 @@ public:
 
         auto input_md = onednn::layout_to_memory_desc(impl_params->get_input_layout(0));
         auto initial_hidden_md = onednn::layout_to_memory_desc(impl_params->get_input_layout(1));
-        auto initial_cell_md = onednn::layout_to_memory_desc(impl_params->get_input_layout(2));
-        auto W_md = onednn::layout_to_memory_desc(impl_params->get_input_layout(3));
-        auto R_md = onednn::layout_to_memory_desc(impl_params->get_input_layout(4));
-        auto B_md = onednn::layout_to_memory_desc(impl_params->get_input_layout(5));
+        auto W_md = onednn::layout_to_memory_desc(impl_params->get_input_layout(2));
+        auto R_md = onednn::layout_to_memory_desc(impl_params->get_input_layout(3));
+        auto B_md = onednn::layout_to_memory_desc(impl_params->get_input_layout(4));
         auto output_md = onednn::layout_to_memory_desc(impl_params->get_output_layout());
         auto output2_md = onednn::layout_to_memory_desc(impl_params->get_output_layout());
 
-        auto prim_desc = std::make_shared<dnnl::lbr_gru_forward::primitive_desc>(
+        auto prim_desc = std::make_shared<dnnl::gru_forward::primitive_desc>(
             ib.get_engine().get_onednn_engine(),
             dnnl::prop_kind::forward_inference,
             dnnl::rnn_direction::undef,
