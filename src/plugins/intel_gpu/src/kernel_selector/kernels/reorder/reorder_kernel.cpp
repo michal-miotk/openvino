@@ -12,6 +12,7 @@ ParamsKey ReorderKernelRef::GetSupportedKey() const {
     k.EnableInputDataType(Datatype::UINT8);
     k.EnableInputDataType(Datatype::UINT16);
     k.EnableInputDataType(Datatype::UINT32);
+    k.EnableInputDataType(Datatype::INT4);
     k.EnableInputDataType(Datatype::INT8);
     k.EnableInputDataType(Datatype::INT16);
     k.EnableInputDataType(Datatype::INT32);
@@ -24,6 +25,7 @@ ParamsKey ReorderKernelRef::GetSupportedKey() const {
     k.EnableOutputDataType(Datatype::INT16);
     k.EnableOutputDataType(Datatype::INT32);
     k.EnableOutputDataType(Datatype::INT64);
+    k.EnableOutputDataType(Datatype::INT4);
     k.EnableOutputDataType(Datatype::UINT8);
     k.EnableOutputDataType(Datatype::UINT16);
     k.EnableOutputDataType(Datatype::UINT32);
