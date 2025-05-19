@@ -647,6 +647,7 @@ std::vector<std::string> Plugin::get_device_capabilities(const cldnn::device_inf
 }
 
 uint32_t Plugin::get_max_batch_size(const ov::AnyMap& options) const {
+    std::cout << "starteee" << std::endl; 
     auto device_id = get_property(ov::device::id.name(), options).as<std::string>();
     auto context = get_default_contexts().at(device_id);
     const auto& device_info = context->get_engine().get_device_info();
@@ -655,11 +656,19 @@ uint32_t Plugin::get_max_batch_size(const ov::AnyMap& options) const {
     uint32_t n_streams = static_cast<uint32_t>(config.get_num_streams());
     uint64_t occupied_device_mem = 0;
     auto statistic_result = get_metric(ov::intel_gpu::memory_statistics.name(), options).as<std::map<std::string, uint64_t>>();
-    auto occupied_usm_dev = statistic_result.find("usm_device");
+
+    for (auto&& kv : statistic_result) {
+        std::cout << kv.first << " has_" << kv.second << std::endl;
+    }
+    
+    std::ostringstream usm_device_oss;
+    usm_device_oss << cldnn::allocation_type::usm_device;
+    auto occupied_usm_dev = statistic_result.find(usm_device_oss.str());
     if (occupied_usm_dev != statistic_result.end()) {
         occupied_device_mem = occupied_usm_dev->second;
+        std::cout << "found key" << usm_device_oss.str() << std::endl;
     }
-
+    std::cout << occupied_device_mem << "occupied dev me" << std::endl;
     int64_t available_device_mem = device_info.max_global_mem_size - occupied_device_mem;
     GPU_DEBUG_LOG << "[GPU_MAX_BATCH_SIZE] available memory is " << available_device_mem
                   << " (occupied: " << occupied_device_mem << ")" << std::endl;
@@ -685,6 +694,7 @@ uint32_t Plugin::get_max_batch_size(const ov::AnyMap& options) const {
 
     auto available_device_mem_it = options.find(ov::intel_gpu::hint::available_device_mem.name());
     if (available_device_mem_it != options.end()) {
+        std::cout << "available dev mem found in options" << std::endl;
         if (available_device_mem_it->second.is<int64_t>()) {
             available_device_mem = std::min(static_cast<int64_t>(available_device_mem), available_device_mem_it->second.as<int64_t>());
             GPU_DEBUG_LOG << "[GPU_MAX_BATCH_SIZE] available memory is reset by user " << available_device_mem << std::endl;
@@ -694,6 +704,8 @@ uint32_t Plugin::get_max_batch_size(const ov::AnyMap& options) const {
         if (available_device_mem < 0) {
             OPENVINO_THROW("[GPU_MAX_BATCH_SIZE] ov::intel_gpu::hint::available_device_mem value should be greater than 0 for max batch size calculation");
         }
+    } else {
+        std::cout << "not found" << std::endl;
     }
 
     std::shared_ptr<const ov::Model> model;
