@@ -285,6 +285,7 @@ public:
     }
 
     void load(BinaryInputBuffer& ib) override {
+        std::cout << "LOAD LOAD LOAD" << std::endl;
 #ifdef ONEDNN_PRIMITIVE_SERIALIZATION
         parent::load(ib);
 

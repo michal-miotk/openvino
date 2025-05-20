@@ -337,6 +337,7 @@ int main(int argc, char* argv[]) {
     std::shared_ptr<StatisticsReport> statistics;
     try {
         ov::CompiledModel compiledModel;
+        ov::CompiledModel compiledModelini;
 
         // ----------------- 1. Parsing and validating input arguments
         // -------------------------------------------------
@@ -650,7 +651,11 @@ int main(int argc, char* argv[]) {
             slog::info << "Skipping the step for loading model from file" << slog::endl;
             auto compile_model_mem_start = get_peak_memory_usage();
             auto startTime = Time::now();
-            compiledModel = core.compile_model(FLAGS_m, device_name, device_config);
+            compiledModelini = core.compile_model(FLAGS_m, device_name, device_config);
+            std::stringstream model_stream;
+            std::cout << "EXPORT EXPORT1" << std::endl;
+            compiledModelini.export_model(model_stream);
+            compiledModel = core.import_model(model_stream, device_name);
             auto duration_ms = get_duration_ms_till_now(startTime);
             auto compile_model_mem_end = get_peak_memory_usage();
             slog::info << "Compile model took " << double_to_string(duration_ms) << " ms" << slog::endl;
@@ -830,7 +835,11 @@ int main(int argc, char* argv[]) {
             next_step();
             auto compile_model_mem_start = get_peak_memory_usage();
             startTime = Time::now();
-            compiledModel = core.compile_model(model, device_name, device_config);
+            compiledModelini = core.compile_model(model, device_name, device_config);
+            std::stringstream model_stream;
+            std::cout << "EXPORT EXPORT2" << std::endl;
+            compiledModelini.export_model(model_stream);
+            compiledModel = core.import_model(model_stream, device_name);
             duration_ms = get_duration_ms_till_now(startTime);
             auto compile_model_mem_end = get_peak_memory_usage();
             slog::info << "Compile model took " << double_to_string(duration_ms) << " ms" << slog::endl;
@@ -867,6 +876,7 @@ int main(int argc, char* argv[]) {
             }
 
             compiledModel = core.import_model(modelStream, device_name, device_config);
+            std::cout << "xxxxxx" << std::endl;
             modelStream.close();
 
             auto duration_ms = get_duration_ms_till_now(startTime);

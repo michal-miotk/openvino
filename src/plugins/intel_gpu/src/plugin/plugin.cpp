@@ -771,7 +771,8 @@ uint32_t Plugin::get_max_batch_size(const ov::AnyMap& options) const {
             for (const auto& input : batched_inputs)
                 shapes[input.first][input.second] = base_batch_size;
             cloned_model->reshape(shapes);
-        } catch (...) {
+        } catch (const std::exception& e) {
+            std::cout << "Exception: " << e.what() << std::endl;
             GPU_DEBUG_INFO << "[MAX_BATCH_SIZE] Error at reshape to " << base_batch_size << std::endl;
             return static_cast<uint32_t>(max_batch_size);
         }

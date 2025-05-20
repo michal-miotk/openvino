@@ -12,6 +12,8 @@
 #include "openvino/op/add.hpp"
 #include <openvino/core/shape.hpp>
 #include <openvino/core/type/element_type.hpp>
+#include "common_test_utils/ov_plugin_cache.hpp"
+#include "openvino/runtime/intel_gpu/remote_properties.hpp"
 
 using namespace cldnn;
 using namespace tests;
@@ -52,15 +54,15 @@ public:
         ASSERT_EQ(estimated_mem_usage.first + estimated_mem_usage.second, engine2->get_used_device_memory(allocation_type::usm_device));
     }
 
-    std::shared_ptr<ov::Model> make_single_concat_with_constant(ov::Shape input_shape, ov::element::Type type) {
-        ov::ParameterVector parameter{std::make_shared<ov::op::v0::Parameter>(type, input_shape)};
+    std::shared_ptr<ov::Model> make_custom_concat(ov::PartialShape input_shape, ov::element::Type type) {
+        ov::ParameterVector parameter{std::make_shared<ov::op::v0::Parameter>(type, input_shape), std::make_shared<ov::op::v0::Parameter>(type, input_shape)};
         parameter[0]->set_friendly_name("Param_1");
         parameter[0]->output(0).get_tensor().set_names({"data"});
+        parameter[1]->set_friendly_name("Param_2");
+        parameter[1]->output(0).get_tensor().set_names({"data2"});
 
-        auto init_const = ov::op::v0::Constant::create(type, input_shape, {0});
-
-        std::vector<std::shared_ptr<ov::Node>> args = {parameter[0], init_const};
-        auto conc = std::make_shared<ov::op::v0::Concat>(args, 3);
+        std::vector<std::shared_ptr<ov::Node>> args = {parameter[0], parameter[1]};
+        auto conc = std::make_shared<ov::op::v1::Add>(parameter[0], parameter[1]);
         conc->set_friendly_name("concat");
         auto add_const = ov::op::v0::Constant::create(type, {1}, {0});
         auto add = std::make_shared<ov::op::v1::Add>(conc, add_const);
@@ -74,14 +76,31 @@ public:
     }
 
     void get_max_batch_size() {
-        ov::Core ie;
+        ov::Core ie;// = ov::test::utils::create_core();
+        auto& engine = get_test_engine();
         uint32_t batch_size = 99;
-        uint32_t n_streams = 2;
+        uint32_t n_streams = 10;
         std::string target_device = "GPU";
-        auto simpleNetwork = make_single_concat_with_constant(ov::Shape({1,1,1,224}), ov::element::Type("i8"));
+        auto simpleNetwork = make_custom_concat(ov::PartialShape({1,1,1,224}), ov::element::Type("i8"));
         auto exec_net1 = ie.compile_model(simpleNetwork, target_device);
-        //std::shared_ptr<cldnn::engine> engine = create_test_engine(engine_types::ocl, runtime_types::ocl);
-        //std::cout << engine->get_lockable_preferred_memory_allocation_type(lay.format.is_image_2d());
+        auto max_alloc_mem_size = engine.get_device_info().max_alloc_mem_size;
+        auto max_global_mem_size = engine.get_device_info().max_global_mem_size;
+        unsigned int alloc_size = max_alloc_mem_size/n_streams;
+        int tensor_num = max_global_mem_size/alloc_size;
+        //unsigned int leftover = max_global_mem_size - tensor_num*alloc_size;
+        std::cout << max_global_mem_size << std::endl;
+        
+        auto ctx = exec_net1.get_context();
+        std::vector<ov::RemoteTensor> v;
+        for (int i=0;i<tensor_num/5;i++)
+            v.push_back(ctx.create_tensor(ov::element::Type("i8"), ov::Shape({1,1,1, alloc_size}), {ov::intel_gpu::shared_mem_type(ov::intel_gpu::SharedMemType::USM_DEVICE_BUFFER)}));
+        //v.push_back(ctx.create_tensor(ov::element::Type("i8"), ov::Shape({1,1,1, leftover}), {ov::intel_gpu::shared_mem_type(ov::intel_gpu::SharedMemType::USM_DEVICE_BUFFER)}));
+        //auto ctx = ie.get_default_context("GPU");
+        //auto eng = ctx.get_engine();
+        //std::shared_ptr<cldnn::engine> engine = create_test_engine(engine_types::ocl, runtime_types::ocl, false);
+        //auto lay = layout({1,1,1,100}, ov::element::Type("i8"), format::bfyx);
+        //engine->allocate_memory(lay, allocation_type::usm_device); //engine::supports_allocation(
+        //std::cout << "prefered" << engine->get_lockable_preferred_memory_allocation_type(lay.format.is_image_2d());
         ov::AnyMap _options = {ov::hint::model(simpleNetwork),
                             ov::num_streams(n_streams)};
 
