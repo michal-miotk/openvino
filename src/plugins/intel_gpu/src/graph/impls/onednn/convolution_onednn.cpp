@@ -257,7 +257,9 @@ protected:
 
 public:
     void save(BinaryOutputBuffer& ob) const override {
+        //auto begin = ob.stream.tellp();
 #ifdef ONEDNN_PRIMITIVE_SERIALIZATION
+        assert(_prim.get(true) != nullptr);
         parent::save(ob);
 
         ob << _zero_point_mask;
@@ -281,10 +283,13 @@ public:
         std::vector<uint8_t> prim_cache;
         prim_cache = _prim.get_cache_blob();
         ob << prim_cache;
+        //std::cout << "diff save " << ob.stream.tellp() - begin << std::endl;
 #endif
     }
 
     void load(BinaryInputBuffer& ib) override {
+        std::cout << "LOAD LOAD LOAD" << std::endl;
+        //auto begin = ib._stream.tellg();
 #ifdef ONEDNN_PRIMITIVE_SERIALIZATION
         parent::load(ib);
 
@@ -317,7 +322,7 @@ public:
             ib >> make_data(&_wzp_data_type, sizeof(dnnl::memory::data_type));
             _attrs->set_zero_points(DNNL_ARG_WEIGHTS, 0, dnnl::memory::dims{}, _wzp_data_type);
         }
-
+        assert(zero_bias == (impl_params->input_layouts.size() > 2));
         if (zero_bias) {
             auto prim_desc = std::make_shared<dnnl::convolution_forward::primitive_desc>(
                                     ib.get_engine().get_onednn_engine(),
@@ -343,6 +348,7 @@ public:
         ib >> prim_cache;
 
         _prim = dnnl::primitive(_pd, prim_cache);
+        //std::cout << "diff load" << ib._stream.tellg() - begin << std::endl;
 #endif
     }
 

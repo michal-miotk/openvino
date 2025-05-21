@@ -336,6 +336,7 @@ void fuse_mean_scale(ov::preprocess::PrePostProcessor& preproc, const benchmark_
 int main(int argc, char* argv[]) {
     std::shared_ptr<StatisticsReport> statistics;
     try {
+        ov::CompiledModel compiledModelini;
         ov::CompiledModel compiledModel;
 
         // ----------------- 1. Parsing and validating input arguments
@@ -650,7 +651,12 @@ int main(int argc, char* argv[]) {
             slog::info << "Skipping the step for loading model from file" << slog::endl;
             auto compile_model_mem_start = get_peak_memory_usage();
             auto startTime = Time::now();
-            compiledModel = core.compile_model(FLAGS_m, device_name, device_config);
+            compiledModelini = core.compile_model(FLAGS_m, device_name, device_config);
+            //compiledModelini = core.compile_model(model, device_name, device_config);
+            std::stringstream of;
+            std::cout << "EXPORTING!!!" << std::endl;
+            compiledModelini.export_model(of);
+            compiledModel = core.import_model(of, "GPU");
             auto duration_ms = get_duration_ms_till_now(startTime);
             auto compile_model_mem_end = get_peak_memory_usage();
             slog::info << "Compile model took " << double_to_string(duration_ms) << " ms" << slog::endl;
@@ -830,7 +836,11 @@ int main(int argc, char* argv[]) {
             next_step();
             auto compile_model_mem_start = get_peak_memory_usage();
             startTime = Time::now();
-            compiledModel = core.compile_model(model, device_name, device_config);
+            compiledModelini = core.compile_model(model, device_name, device_config);
+            std::stringstream of;
+            std::cout << "EXPORTING!!!" << std::endl;
+            compiledModelini.export_model(of);
+            compiledModel = core.import_model(of, "GPU");
             duration_ms = get_duration_ms_till_now(startTime);
             auto compile_model_mem_end = get_peak_memory_usage();
             slog::info << "Compile model took " << double_to_string(duration_ms) << " ms" << slog::endl;

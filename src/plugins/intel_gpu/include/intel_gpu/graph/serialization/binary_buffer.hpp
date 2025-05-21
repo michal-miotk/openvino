@@ -35,9 +35,9 @@ public:
     void* getKernelImplParams() const { return _impl_params; }
     void set_stream(void* strm) { _strm = strm; }
     void* get_stream() const { return _strm; }
-
-private:
     std::ostream& stream;
+private:
+    
     void* _impl_params;
     void* _strm;
 };
@@ -57,9 +57,9 @@ public:
 
     void setKernelImplParams(void* impl_params) { _impl_params = impl_params; }
     void* getKernelImplParams() const { return _impl_params; }
-
-private:
     std::istream& _stream;
+private:
+    
     void* _impl_params;
 };
 
