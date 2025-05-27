@@ -47,6 +47,16 @@ JitConstants FullyConnectedKernelBase::GetJitConstants(const fully_connected_par
                 jit.AddConstants({MakeJitConstant("DECOMPRESSION_ZP", params.decompression_zero_point)});
                 jit.AddConstants({MakeJitConstant("DECOMPRESSION_ZP_GROUPS_NUM", zp_groups_num)});
                 jit.AddConstants({MakeJitConstant("DECOMPRESSION_ZP_GROUP_SIZE", zp_group_size)});
+                if (params.decompression_zero_point.GetDType()  == Datatype::INT4) {
+                    jit.AddConstants({MakeJitConstant("COMPRESSED_ZP_INT4", 1)});
+                } else {
+                    jit.AddConstants({MakeJitConstant("COMPRESSED_ZP_INT4", 0)});
+                }
+                if (params.decompression_zero_point.GetDType() == Datatype::UINT4) {
+                    jit.AddConstants({MakeJitConstant("COMPRESSED_ZP_UINT4", 1)});
+                } else {
+                    jit.AddConstants({MakeJitConstant("COMPRESSED_ZP_UINT4", 0)});
+                }
             }
         }
     }
@@ -232,5 +242,4 @@ Datatype FullyConnectedKernelBase::GetActivationType(const fully_connected_param
 
     return GetUnitType(params);
 }
-
 }  // namespace kernel_selector

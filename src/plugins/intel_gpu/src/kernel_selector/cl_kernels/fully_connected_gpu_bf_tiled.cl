@@ -303,8 +303,10 @@ inline void FUNC(fc_bf_tiled_kernel_default)(
 
 #if COMPRESSED_WEIGHTS && DECOMPRESSION_ZP_TERM && DECOMPRESSION_ZP_GROUPS_NUM == 1 && !DECOMPRESSION_ZP_SCALAR && OUTER_OFM == 1
     #if DECOMPRESSION_ZP_LENGTH > 1 && DECOMPRESSION_ZP_LENGTH % (TILE_OFM * SIMD) == 0
+        printf("a\n");
         ACCUMULATOR_VEC_TYPE d_zp = TO_ACCUMULATOR_VEC_TYPE(BLOCK_READN(DECOMPRESSION_ZP_TYPE, TILE_OFM, decompression_zp, out_f));
     #elif DECOMPRESSION_ZP_LENGTH > 1 && DECOMPRESSION_ZP_LENGTH % (TILE_OFM * SIMD) != 0
+        printf("b\n");
         ACCUMULATOR_VEC_TYPE d_zp = 0;
         unroll_for(uint of = 0; of < TILE_OFM; ++of) {
             uint offset = out_f + of*SIMD + get_sub_group_local_id();
@@ -312,6 +314,7 @@ inline void FUNC(fc_bf_tiled_kernel_default)(
                 ((ACCUMULATOR_TYPE*)(&d_zp))[of] = decompression_zp[offset];
         }
     #else
+        printf("c\n");
         ACCUMULATOR_VEC_TYPE d_zp = decompression_zp[0];
     #endif
     ACCUMULATOR_TYPE* d_zps = (ACCUMULATOR_TYPE*)(&d_zp);
@@ -369,6 +372,7 @@ inline void FUNC(fc_bf_tiled_kernel_default)(
         ACCUMULATOR_VEC_TYPE acc_tmp[TILE_B] = { };
 
         #if USE_SLM && COMPRESSED_WEIGHTS_INT4
+            printf("d\n");
             #if TILE_OFM != 2
             #error "FC bf_tiled kernel: can't use SLM optimization with TILE_OFM != 2"
             #endif
@@ -532,7 +536,7 @@ inline void FUNC(fc_bf_tiled_kernel_default)(
                         #else
                             ACCUMULATOR_TYPE ds = ACCUMULATOR_VAL_ONE;
                         #endif
-
+                        printf("e\n");
                         #if DECOMPRESSION_ZP_TERM
                             #if DECOMPRESSION_ZP_SCALAR
                                 ACCUMULATOR_TYPE dzp = DECOMPRESSION_ZP_VALUE;
@@ -689,6 +693,7 @@ inline void FUNC(fc_bf_tiled_kernel_default)(
                         #endif
 
                         #if DECOMPRESSION_ZP_TERM
+                            printf("f\n");
                             #if DECOMPRESSION_ZP_SCALAR
                                 ACCUMULATOR_TYPE dzp = DECOMPRESSION_ZP_VALUE;
                             #elif DECOMPRESSION_ZP_GROUPS_NUM > 1
@@ -974,10 +979,12 @@ inline void FUNC(fc_bf_tiled_kernel_dyn_quan)(
             ACCUMULATOR_VEC_TYPE d_zp = 0;
             unroll_for(uint of = 0; of < TILE_OFM; ++of) {
                 uint offset = out_f + of*SIMD + get_sub_group_local_id();
+                printf("h\n");
                 if (offset < DECOMPRESSION_ZP_LENGTH)
                     ((ACCUMULATOR_TYPE*)(&d_zp))[of] = decompression_zp[offset];
             }
         #else
+            printf("i\n");
             ACCUMULATOR_VEC_TYPE d_zp = decompression_zp[0];
         #endif
         ACCUMULATOR_TYPE* d_zps = (ACCUMULATOR_TYPE*)(&d_zp);
@@ -1148,6 +1155,7 @@ inline void FUNC(fc_bf_tiled_kernel_dyn_quan)(
                             const uint offset_ifm = ni_offset + load_iter * FILTER_LOAD_BLOCK_SIZE + kii;
                             const uint zp_offset = (offset_ofm % DECOMPRESSION_ZP_BATCH_NUM) * DECOMPRESSION_ZP_BATCH_PITCH +
                                                     (offset_ifm / DECOMPRESSION_ZP_GROUP_SIZE) * DECOMPRESSION_ZP_FEATURE_PITCH;
+                            printf("j\n");
                             w[W_DYN_QUAN_IDX] = w[W_DYN_QUAN_IDX] - CAT(CAT(convert_, SLM_WEIGHT_TYPE),_rte)(decompression_zp[zp_offset]);
                         }
                     }
@@ -1206,6 +1214,7 @@ inline void FUNC(fc_bf_tiled_kernel_dyn_quan)(
                     const uint offset_ifm = ni_offset + load_iter * FILTER_LOAD_BLOCK_SIZE;
                     const uint zp_offset = (offset_ofm % DECOMPRESSION_ZP_BATCH_NUM) * DECOMPRESSION_ZP_BATCH_PITCH +
                                             (offset_ifm / DECOMPRESSION_ZP_GROUP_SIZE) * DECOMPRESSION_ZP_FEATURE_PITCH;
+                   printf("k\n"); 
                     wei_zp[fi] = TO_ACCUMULATOR_TYPE(decompression_zp[zp_offset]);
                 }
             #endif

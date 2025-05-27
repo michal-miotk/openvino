@@ -140,7 +140,11 @@ inline float2 unpack_to_float(uint4x2_t v) __attribute__((overloadable)) {
 }
 
 inline float2 unpack_to_float(int4x2_t v) __attribute__((overloadable)) {
-    return convert_float2(cvt_int4x2_to_int8x2(v));
+    char2 xd = cvt_int4x2_to_int8x2(v);
+    float2 xx = convert_float2(xd);
+    //printf("from %d to %f\n", (int)(xd.s0), xx.s0);
+    //printf("2from %d to %f\n", (int)(xd.s1), xx.s1);
+    return xx;
 }
 
 inline float4 unpack_to_float(uint4x4_t v) __attribute__((overloadable)) {
