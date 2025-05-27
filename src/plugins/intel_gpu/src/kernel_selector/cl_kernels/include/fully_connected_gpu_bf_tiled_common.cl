@@ -1,6 +1,7 @@
 // Copyright (C) 2024 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 //
+#include "include/batch_headers/int4_utils.cl"
 
 #define FUNC_NAME_BATCHED CAT(fc_bf_tiled_kernel_forced_tile_b, FORCED_TILE_B)
 #define FUNC_NAME CAT(_, CAT(CAT(FUNC_NAME_BATCHED, _), KERNEL_ID))
@@ -84,15 +85,33 @@ inline void (FUNC_NAME)(
 
 #if COMPRESSED_WEIGHTS && DECOMPRESSION_ZP_TERM && DECOMPRESSION_ZP_GROUPS_NUM == 1 && !DECOMPRESSION_ZP_SCALAR
     #if DECOMPRESSION_ZP_LENGTH > 1 && DECOMPRESSION_ZP_LENGTH % (TILE_OFM * SIMD) == 0
-        ACCUMULATOR_VEC_TYPE d_zp = TO_ACCUMULATOR_VEC_TYPE(BLOCK_READN(DECOMPRESSION_ZP_TYPE, TILE_OFM, decompression_zp, out_f));
+        printf("l0\n");
+        #if (COMPRESSED_ZP_INT4 || COMPRESSED_ZP_UINT4)
+            ACCUMULATOR_TYPE d_zp[DECOMPRESSION_ZP_LENGTH];
+            printf("base addr %u next addr %u\n", &decompression_zp[0], &decompression_zp[1]);
+            for(int i=0;i<DECOMPRESSION_ZP_LENGTH/2;i++) {
+                #if COMPRESSED_ZP_INT4
+                    MAKE_VECTOR_TYPE(ACCUMULATOR_TYPE, 2) decompression_zp_unpacked = UNPACK_INT4x2(ACCUMULATOR_TYPE, *((int4x2_t*)&decompression_zp[i]));
+                #elif COMPRESSED_ZP_UINT4
+                    MAKE_VECTOR_TYPE(ACCUMULATOR_TYPE, 2) decompression_zp_unpacked = UNPACK_UINT4x2(ACCUMULATOR_TYPE, *((uint4x2_t*)&decompression_zp[i]));
+                #endif
+                d_zp[i*2] = decompression_zp_unpacked[0];
+                d_zp[i*2+1] = decompression_zp_unpacked[1];
+                printf("yeah %f %d %d %f %d\n", d_zp[i*2], i*2, (int)(decompression_zp[i]), d_zp[i*2+1], i*2+1);
+            }
+        #else
+            ACCUMULATOR_VEC_TYPE d_zp = TO_ACCUMULATOR_VEC_TYPE(BLOCK_READN(DECOMPRESSION_ZP_TYPE, TILE_OFM, decompression_zp, out_f));
+        #endif
     #elif DECOMPRESSION_ZP_LENGTH > 1 && DECOMPRESSION_ZP_LENGTH % (TILE_OFM * SIMD) != 0
         ACCUMULATOR_VEC_TYPE d_zp = 0;
+        printf("m\n");
         unroll_for(uint of = 0; of < TILE_OFM; ++of) {
             uint offset = out_f + of*SIMD + get_sub_group_local_id();
             if (offset < DECOMPRESSION_ZP_LENGTH)
                 ((ACCUMULATOR_TYPE*)(&d_zp))[of] = decompression_zp[offset];
         }
     #else
+        printf("n\n");
         ACCUMULATOR_VEC_TYPE d_zp = decompression_zp[0];
     #endif
     ACCUMULATOR_TYPE* d_zps = (ACCUMULATOR_TYPE*)(&d_zp);
@@ -133,6 +152,7 @@ inline void (FUNC_NAME)(
     // =====================================================================================================================================
     // Main computation loop
     uint iterations = MAIN_LOOP_ELEMENTS_COUNT / (TILE_IFM * SIMD);
+    printf("iterations %u\n", iterations);
     __attribute__((opencl_unroll_hint(1)))
     for (uint ni = 0; ni < iterations; ++ni) {
         // Load input.
@@ -177,13 +197,17 @@ inline void (FUNC_NAME)(
 
                         #if DECOMPRESSION_ZP_TERM
                             #if DECOMPRESSION_ZP_SCALAR
+                                printf("o\n");
                                 ACCUMULATOR_TYPE dzp = DECOMPRESSION_ZP_VALUE;
                             #elif DECOMPRESSION_ZP_GROUPS_NUM > 1
                                 const uint zp_offset = (offset_ofm % DECOMPRESSION_ZP_BATCH_NUM) * DECOMPRESSION_ZP_BATCH_PITCH +
                                                     ((kii + ki*TILE_K + ni*TILE_IFM*SIMD) / DECOMPRESSION_ZP_GROUP_SIZE) * DECOMPRESSION_ZP_FEATURE_PITCH;
+                                printf("p\n");
                                 ACCUMULATOR_TYPE dzp = decompression_zp[zp_offset];
                             #else
-                                ACCUMULATOR_TYPE dzp = d_zps[fi % DECOMPRESSION_ZP_LENGTH];
+                                printf("r0\n");
+                                printf("res %d %f\n", offset_ofm % DECOMPRESSION_ZP_LENGTH, d_zps[offset_ofm % DECOMPRESSION_ZP_LENGTH]);
+                                ACCUMULATOR_TYPE dzp = d_zps[offset_ofm % DECOMPRESSION_ZP_LENGTH];
                             #endif
                         #else
                             ACCUMULATOR_TYPE dzp = ACCUMULATOR_VAL_ZERO;
@@ -296,12 +320,15 @@ inline void (FUNC_NAME)(
 
                         #if DECOMPRESSION_ZP_TERM
                             #if DECOMPRESSION_ZP_SCALAR
+                                printf("r\n");
                                 ACCUMULATOR_TYPE dzp = DECOMPRESSION_ZP_VALUE;
                             #elif DECOMPRESSION_ZP_GROUPS_NUM > 1
                                 const uint zp_offset = (offset_ofm % DECOMPRESSION_ZP_BATCH_NUM) * DECOMPRESSION_ZP_BATCH_PITCH +
                                                        ((kii + ki*TILE_K + iterations*TILE_IFM*SIMD) / DECOMPRESSION_ZP_GROUP_SIZE) * DECOMPRESSION_ZP_FEATURE_PITCH;
+                                printf("s\n");
                                 ACCUMULATOR_TYPE dzp = decompression_zp[zp_offset];
                             #else
+                                printf("t\n");
                                 ACCUMULATOR_TYPE dzp = d_zps[fi % DECOMPRESSION_ZP_LENGTH];
                             #endif
                         #else

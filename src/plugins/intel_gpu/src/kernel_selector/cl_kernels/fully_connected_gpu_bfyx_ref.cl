@@ -43,7 +43,12 @@ KERNEL(fc)(
                         ACCUMULATOR_TYPE zp = DECOMPRESSION_ZP_VALUE;
                     #else
                         const uint zp_offset = DECOMPRESSION_ZP_GET_INDEX_SAFE(oym, y / DECOMPRESSION_ZP_GROUP_SIZE, 0, 0);
-                        ACCUMULATOR_TYPE zp = TO_ACCUMULATOR_TYPE(decompression_zp[zp_offset]);
+                        #if COMPRESSED_ZP_INT4
+                            MAKE_VECTOR_TYPE(ACCUMULATOR_TYPE, 2) decompression_zp_unpacked = UNPACK_INT4x2(ACCUMULATOR_TYPE, *((INT4_PACKED_TYPE*)&decompression_zp[zp_offset/2]));
+                            ACCUMULATOR_TYPE zp = ((ACCUMULATOR_TYPE*)(&decompression_zp_unpacked))[zp_offset%2];
+                        #else
+                            ACCUMULATOR_TYPE zp = TO_ACCUMULATOR_TYPE(decompression_zp[zp_offset]);
+                        #endif 
                     #endif
                 #else
                     ACCUMULATOR_TYPE zp = ACCUMULATOR_VAL_ZERO;
@@ -62,6 +67,7 @@ KERNEL(fc)(
                 MAKE_VECTOR_TYPE(ACCUMULATOR_TYPE, 2) filter_unpacked = UNPACK_INT4x2(ACCUMULATOR_TYPE, *((INT4_PACKED_TYPE*)&filter_packed));
 
                 ACCUMULATOR_TYPE filter_compressed = ((ACCUMULATOR_TYPE*)(&filter_unpacked))[filter_idx % 2];
+                printf("%f %f %f\n", filter_compressed, zp, scale);
                 ACCUMULATOR_TYPE filter_val = (filter_compressed - zp) * scale;
                 dotProd += (ACCUMULATOR_TYPE)(input[input0_idx]) * filter_val;
             #else
