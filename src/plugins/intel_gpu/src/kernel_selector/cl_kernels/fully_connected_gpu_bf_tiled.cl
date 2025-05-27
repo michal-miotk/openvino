@@ -304,8 +304,20 @@ inline void FUNC(fc_bf_tiled_kernel_default)(
 #if COMPRESSED_WEIGHTS && DECOMPRESSION_ZP_TERM && DECOMPRESSION_ZP_GROUPS_NUM == 1 && !DECOMPRESSION_ZP_SCALAR
     printf("DECOMPRESSION_ZP_LENGTH %d\n", DECOMPRESSION_ZP_LENGTH);
     #if DECOMPRESSION_ZP_LENGTH > 1 && DECOMPRESSION_ZP_LENGTH % (TILE_OFM * SIMD) == 0
-        printf("a\n");
-        ACCUMULATOR_VEC_TYPE d_zp = TO_ACCUMULATOR_VEC_TYPE(BLOCK_READN(DECOMPRESSION_ZP_TYPE, TILE_OFM, decompression_zp, out_f));
+        printf("a1\n");
+        #if COMPRESSED_ZP_INT4
+            printf("a2\n");
+            ACCUMULATOR_VEC_TYPE d_zp = 0;
+            unroll_for(uint of = 0; of < TILE_OFM; ++of) {
+                uint offset = out_f + of*SIMD + get_sub_group_local_id();
+                if (offset < DECOMPRESSION_ZP_LENGTH) {
+                    MAKE_VECTOR_TYPE(ACCUMULATOR_TYPE, 2) decompression_zp_unpacked = UNPACK_INT4x2(ACCUMULATOR_TYPE, *((int4x2_t*)&decompression_zp[offset/2]));
+                    ((ACCUMULATOR_TYPE*)(&d_zp))[of] = decompression_zp_unpacked[offset%2];
+                }
+            }
+        #else
+            ACCUMULATOR_VEC_TYPE d_zp = TO_ACCUMULATOR_VEC_TYPE(BLOCK_READN(DECOMPRESSION_ZP_TYPE, TILE_OFM, decompression_zp, out_f));
+        #endif
     #elif DECOMPRESSION_ZP_LENGTH > 1 && DECOMPRESSION_ZP_LENGTH % (TILE_OFM * SIMD) != 0
         printf("b\n");
         ACCUMULATOR_VEC_TYPE d_zp = 0;
