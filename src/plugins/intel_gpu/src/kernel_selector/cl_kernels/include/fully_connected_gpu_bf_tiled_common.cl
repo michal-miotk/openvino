@@ -202,7 +202,12 @@ inline void (FUNC_NAME)(
                         #if DECOMPRESSION_ZP_TERM
                             #if DECOMPRESSION_ZP_SCALAR
                                 printf("o\n");
-                                ACCUMULATOR_TYPE dzp = DECOMPRESSION_ZP_VALUE;
+                                #if COMPRESSED_ZP_INT4
+                                    MAKE_VECTOR_TYPE(ACCUMULATOR_TYPE, 2) decompression_zp_unpacked = UNPACK_INT4x2(ACCUMULATOR_TYPE, *((int4x2_t*)&decompression_zp[offset/2]));
+                                    ACCUMULATOR_TYPE dzp = decompression_zp_unpacked[0];
+                                #else
+                                    ACCUMULATOR_TYPE dzp = DECOMPRESSION_ZP_VALUE;
+                                #endif
                             #elif DECOMPRESSION_ZP_GROUPS_NUM > 1
                                 const uint zp_offset = (offset_ofm % DECOMPRESSION_ZP_BATCH_NUM) * DECOMPRESSION_ZP_BATCH_PITCH +
                                                     ((kii + ki*TILE_K + ni*TILE_IFM*SIMD) / DECOMPRESSION_ZP_GROUP_SIZE) * DECOMPRESSION_ZP_FEATURE_PITCH;
