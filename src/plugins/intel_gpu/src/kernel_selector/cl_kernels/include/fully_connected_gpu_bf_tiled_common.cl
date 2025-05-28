@@ -217,7 +217,6 @@ inline void (FUNC_NAME)(
                             #if OUTER_OFM > 1
                                 ACCUMULATOR_TYPE dzp = decompression_zp[offset_ofm];
                             #else
-                                ACCUMULATOR_TYPE dzp = d_zps[fi % DECOMPRESSION_ZP_LENGTH];
                                 printf("r0\n");
                                 printf("res %d %f\n", offset_ofm % DECOMPRESSION_ZP_LENGTH, d_zps[offset_ofm % DECOMPRESSION_ZP_LENGTH]);
                                 ACCUMULATOR_TYPE dzp = d_zps[offset_ofm % DECOMPRESSION_ZP_LENGTH];

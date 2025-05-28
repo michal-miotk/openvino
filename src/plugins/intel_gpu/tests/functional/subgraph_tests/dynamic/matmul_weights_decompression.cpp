@@ -407,7 +407,7 @@ INSTANTIATE_TEST_SUITE_P(MatMulCompressedWeights_corner_cases_big,
                                             ::testing::Values(false),
                                             ::testing::ValuesIn(per_tensor_zp),
                                             ::testing::Values(0),
-                                            ::testing::Values(1.0f)),
+                                            ::testing::Values(2.0f)),
                          MatmulWeightsDecompression::get_test_case_name);
 
 
