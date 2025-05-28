@@ -49,12 +49,16 @@ JitConstants FullyConnectedKernelBase::GetJitConstants(const fully_connected_par
                 jit.AddConstants({MakeJitConstant("DECOMPRESSION_ZP_GROUP_SIZE", zp_group_size)});
                 if (params.decompression_zero_point.GetDType()  == Datatype::INT4) {
                     jit.AddConstants({MakeJitConstant("COMPRESSED_ZP_INT4", 1)});
+                    std::cout << "incik1" << std::endl;
                 } else {
                     jit.AddConstants({MakeJitConstant("COMPRESSED_ZP_INT4", 0)});
+                    std::cout << "incik0" << std::endl;
                 }
                 if (params.decompression_zero_point.GetDType() == Datatype::UINT4) {
                     jit.AddConstants({MakeJitConstant("COMPRESSED_ZP_UINT4", 1)});
+                    std::cout << "uincik1" << std::endl;
                 } else {
+                    std::cout << "uincik0" << std::endl;
                     jit.AddConstants({MakeJitConstant("COMPRESSED_ZP_UINT4", 0)});
                 }
             }
