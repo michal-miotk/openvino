@@ -347,21 +347,13 @@ struct convolution : public primitive_base<convolution> {
                cmp_fields(bilinear_interpolation_pad) &&
                cmp_fields(transposed) &&
                cmp_fields(grouped_weights_shape) &&
-<<<<<<< HEAD
                cmp_fields(weights.is_valid()) &&
                cmp_fields(bias.is_valid()) &&
+               cmp_fields(scale.is_valid()) &&
+               cmp_fields(scale_zp.is_valid()) &&
                cmp_fields(weights_zero_points.is_valid()) &&
                cmp_fields(activations_zero_points.is_valid()) &&
                cmp_fields(compensation.is_valid());
-=======
-               cmp_fields(weights.empty()) &&
-               cmp_fields(bias.empty()) &&
-               cmp_fields(scale.empty()) &&
-               cmp_fields(scale_zp.empty()) &&
-               cmp_fields(weights_zero_points.empty()) &&
-               cmp_fields(activations_zero_points.empty()) &&
-               cmp_fields(compensation.empty());
->>>>>>> dba4e0e569 (wip evening)
         #undef cmp_fields
     }
 
@@ -402,21 +394,13 @@ struct convolution : public primitive_base<convolution> {
         ib >> bilinear_interpolation_pad;
         ib >> transposed;
         ib >> grouped_weights_shape;
-<<<<<<< HEAD
         ib >> weights;
         ib >> bias;
+        ib >> scale;
+        ib >> scale_zp;
         ib >> weights_zero_points;
         ib >> activations_zero_points;
         ib >> compensation;
-=======
-        ib >> *const_cast<primitive_id*>(&weights);
-        ib >> *const_cast<primitive_id*>(&bias);
-        ib >> *const_cast<primitive_id*>(&scale);
-        ib >> *const_cast<primitive_id*>(&scale_zp);
-        ib >> *const_cast<primitive_id*>(&weights_zero_points);
-        ib >> *const_cast<primitive_id*>(&activations_zero_points);
-        ib >> *const_cast<primitive_id*>(&compensation);
->>>>>>> dba4e0e569 (wip evening)
     }
 
 protected:

@@ -384,7 +384,7 @@ public:
                 auto ds_layout = arg.get_dependency(decompression_scale_idx).get_output_layout();
                 ds_data_type = convert_data_type(arg.get_dependency(decompression_scale_idx).get_output_layout().data_type);
                 auto ifm = arg.get_dependency(1).get_output_layout().get_dim(1);
-                auto ngroups = scale_layout.get_dim(1);
+                auto ngroups = ds_layout.get_dim(1);
                 group_size = ifm / ngroups;
                 OPENVINO_ASSERT((group_size == 1 || ngroups == 1 || group_size % 32 == 0),
                     "group_size should be aligned to 32 if it is not a single scale group or the group_size is not one.");

@@ -44,10 +44,10 @@ protected:
     kernel_arguments_data get_arguments(const typed_primitive_inst<convolution>& instance) const override {
         kernel_arguments_data args = parent::get_arguments(instance);
         auto typed_instance = instance.get_typed_desc<convolution>();
-        if (!typed_instance->scale.empty()) {
+        if (typed_instance->scale.is_valid()) {
             args.inputs.push_back(instance.scale_points_memory());
         }
-        if (!typed_instance->scale_zp.empty()) {
+        if (typed_instance->scale_zp.is_valid()) {
             args.inputs.push_back(instance.scale_zero_points_memory());
         }
         std::cout << args.inputs.size() << "ist size of daten" << std::endl;
@@ -100,18 +100,15 @@ public:
         ov::CoordinateDiff pads_end(primitive->padding_end.begin(), primitive->padding_end.end());
         const auto auto_pad = primitive->auto_pad;
         conv_params.has_explicit_paddings = primitive->auto_pad == ov::op::PadType::EXPLICIT;
-        conv_params.has_scale = !primitive->scale.empty();
-        std::cout << "setting has scale to " << !primitive->scale.empty() << " because of " << primitive->scale << std::endl;
-        std::cout << "setting has scale zp to " << !primitive->scale_zp.empty() << " because of " << primitive->scale_zp << std::endl;
-        std::cout << "weights are btw " << primitive->weights << std::endl;
-        conv_params.has_scale_zp = !primitive->scale_zp.empty();
-        if (!primitive->scale.empty()) {
+        conv_params.has_scale = primitive->scale.is_valid();
+        conv_params.has_scale_zp = primitive->scale_zp.is_valid();
+        if (primitive->scale.is_valid()) {
             std::cout << "scale not emp" << std::endl;
             conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[3]));
         } else {
             std::cout << "oh scale empty" << std::endl;
         }
-        if (!primitive->scale_zp.empty()) {
+        if (!primitive->scale_zp.is_valid()) {
             std::cout << "scalezp not emp" << std::endl;
             conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[4]));
         } else {
