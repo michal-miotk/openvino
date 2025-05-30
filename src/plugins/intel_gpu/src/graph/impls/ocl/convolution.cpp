@@ -108,7 +108,7 @@ public:
         } else {
             std::cout << "oh scale empty" << std::endl;
         }
-        if (!primitive->scale_zp.is_valid()) {
+        if (primitive->scale_zp.is_valid()) {
             std::cout << "scalezp not emp" << std::endl;
             conv_params.inputs.push_back(convert_data_tensor(impl_param.input_layouts[4]));
         } else {
