@@ -173,7 +173,7 @@ KERNEL(convolution_gpu_bfyx_os_iyx_osv16)(
             uint weight_addr_safe = min(weight_addr, filter_physical_len - 1);
 #if SCALE_TERM && SCALE_ZP_TERM
             //printf("hello from osv16 scale is %f scale zp is %f \n", scale, scale_zp);
-            w[pf] = (weights[weight_addr_safe]-scale_zp[0])*scale[0];
+            w[pf] = (float)(weights[weight_addr_safe]-scale_zp[0])*scale[0];
 #else
             w[pf] = weights[weight_addr_safe];
 #endif
