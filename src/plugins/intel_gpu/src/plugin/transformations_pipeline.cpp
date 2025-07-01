@@ -593,16 +593,11 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
                         activations[0].compare("sigmoid") != 0 || activations[1].compare("tanh") != 0 || activations[2].compare("tanh") != 0) {
                         return false;
                     }
-
                     if (lstm_seq->get_output_element_type(0) != ov::element::f16) {
                         return false;
                     }
-
-                    if (lstm_seq->is_dynamic()) {
-                        return false;
-                    }
-                    const auto &input = lstm_seq->get_input_shape(0);
-                    const auto &output = lstm_seq->get_output_shape(0);
+                    const auto &input = lstm_seq->get_input_partial_shape(0);
+                    const auto &output = lstm_seq->get_output_partial_shape(0);
                     if (input.size() != 3 || output.size() != 4) {
                         return false;
                     }
@@ -611,10 +606,9 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
                     auto num_dir = output[1];
                     auto hidden_size = output[3];
 
-                    if (hidden_size != 128 || batch_size != 1 || num_dir != 2 || (input_size != 64 && input_size != 256)) {
+                    if ((hidden_size != 128 && hidden_size != 256) && batch_size != 1 || num_dir != 2 || (input_size != 64 && input_size != 256)) {
                         return false;
                     }
-
                     return true;
                 });
 

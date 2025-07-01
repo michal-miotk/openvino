@@ -338,11 +338,11 @@ template <typename dtype_a, typename dtype_b, typename dtype_c,
         mem_space mem_space_out, gpu_arch arch_tag>
 struct __xetla_kernel_lstm_loop {
     static_assert(directions == 1 || directions == 2);
-    static_assert(hidden_size == 128);
+    static_assert(hidden_size == 128 || hidden_size == 256);
     static_assert(hidden_size % 4 == 0);
 
-    static constexpr uint32_t SIMD = 16;
-    static constexpr uint32_t num_threads = 32;
+    static constexpr uint32_t SIMD = hidden_size == 256 ? 32 : 16;
+    static constexpr uint32_t num_threads = hidden_size / (SIMD / 4);
     static constexpr uint32_t gates = 4;
 
     static constexpr uint32_t wg_m = 1;
@@ -350,7 +350,7 @@ struct __xetla_kernel_lstm_loop {
 
     static constexpr uint32_t sg_m = 1;
     static constexpr uint32_t sg_n = SIMD;
-    static constexpr uint32_t sg_k = hidden_size / 4;
+    static constexpr uint32_t sg_k = hidden_size / (SIMD / 4);
 
     static constexpr uint32_t matrix_m = 1;
     static constexpr uint32_t matrix_k = hidden_size;

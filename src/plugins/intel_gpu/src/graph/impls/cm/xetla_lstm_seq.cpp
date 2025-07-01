@@ -31,10 +31,12 @@ protected:
     [[nodiscard]] JitConstants get_jit_constants(const RuntimeParams& params) const override {
         auto jit = KernelGenerator::get_jit_constants(params);
         const auto& x_shape = params.input_layouts[0].get_shape();
+        const auto& initial_hidden_shape = params.input_layouts[1].get_shape();
 
         jit.add({
             make_jit_constant("KERNEL_NAME", get_entry_point(params)),
             make_jit_constant("INPUT_SIZE", x_shape[2]),
+            make_jit_constant("HIDDEN_SIZE", initial_hidden_shape[2]),
         });
 
         return jit;
@@ -57,7 +59,7 @@ protected:
 
     [[nodiscard]] DispatchDataFunc get_dispatch_data_func() const override {
         return DispatchDataFunc{[](const RuntimeParams& params, KernelData& kd, ImplRuntimeParams* rt_params) {
-            assert(!params.is_dynamic());
+            //assert(!params.is_dynamic());
             auto& wgs = kd.params.workGroups;
 
             const auto& ini_hidden_shape = params.input_layouts[1].get_shape();
@@ -68,9 +70,13 @@ protected:
 
             const size_t wg_m_hh = 1;
             const size_t wg_n_hh = hidden_size * num_gates;
-
             const size_t sg_m_hh = 1;
-            const size_t sg_n_hh = 16;
+            size_t SIMD_SIZE = 16;
+            if (hidden_size == 256) {
+                SIMD_SIZE = 32;
+            }
+
+            const size_t sg_n_hh = SIMD_SIZE;
 
             size_t matrix_m_hh = 1;
             size_t matrix_n_hh = hidden_size * num_gates;
@@ -98,12 +104,12 @@ protected:
     [[nodiscard]] JitConstants get_jit_constants(const RuntimeParams& params) const override {
         auto jit_constants = KernelGenerator::get_jit_constants(params);
         const auto& x_shape = params.input_layouts[0].get_shape();
-
+        const auto& initial_hidden_shape = params.input_layouts[1].get_shape();
         jit_constants.add({
-            make_jit_constant("KERNEL_NAME", get_entry_point(params)),
+            make_jit_constant("KERNEL_NAME", get_entry_point(params)), 
             make_jit_constant("INPUT_SIZE", x_shape[2]),
+            make_jit_constant("HIDDEN_SIZE", initial_hidden_shape[2]),
         });
-
         return jit_constants;
     }
 
@@ -131,7 +137,6 @@ protected:
             const auto hidden_size = ini_hidden_shape[2];
             const auto seq_len = out_shape[2];
             const auto num_dir = ini_hidden_shape[1];
-
             size_t matrix_m_ih = seq_len;
             size_t matrix_n_ih = hidden_size * num_gates;
 
@@ -157,8 +162,8 @@ protected:
 class LSTMImpl : public PrimitiveImplCM {
 public:
     DECLARE_OBJECT_TYPE_SERIALIZATION(ov::intel_gpu::cm::LSTMImpl)
-    Stage::Ptr lstm_loop = make_stage<XetlaLSTMLoopGenerator>();
     Stage::Ptr lstm_gemm = make_stage<XetlaLSTMGemmGenerator>();
+    Stage::Ptr lstm_loop = make_stage<XetlaLSTMLoopGenerator>();
 
     LSTMImpl() : PrimitiveImplOCL(LSTMSeqImplementationManager::get_type_info_static()) {}
     LSTMImpl(const program_node& node, const RuntimeParams& params) : LSTMImpl() {
