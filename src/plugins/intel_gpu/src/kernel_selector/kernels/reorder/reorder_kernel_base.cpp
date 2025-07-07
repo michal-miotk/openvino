@@ -128,7 +128,7 @@ JitConstants ReorderKernelBase::GetJitConstants(const reorder_params& params) co
     jit.Merge(MakeTypeJitConstants(calc_type, "CALC"));
     jit.Merge(MakeTypeJitConstants(input_reorder_type, "INPUT_REORDER"));
     jit.Merge(MakeTypeJitConstants(output_reorder_type, "OUTPUT_REORDER"));
-
+    std::cout << params.layerID << "__" << params.uniqueID << "output_reorder_type is " << int(output_reorder_type) << std::endl;
     jit.AddConstant(MakeJitConstant("MEAN_OP(val, mean_val)", getMeanOpString(params.mean_op)));
 
     // Type parametrized activation:

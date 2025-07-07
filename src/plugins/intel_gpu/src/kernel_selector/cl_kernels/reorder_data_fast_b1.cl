@@ -188,7 +188,7 @@ KERNEL (reorder_data_fast_b1)(
     const uint input_idx = FUNC_CALL(get_input_index)(ov.s0, ov.s1, ov.s2, ov.s3, ov.s4, ov.s5, ov.s6, ov.s7);
     const uint output_idx  = FUNC_CALL(get_output_index)(b, f, 0, 0, w, z, y, x);
 #endif
-
+    
 #if   defined MEAN_SUBTRACT_INSIDE_PARAMS
     float res = TO_MEAN_TYPE(input[input_idx]);
     res -= VALUE_TO_SUBTRACT[f % VALUE_TO_SUBTRACT_SIZE];

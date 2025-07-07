@@ -126,7 +126,7 @@ KERNEL (reorder_data)(
     uint8 ov = RESHAPE_DIMS(INPUT0, OUTPUT, b, f, v, u, w, z, y, x);
     const uint input_idx  = FUNC_CALL(get_input_index)(OPTIONAL_SHAPE_INFO_TENSOR b, f, v, u, w, z, y, x);
     const uint output_idx = FUNC_CALL(get_output_index)(OPTIONAL_SHAPE_INFO_TENSOR ov.s0, ov.s1, ov.s2, ov.s3, ov.s4, ov.s5, ov.s6, ov.s7);
-
+    //printf("reorderikx %f input_idx %d output_idx %d\n", input[input_idx], input_idx, output_idx);
 #if defined MEAN_SUBTRACT_INSIDE_PARAMS
     float res = TO_MEAN_TYPE(input[input_idx]);
     res = MEAN_OP(res, VALUE_TO_SUBTRACT[f % VALUE_TO_SUBTRACT_SIZE]);
@@ -225,9 +225,13 @@ KERNEL (reorder_data)(
         res = __TO_OUTPUT_REORDER_TYPE(res);
         FUSED_OPS;
         output[output_idx] = FUSED_OPS_RESULT;
+        //printf("xx output[output_idx] %f outputidx %d res%f\n", output[output_idx], output_idx, res);
     #else
+        
         output[output_idx] = ACTIVATION_TYPED(OUTPUT_REORDER, __TO_OUTPUT_REORDER_TYPE(res), ACTIVATION_PARAMS_TYPED);
+        //printf("output[output_idx] %f outputidx %d res%f\n", output[output_idx], output_idx, res);
     #endif
+    
 #undef __TO_OUTPUT_REORDER_TYPE
 #endif
 }

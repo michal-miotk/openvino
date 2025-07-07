@@ -790,9 +790,11 @@ void network::execute_impl(const std::vector<event::ptr>& events) {
     const bool needs_flushing = _is_dynamic;
     const size_t flush_frequency = needs_flushing ? 16 : 0;
     size_t executed_prims = 0;
-
+    int i = 0;
+    //int minimal_i = _exec_order.size()-20; 
     for (auto& inst : _exec_order) {
-        NODE_DEBUG(*inst);
+        i++;
+        
 
         inst->reset_events();
 
@@ -806,6 +808,8 @@ void network::execute_impl(const std::vector<event::ptr>& events) {
         executed_prims++;
         if (needs_flushing && executed_prims % flush_frequency == 0)
             get_stream().flush();
+        if (i > 15 && !(inst->is_constant()))
+            NODE_DEBUG(*inst);
     }
 
     // Using output of previous network as input to another one may cause hazard (in OOOQ mode) if user would not

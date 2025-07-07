@@ -7,6 +7,7 @@
 #include "format.hpp"
 #include "compounds.hpp"
 #include "utils.hpp"
+#include <sstream>
 
 #include <openvino/core/partial_shape.hpp>
 
@@ -264,8 +265,12 @@ public:
         : tensor(default_size) {
         const auto& in_order = fmt.order();
         const auto& out_order = fmt.internal_order();
-        if (in_order.size() != sizes.size())
-            throw std::invalid_argument("The count of values passed to initialize tensor does not match passed format.");
+        if (in_order.size() != sizes.size()) {
+            std::stringstream ss;
+            ss << sizes[0] << "_" << sizes[1] << "_" << sizes[2] << "_" << sizes[3] << "_";
+            ss << "The count of values passed to initialize tensor does not match passed format.";
+            throw std::invalid_argument(ss.str());
+        }
 
         for (size_t out_idx = 0; out_idx < out_order.size(); ++out_idx) {
             auto channel = out_order[out_idx];

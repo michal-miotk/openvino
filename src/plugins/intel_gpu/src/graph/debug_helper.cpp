@@ -72,6 +72,8 @@ void dump(memory::ptr mem, stream& stream, std::ofstream& file_stream, bool dump
 
     mem_lock<T, mem_lock_type::read> lock(mem, stream);
     auto mem_ptr = lock.data();
+    if (mem->get_layout().get_partial_shape().rank().is_static() && mem->get_layout().get_partial_shape().rank().get_length() < 3)
+        return;
     auto x_pitch = get_x_pitch(mem->get_layout());
     std::stringstream buffer;
 
@@ -405,6 +407,10 @@ NodeDebugHelper::NodeDebugHelper(const primitive_inst& inst)
                 } else {
                     const bool dump_raw = config.get_dump_tensors_format() == ov::intel_gpu::DumpFormat::text_raw;
                     GPU_DEBUG_COUT << " Dump " << (dump_raw ? "raw " : "") << name << std::endl;
+                    std::cout << "this is name" << name << std::endl;
+                    std::cout << " name[18]" << name[18] << "_" << name[19] << name[20] << std::endl;
+                    if (name[18] != '0' && name[18] != '2')
+                        return;
                     auto filename = config.get_dump_tensors_path() + get_name_for_dump(name) + ".txt";
                     log_memory_to_file(input_mem,
                                        input_layout,
