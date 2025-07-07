@@ -791,11 +791,9 @@ void network::execute_impl(const std::vector<event::ptr>& events) {
     const size_t flush_frequency = needs_flushing ? 16 : 0;
     size_t executed_prims = 0;
     int i = 0;
-    //int minimal_i = _exec_order.size()-20; 
+    //int minimal_i = _exec_order.size()-20;
     for (auto& inst : _exec_order) {
         i++;
-        
-
         inst->reset_events();
 
         if (inst->is_input()) {

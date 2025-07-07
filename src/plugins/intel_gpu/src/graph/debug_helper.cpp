@@ -443,6 +443,10 @@ NodeDebugHelper::~NodeDebugHelper() {
                                                     + layer_name + ":";
             for (size_t i = 0; i < m_inst.outputs_memory_count(); i++) {
                 std::string name = get_file_prefix() + "_dst" + std::to_string(i);
+                std::cout << "this is name" << name << std::endl;
+                std::cout << " name[18]" << name[18] << "_" << name[19] << name[20] << std::endl;
+                if (name[18] != '0' && name[18] != '2')
+                    return;
                 auto output_mem = m_inst.output_memory_ptr(i);
                 if (output_mem == nullptr) {
                     GPU_DEBUG_COUT  << " output_mem is nullptr. Nothing to dump." << std::endl;
