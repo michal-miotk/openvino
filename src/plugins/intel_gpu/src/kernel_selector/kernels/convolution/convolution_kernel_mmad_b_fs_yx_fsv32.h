@@ -7,6 +7,7 @@
 #include "convolution_kernel_base.h"
 #include <string>
 #include <vector>
+#define SIMD8 false
 
 namespace kernel_selector {
 
@@ -29,7 +30,7 @@ protected:
     bool NeedPaddedInput() const override { return false; }
 
     WeightsLayout GetPreferredWeightsLayout(const convolution_params &p) const override {
-         if (IsSIMDSizeSupported(p.engineInfo, 8)) {
+         if (SIMD8) {
             if (DataTensor::ChannelsCount(p.outputs[0].GetLayout()) <= 4) {
                 return WeightsLayout::os_is_yx_osa4_isa8_osv8_isv4_swizzled_by_4;
             } else {

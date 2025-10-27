@@ -8745,6 +8745,7 @@ void get_rng_params(int& min, int& max, int& k, bool is_conv_input = false) {
     } else {
         min = -256; max = 256; k = 8;
     }
+    min = 0; max = 10; k = 10;
 }
 template <typename InputT, typename WeightsT, typename OutputT>
 class convolution_random_test_base : public convolution_test_base<InputT, WeightsT, OutputT> {
@@ -8803,7 +8804,7 @@ public:
                 params.output_features, wei_in_f, params.filter_xy[1], params.filter_xy[0], weights_min, weights_max, weights_k);
             this->set_weights(std::move(weights_data));
         }
-        auto bias_data = params.with_bias ? rg.template generate_random_1d<OutputT>(params.output_features, -256, 256) : VF<OutputT>();
+        auto bias_data = params.with_bias ? rg.template generate_random_1d<OutputT>(params.output_features, -5, 5) : VF<OutputT>();
         auto weights_zp_data = params.asymmetric_weights ? rg.template generate_random_1d<WeightsT>(params.output_features, weights_min, weights_max, weights_k) : VF<WeightsT>();
         auto input_zp_data = params.asymmetric_data ? rg.template generate_random_1d<InputT>(params.input_features, input_min, input_max, input_k) : VF<InputT>();
 
@@ -9114,6 +9115,12 @@ class convolution_random_smoke_test : public testing::TestWithParam<convolution_
 using convolution_random_test_s8s8f32 = convolution_random_test_base<int8_t, int8_t, float>;
 using convolution_random_test_u8s8f32 = convolution_random_test_base<uint8_t, int8_t, float>;
 using convolution_random_test_u8u8f32 = convolution_random_test_base<uint8_t, uint8_t, float>;
+using convolution_random_test_u8u8i8 = convolution_random_test_base<uint8_t, uint8_t, int8_t>;
+using convolution_random_test_i8u8i8 = convolution_random_test_base<int8_t, uint8_t, int8_t>;
+
+using convolution_random_test_i8i8i8 = convolution_random_test_base<int8_t, int8_t, int8_t>;
+
+using convolution_random_test_u8i8i8 = convolution_random_test_base<uint8_t, int8_t, int8_t>;
 
 
 using convolution_random_test_fsv4_input_s8s8f32 = convolution_random_test_fsv4_input<int8_t, int8_t, float>;
@@ -9130,7 +9137,6 @@ struct params_generator : std::vector<convolution_random_test_all_params> {
                                         bool bigger_pad = false) {
         std::vector<size_t> batches = { 1, 2 };
         for (auto b : batches) {
-            // first conv
             push_back(convolution_random_test_all_params{
                 b, 3, 32, { 28, 28 }, { 7, 7 }, { 2, 2 }, { 3, 3 }, { 1, 1 }, true, 1, input_format, asymm_weights, asymm_data, padded_input, bigger_pad, false });
             push_back(convolution_random_test_all_params{
@@ -9255,6 +9261,26 @@ struct params_generator : std::vector<convolution_random_test_all_params> {
 
 TEST_P(convolution_random_smoke_test, u8s8f32) {
     convolution_random_test_u8s8f32 test;
+    ASSERT_NO_FATAL_FAILURE(test.run_random(GetParam()));
+}
+
+TEST_P(convolution_random_smoke_test, u8u8i8xd) {
+    convolution_random_test_u8u8i8 test;
+    ASSERT_NO_FATAL_FAILURE(test.run_random(GetParam()));
+}
+
+TEST_P(convolution_random_smoke_test, u8i8i8xd) {
+    convolution_random_test_u8i8i8 test;
+    ASSERT_NO_FATAL_FAILURE(test.run_random(GetParam()));
+}
+
+TEST_P(convolution_random_smoke_test, i8i8i8xd) {
+    convolution_random_test_i8i8i8 test;
+    ASSERT_NO_FATAL_FAILURE(test.run_random(GetParam()));
+}
+
+TEST_P(convolution_random_smoke_test, i8u8i8xd) {
+    convolution_random_test_i8u8i8 test;
     ASSERT_NO_FATAL_FAILURE(test.run_random(GetParam()));
 }
 

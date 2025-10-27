@@ -1656,7 +1656,7 @@ void program::set_layout_optimizer_attributes(layout_optimizer& lo) {
         get_config().get_queue_type() == QueueTypes::in_order &&
         enable_onednn_for_tests) {
             if (engine.get_device_info().supports_immad) {
-                lo.add_all_onednn_impls_optimization_attribute();
+                //lo.add_all_onednn_impls_optimization_attribute();
             } else {
                 if (get_config().get_use_onednn()) {
                     lo.enable_onednn_for<lstm_seq>();

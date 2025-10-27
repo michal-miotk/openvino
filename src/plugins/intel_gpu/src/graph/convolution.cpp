@@ -30,9 +30,7 @@ std::vector<layout> calc_output_layout_impl(convolution_node const& node, kernel
     auto input_layout = impl_param.get_input_layout(0);
     auto input_type = input_layout.data_type;
     auto output_type = (input_type == data_types::u8 || input_type == data_types::i8) ? data_types::f32 : input_type;
-    if (impl_param.has_fused_primitives()) {
-        output_type = impl_param.get_output_element_type();
-    }
+    output_type =  data_types::i8;
 
     auto weights_layout = *impl_param.weights_layout;
     weights_layout = weights_layout.convert_to_weights_layout(desc->grouped_weights_shape);

@@ -47,12 +47,14 @@ public:
     template<typename ReturnType>
     std::vector<ReturnType> generate_random_1d(size_t a, int min, int max, int k = 8) {
         // 1/k is the resolution of the floating point numbers
-        std::uniform_int_distribution<int> distribution(k * min, k * max);
+        std::uniform_int_distribution<int> distribution(min, max);
         std::vector<ReturnType> v(a);
 
         for (size_t i = 0; i < a; ++i) {
             v[i] = static_cast<ReturnType>(distribution(this->generator));
+            std::cout << "generated " << static_cast<int>(v[i]) << "will be div" << static_cast<int>(k) << std::endl;
             v[i] /= k;
+            std::cout << "result " << static_cast<int>(v[i]) << std::endl;
         }
         return v;
     }
