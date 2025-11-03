@@ -109,14 +109,14 @@ ConvolutionKernelBase::DispatchData ConvolutionKernel_mmad_b_fs_yx_fsv32::SetDef
             break;
         ow_group--;
     }
-    if (IsSIMDSizeSupported(cp.engineInfo, 8)) {
+    if (false) {
         dispatchData.gws[0] = Align(cp.outputs[0].Feature().v, 32) / 4;
     } else {
         dispatchData.gws[0] = Align(cp.outputs[0].Feature().v, 32) / 2;
     }
     dispatchData.gws[1] = Align(CeilDiv(cp.outputs[0].X().v, dispatchData.cldnnStyle.blockWidth), ow_group) * cp.outputs[0].Y().v * cp.outputs[0].Z().v;
     dispatchData.gws[2] = cp.outputs[0].Batch().v;
-    if (IsSIMDSizeSupported(cp.engineInfo, 8)) {
+    if (false) {
         dispatchData.lws[0] = 8;
     } else {
         dispatchData.lws[0] = 16;
@@ -150,7 +150,7 @@ JitConstants ConvolutionKernel_mmad_b_fs_yx_fsv32::GetJitConstants(const convolu
     jit.AddConstant(MakeJitConstant("INPUT_LINE_SIZE", input_line_size));
 
     jit.Merge(MakeTypeJitConstants(GetPackedInputType(params), "PACKED_IN"));
-    if (IsSIMDSizeSupported(params.engineInfo, 8)) {
+    if (false) {
         jit.Merge(MakeTypeJitConstants(GetPackedOutputType(params), "PACKED_OUT"));
         jit.AddConstant(MakeJitConstant("OF_TO_DO", 4));
     } else {
@@ -186,7 +186,7 @@ JitConstants ConvolutionKernel_mmad_b_fs_yx_fsv32::GetJitConstants(const convolu
         FusedOpsConfiguration conf1 = {"_1", idx_order1, "res1", input_dt, 1 };
         FusedOpsConfiguration conf2 = {"_2", idx_order2, "res2", input_dt, 1 };
         FusedOpsConfiguration conf3 = {"_3", idx_order3, "res3", input_dt, 1 };
-        if (IsSIMDSizeSupported(params.engineInfo, 8)) {
+        if (false) {
             jit.Merge(MakeFusedOpsJitConstants(params, {conf0, conf1, conf2, conf3}));
         } else {
             jit.Merge(MakeFusedOpsJitConstants(params, {conf0, conf1}));

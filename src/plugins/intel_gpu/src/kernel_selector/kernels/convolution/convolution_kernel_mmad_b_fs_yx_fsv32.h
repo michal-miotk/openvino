@@ -29,7 +29,7 @@ protected:
     bool NeedPaddedInput() const override { return false; }
 
     WeightsLayout GetPreferredWeightsLayout(const convolution_params &p) const override {
-         if (IsSIMDSizeSupported(p.engineInfo, 8)) {
+         if (false) {
             if (DataTensor::ChannelsCount(p.outputs[0].GetLayout()) <= 4) {
                 return WeightsLayout::os_is_yx_osa4_isa8_osv8_isv4_swizzled_by_4;
             } else {
