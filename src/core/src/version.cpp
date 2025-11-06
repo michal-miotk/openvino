@@ -24,7 +24,7 @@ std::ostream& operator<<(std::ostream& s, const std::map<std::string, Version>& 
 }
 
 const Version get_openvino_version() noexcept {
-    static const Version version = {CI_BUILD_NUMBER, "OpenVINO Runtime"};
+    static const Version version = {CI_BUILD_NUMBER, OPENVINO_VERSION_MAJOR, "OpenVINO Runtime"};
     return version;
 }
 

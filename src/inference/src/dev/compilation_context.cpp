@@ -174,10 +174,12 @@ std::string ModelCache::compute_hash(const std::string& modelStr,
 CompiledBlobHeader::CompiledBlobHeader() {}
 
 CompiledBlobHeader::CompiledBlobHeader(const std::string& ieVersion,
+                                       const int& ieVersion_major,
                                        const std::string& fileInfo,
                                        const std::string& runtimeInfo,
                                        const uint32_t headerSizeAlignment)
     : m_ieVersion(ieVersion),
+      m_ieVersion_major(ieVersion_major),
       m_fileInfo(fileInfo),
       m_runtimeInfo(runtimeInfo),
       m_headerSizeAlignment(headerSizeAlignment) {}
@@ -195,6 +197,7 @@ std::istream& operator>>(std::istream& stream, CompiledBlobHeader& header) {
 
     pugi::xml_node compiledBlobNode = document.document_element();
     header.m_ieVersion = ov::util::pugixml::get_str_attr(compiledBlobNode, "ie_version");
+    header.m_ieVersion = ov::util::pugixml::get_int_attr(compiledBlobNode, "ie_version_major");
     header.m_fileInfo = ov::util::pugixml::get_str_attr(compiledBlobNode, "file_info");
     header.m_runtimeInfo = ov::util::pugixml::get_str_attr(compiledBlobNode, "runtime_info");
     header.m_headerSizeAlignment = ov::util::pugixml::get_uint_attr(compiledBlobNode, "header_size_alignment");
@@ -211,6 +214,7 @@ std::ostream& operator<<(std::ostream& stream, const CompiledBlobHeader& header)
     pugi::xml_document document;
     auto compiledBlobNode = document.append_child("compiled_blob");
     compiledBlobNode.append_attribute("ie_version").set_value(header.m_ieVersion.c_str());
+    compiledBlobNode.append_attribute("ie_version_major").set_value(header.m_ieVersion_major);
     compiledBlobNode.append_attribute("file_info").set_value(header.m_fileInfo.c_str());
     compiledBlobNode.append_attribute("runtime_info").set_value(header.m_runtimeInfo.c_str());
     compiledBlobNode.append_attribute("header_size_alignment")
@@ -259,6 +263,7 @@ void CompiledBlobHeader::read_from_buffer(const char* buffer, size_t buffer_size
 
     pugi::xml_node compiledBlobNode = document.document_element();
     m_ieVersion = ov::util::pugixml::get_str_attr(compiledBlobNode, "ie_version");
+    m_ieVersion_major = ov::util::pugixml::get_int_attr(compiledBlobNode, "ie_version_major");
     m_fileInfo = ov::util::pugixml::get_str_attr(compiledBlobNode, "file_info");
     m_runtimeInfo = ov::util::pugixml::get_str_attr(compiledBlobNode, "runtime_info");
     m_headerSizeAlignment = ov::util::pugixml::get_uint_attr(compiledBlobNode, "header_size_alignment");

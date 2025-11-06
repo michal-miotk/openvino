@@ -240,7 +240,7 @@ static constexpr Property<std::string, PropertyMutability::RO> model_name{"NETWO
  */
 static constexpr Property<uint32_t, PropertyMutability::RO> optimal_number_of_infer_requests{
     "OPTIMAL_NUMBER_OF_INFER_REQUESTS"};
-
+static constexpr Property<int, PropertyMutability::RW> cache_ov_major_version{"CACHE_OV_MAJOR_VERSION"};
 /**
  * @brief Namespace with hint properties
  */

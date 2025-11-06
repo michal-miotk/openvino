@@ -299,6 +299,7 @@ public:
     layout_optimizer& get_layout_optimizer() const { return *_layout_optimizer; }
 
 private:
+    int cache_ov_major_version = 0;
     uint32_t prog_id = 0;
     engine& _engine;
     stream::ptr _stream;

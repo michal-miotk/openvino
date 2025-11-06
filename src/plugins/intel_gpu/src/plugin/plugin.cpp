@@ -971,5 +971,5 @@ uint32_t Plugin::get_optimal_batch_size(const ov::AnyMap& options) const {
 
 }  // namespace ov::intel_gpu
 
-static const ov::Version version = { CI_BUILD_NUMBER, "Intel GPU plugin" };
+static const ov::Version version = { CI_BUILD_NUMBER, 0, "Intel GPU plugin" };
 OV_DEFINE_PLUGIN_CREATE_FUNCTION(ov::intel_gpu::Plugin, version)

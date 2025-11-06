@@ -35,7 +35,7 @@ struct Version {
      * @brief A null terminated string with build number
      */
     const char* buildNumber;
-
+    int versionMajor;
     /**
      * @brief A null terminated description string
      */

@@ -1546,6 +1546,7 @@ ov::SoPtr<ov::ICompiledModel> ov::CoreImpl::compile_model_and_cache(ov::Plugin& 
                 }
 
                 networkStream << ov::CompiledBlobHeader(ov::get_openvino_version().buildNumber,
+                                                        ov::get_openvino_version().versionMajor,
                                                         ov::ModelCache::calculate_file_info(cacheContent.modelPath),
                                                         compiled_model_runtime_properties,
                                                         header_size_alignment);
@@ -1593,7 +1594,10 @@ ov::SoPtr<ov::ICompiledModel> ov::CoreImpl::load_model_from_cache(
                                                                stream >> header;
                                                            }};
                     std::visit(header_reader, compiled_blob);
-
+                    std::map<std::string, ov::Any> xx;
+                    std::cout << "header.m_ieVersion_major" << header.m_ieVersion_major << std::endl;
+                    xx["CACHE_OV_MAJOR_VERSION"] = header.m_ieVersion_major;
+                    plugin.set_property(xx); //
                     if (header.get_file_info() != ov::ModelCache::calculate_file_info(cacheContent.modelPath)) {
                         // Original file is changed, don't use cache
                         OPENVINO_THROW("Original model file is changed");
@@ -1620,6 +1624,7 @@ ov::SoPtr<ov::ICompiledModel> ov::CoreImpl::load_model_from_cache(
                 }
 
                 ov::AnyMap update_config = config;
+                update_config["CACHE_OV_MAJOR_VERSION"] = header.m_ieVersion_major;
                 update_config[ov::loaded_from_cache.name()] = true;
                 if (cacheContent.model &&
                     util::contains(plugin.get_property(ov::supported_properties), ov::hint::model)) {

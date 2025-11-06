@@ -782,7 +782,7 @@ ov::Any ov::proxy::Plugin::get_internal_property(const std::string& property, co
 }
 
 void ov::proxy::create_plugin(::std::shared_ptr<::ov::IPlugin>& plugin) {
-    static const ov::Version version = {CI_BUILD_NUMBER, "openvino_proxy_plugin"};
+    static const ov::Version version = {CI_BUILD_NUMBER, OPENVINO_VERSION_MAJOR, "openvino_proxy_plugin"};
     try {
         plugin = ::std::make_shared<ov::proxy::Plugin>();
     } catch (const ov::Exception&) {

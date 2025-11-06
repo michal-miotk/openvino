@@ -38,8 +38,10 @@ class CompiledBlobHeader final {
     uint32_t m_headerSizeAlignment{0};
 
 public:
+    int m_ieVersion_major;
     CompiledBlobHeader();
     CompiledBlobHeader(const std::string& ieVersion,
+                       const int& ieVersion_major,
                        const std::string& fileInfo,
                        const std::string& runtimeInfo,
                        const uint32_t headerSizeAlignment = 0);

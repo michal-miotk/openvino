@@ -265,6 +265,7 @@ struct convolution : public primitive_base<convolution> {
     }
 
     void load(BinaryInputBuffer& ib) override {
+        //std::cout << "readed in conv" << cache_ov_major_version << std::endl;
         primitive_base<convolution>::load(ib);
         ib >> groups;
         ib >> stride;
