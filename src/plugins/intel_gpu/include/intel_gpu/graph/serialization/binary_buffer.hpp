@@ -58,6 +58,7 @@ public:
     void setKernelImplParams(void* impl_params) { _impl_params = impl_params; }
     void* getKernelImplParams() const { return _impl_params; }
 
+    int openvinoVersion = 0;
 private:
     std::istream& _stream;
     void* _impl_params;

@@ -297,9 +297,8 @@ public:
 
     bool is_new_shape_infer() const { return new_shape_infer; }
     layout_optimizer& get_layout_optimizer() const { return *_layout_optimizer; }
-
-private:
     int cache_ov_major_version = 0;
+private:
     uint32_t prog_id = 0;
     engine& _engine;
     stream::ptr _stream;

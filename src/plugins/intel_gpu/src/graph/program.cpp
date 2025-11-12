@@ -1871,8 +1871,7 @@ void program::save(cldnn::BinaryOutputBuffer& ob) const {
 
 void program::load(cldnn::BinaryInputBuffer& ib,
                    std::shared_ptr<const ov::Model> model_ptr,
-                   std::shared_ptr<ov::intel_gpu::GpuWeightlessCacheMap> cache_attr_map,
-                   int cache_ov_major_version) {
+                   std::shared_ptr<ov::intel_gpu::GpuWeightlessCacheMap> cache_attr_map) {
     init_program();
 
     std::shared_ptr<WeightsMemory> weights_memory = nullptr;
@@ -1926,7 +1925,7 @@ void program::load(cldnn::BinaryInputBuffer& ib,
         primitive_id prim_id;
         ib >> prim_id;
         auto& p_node = get_node(prim_id);
-        p_node.load(ib, cache_ov_major_version);
+        p_node.load(ib);
         size_t num_dep_nodes;
         ib >> num_dep_nodes;
         for (size_t i = 0; i < num_dep_nodes; ++i) {

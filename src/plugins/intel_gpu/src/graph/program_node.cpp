@@ -821,7 +821,7 @@ void program_node::save(cldnn::BinaryOutputBuffer& ob) const {
 #endif // ENABLE_ONEDNN_FOR_GPU
 }
 
-void program_node::load(cldnn::BinaryInputBuffer& ib, int cache_ov_major_version) {
+void program_node::load(cldnn::BinaryInputBuffer& ib) {
     ib >> unique_id;
     ib >> valid_output_layouts;
     ib >> output_layouts;

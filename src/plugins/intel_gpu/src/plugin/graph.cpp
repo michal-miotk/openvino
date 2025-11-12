@@ -97,7 +97,9 @@ Graph::Graph(cldnn::BinaryInputBuffer &ib, const RemoteContextImpl::Ptr& context
 
     auto imported_prog = std::make_shared<cldnn::program>(get_engine(), m_config);
     // Not passing MODEL_PTR through m_config because values in m_config are immutable after config finalization.
-    cache_ov_major_version = static_cast<int>(config["CACHE_OV_MAJOR_VERSION"]);
+    std::string a = "CACHE_OV_MAJOR_VERSION";
+    imported_prog->cache_ov_major_version = (config.get_user_properties().at(a)).as<int>();
+    ib.openvinoVersion = imported_prog->cache_ov_major_version;
     imported_prog->load(ib, config.get_model(), config.get_weightless_attr());
     build(imported_prog);
 }
