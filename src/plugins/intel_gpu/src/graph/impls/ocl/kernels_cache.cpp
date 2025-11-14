@@ -173,7 +173,7 @@ void kernels_cache::get_program_source(const kernels_code& kernels_source_code, 
                 const auto& batch_id = 0;
                 // increase bucket id if and only if new bucket comes
                 bucket_id = static_cast<int32_t>(program_buckets.size() - 1);
-                current_bucket.push_back(batch_program(bucket_id, batch_id, options, batch_headers, kernel_string->language));
+                current_bucket.push_back(batch_program(bucket_id, batch_id, options, batch_headers, kernel_string->language, k.first));
             }
 
             // This is a temporary walk-around to avoid severe performance drop.
@@ -204,7 +204,7 @@ void kernels_cache::get_program_source(const kernels_code& kernels_source_code, 
                 || current_bucket.back().entry_point_to_id.find(entry_point) != current_bucket.back().entry_point_to_id.end()
                 || need_separate_batch(entry_point)) {
                 const auto& batch_id = static_cast<int32_t>(current_bucket.size());
-                current_bucket.push_back(batch_program(bucket_id, batch_id, options, batch_headers, kernel_string->language));
+                current_bucket.push_back(batch_program(bucket_id, batch_id, options, batch_headers, kernel_string->language, k.first));
             }
 
             auto& current_batch = current_bucket.back();
@@ -280,7 +280,7 @@ void kernels_cache::get_program_source(const kernels_code& kernels_source_code, 
             for (auto& ss : b.source)
                 full_code += ss;
 
-            b.hash_value = std::hash<std::string>()(full_code);
+            b.hash_value = b.params.hash();
 
             std::string dump_sources_dir = GPU_DEBUG_VALUE_OR(_config.get_dump_sources_path(), "");
 
@@ -375,7 +375,12 @@ void kernels_cache::build_batch(const batch_program& batch, compiled_kernels& co
         }
         if (!bin.empty()) {
             precompiled_kernels.push_back(bin);
+            std::cout << "binary loaded" << std::endl;
+        } else {
+            std::cout << "compilation problem" << std::endl;
         }
+    } else {
+        std::cout << "cache not enabled" << std::endl;
     }
     try {
         cl::vector<cl::Kernel> kernels;

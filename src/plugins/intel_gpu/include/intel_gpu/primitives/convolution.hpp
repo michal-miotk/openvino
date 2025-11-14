@@ -197,6 +197,8 @@ struct convolution : public primitive_base<convolution> {
     /// @brief Primitive id containing compensation.
     input_info compensation;
 
+
+    int dummy;
     size_t hash() const override {
         size_t seed = primitive::hash();
         seed = hash_range(seed, padding_end.begin(), padding_end.end());
