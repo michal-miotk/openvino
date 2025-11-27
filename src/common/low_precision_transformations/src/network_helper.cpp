@@ -21,6 +21,7 @@
 #include "low_precision/rt_info/precision_preserved_attribute.hpp"
 #include "low_precision/rt_info/quantization_alignment_attribute.hpp"
 #include "openvino/core/rt_info.hpp"
+#include "openvino/core/rt_info/weightless_caching_attributes.hpp""
 #include "openvino/core/validation_util.hpp"
 #include "openvino/opsets/opset3_decl.hpp"
 #include "openvino/opsets/opset6_decl.hpp"
@@ -1203,6 +1204,8 @@ FakeQuantizeDequantization NetworkHelper::getDequantization(const std::shared_pt
         }
         dataNode = convert->get_input_source_output(0);
     }
+
+    copy_weightless_cache_attr(dataNode.get_node_shared_ptr(), convert);
 
     return FakeQuantizeDequantization(dataNode, convert, subtract, subtractConvert, subtractConstant, multiply, multiplyConstant);
 }
