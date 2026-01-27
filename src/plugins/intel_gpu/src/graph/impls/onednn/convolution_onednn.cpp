@@ -309,6 +309,9 @@ public:
     }
 
     void load(BinaryInputBuffer& ib) override {
+        auto capacity = dnnl::get_primitive_cache_capacity();
+        dnnl::set_primitive_cache_capacity(0);
+        dnnl::set_primitive_cache_capacity(capacity);
 #ifdef ONEDNN_PRIMITIVE_SERIALIZATION
         parent::load(ib);
 
@@ -366,8 +369,10 @@ public:
 
         std::vector<uint8_t> prim_cache;
         ib >> prim_cache;
-
-        _prim = dnnl::primitive(_pd, prim_cache);
+        //_prim = dnnl::primitive(_pd, prim_cache);
+        //if different version
+        _prim = dnnl::primitive(_pd);
+        _weights_reorder_params = get_weights_reorder(*impl_params, _pd, impl_params->typed_desc<convolution>()->transposed);
 #endif
     }
 

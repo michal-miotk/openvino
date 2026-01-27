@@ -344,31 +344,7 @@ private:
         if (!config.get_allow_new_shape_infer()) {
             cache_outpath = "";
         }
-
-        if (cache_outpath.empty()) {
-            _prim = PrimType(_pd);
-        } else {
-            std::vector<uint8_t> key = _pd.get_cache_blob_id();
-            assert(!key.empty());
-
-            std::vector<uint8_t> cache;
-            {
-                std::lock_guard<std::mutex> lock(cacheAccessMutex);
-                cache = ov::util::load_binary(ov::util::make_path(generate_cache_path_from_key(config, key)));
-            }
-
-            if (cache.empty()) {
-                _prim = PrimType(_pd);
-                cache = _prim.get_cache_blob();
-
-                {
-                    std::lock_guard<std::mutex> lock(cacheAccessMutex);
-                    ov::intel_gpu::save_binary(generate_cache_path_from_key(config, key), cache);
-                }
-            } else {
-                _prim = PrimType(_pd, cache);
-            }
-        }
+        _prim = PrimType(_pd);
     }
 
 protected:

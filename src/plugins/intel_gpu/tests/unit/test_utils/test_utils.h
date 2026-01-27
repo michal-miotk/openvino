@@ -47,6 +47,7 @@
 #include <algorithm>
 #include <memory>
 #include <chrono>
+#include <cstdlib>
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
@@ -634,6 +635,7 @@ inline cldnn::network::ptr get_network(cldnn::engine& engine,
             ob.set_stream(stream.get());
             cldnn::program::build_program(engine, topology, config)->save(ob);
         }
+        setenv("XD", "1", 1);
         {
             std::istream in_mem(&mem_buf);
             cldnn::BinaryInputBuffer ib = cldnn::BinaryInputBuffer(in_mem, engine);
