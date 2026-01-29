@@ -10981,8 +10981,8 @@ TEST(convolution_gpu_onednn, eltw_and_bin_double_shift_in_blob_cache) {
     const int   levels   = 256;
 
     auto run = [&](bool is_caching_test) -> float {
-        layout in_layout  { {1, 64, 56, 56}, data_types::u8,  format::bfyx };
-        layout w_layout   { {256, 64, 1, 1},  data_types::i8,  format::bfyx };
+        layout in_layout  { {1, 64, 64, 64}, data_types::u8,  format::bfyx };
+        layout w_layout   { {256, 64, 3, 3},  data_types::i8,  format::bfyx };
         layout ch_layout  { {1, 256, 1, 1}, data_types::f32, format::bfyx };
         layout sc_layout  { {1, 1, 1, 1}, data_types::f32, format::bfyx };
 
@@ -10993,8 +10993,8 @@ TEST(convolution_gpu_onednn, eltw_and_bin_double_shift_in_blob_cache) {
 
         tests::random_generator rg(GET_SUITE_NAME);
 
-        auto input_value = rg.generate_random_4d<uint8_t>(1, 64, 56, 56, 0, 0);
-        auto weights_value = rg.generate_random_4d<int8_t>(256, 64, 1, 1, 1, 1);
+        auto input_value = rg.generate_random_4d<uint8_t>(1, 64, 64, 64, 0, 1);
+        auto weights_value = rg.generate_random_4d<int8_t>(256, 64, 3, 3, 0, 1);
         auto shift_value = rg.generate_random_4d<float>(1, 256, 1, 1, shift_init, shift_init);
         auto bin_in_value = rg.generate_random_4d<float>(1, 256, 1, 1, 0, 0);
 
