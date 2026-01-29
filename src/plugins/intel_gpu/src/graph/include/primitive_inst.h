@@ -160,9 +160,10 @@ struct primitive_impl {
     std::shared_ptr<kernel_impl_params> get_weights_reorder_kernel_params() const;
 
     const ImplementationManager* m_manager = nullptr;
-
-protected:
+    bool new_impl = false;
     std::shared_ptr<WeightsReorderParams> _weights_reorder_params = nullptr;
+    std::shared_ptr<WeightsReorderParams> old_weights_reorder_params = nullptr;
+protected: 
     std::string _kernel_name;
     bool _is_dynamic = false;
 };

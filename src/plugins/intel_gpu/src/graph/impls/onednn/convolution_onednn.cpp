@@ -369,9 +369,9 @@ public:
 
         std::vector<uint8_t> prim_cache;
         ib >> prim_cache;
-        //_prim = dnnl::primitive(_pd, prim_cache);
-        //if different version
         _prim = dnnl::primitive(_pd);
+        new_impl = true;
+        old_weights_reorder_params = _weights_reorder_params;
         _weights_reorder_params = get_weights_reorder(*impl_params, _pd, impl_params->typed_desc<convolution>()->transposed);
 #endif
     }

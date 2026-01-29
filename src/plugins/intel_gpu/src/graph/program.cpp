@@ -2065,7 +2065,36 @@ void program::load(cldnn::BinaryInputBuffer& ib,
             auto params = p_node.get_kernel_impl_params();
             ib.setKernelImplParams(params.get());
             ib >> p_node.selected_impl;
+            if (p_node.is_type<convolution>()) {
+                if (p_node.selected_impl->new_impl) {
+                    auto wparams = p_node.selected_impl->_weights_reorder_params;
+                    if (wparams) {
+                        auto& prog = p_node.get_program();
+                        auto& weights_node = p_node.get_dependency(p_node.get_primitive()->input_size());
 
+                        // 1. Tworzymy definicję prymitywu reorder
+                        auto reorder_id = p_node.id() + "_weights_reorder";
+                        auto params_out_layout = wparams->get_output_layout();
+                        auto new_params_onednn = std::dynamic_pointer_cast<cldnn::onednn::WeightsReorderParamsOneDNN>(p_node.selected_impl->_weights_reorder_params);
+                        auto old_params_onednn = std::dynamic_pointer_cast<cldnn::onednn::WeightsReorderParamsOneDNN>(p_node.selected_impl->old_weights_reorder_params);
+                        cldnn::onednn::WeightsReorderParamsOneDNN new_params(weights_node.get_output_layout(), params_out_layout, *old_params_onednn->_out_desc, *new_params_onednn->_out_desc, params->typed_desc<convolution>()->transposed);
+                        auto layout = wparams->get_output_layout();
+                        auto reorder_prim = std::make_shared<reorder>(reorder_id, weights_node.id(), layout);
+                        reorder_prim->weights_reorder_params = std::make_shared<cldnn::onednn::WeightsReorderParamsOneDNN>(new_params);
+                        // 2. Tworzymy węzeł programu
+                        auto& new_reorder_node = prog.get_or_create(reorder_prim);
+                        // 3. Wstrzykujemy węzeł między wagi a splot
+                        // add_intermediate automatycznie obsłuży przepięcie zależności
+                        prog.add_intermediate(new_reorder_node, p_node, weights_node);
+                        new_reorder_node.set_output_layout(layout);
+                        //new_reorder_node.recalc_output_layout(false);
+                        //new_reorder_node.set_forced_impl_type(cldnn::impl_types::ocl);
+                        auto reorder_impl = new_reorder_node.type()->create_impl(new_reorder_node);
+
+                        new_reorder_node.set_selected_impl(std::move(reorder_impl));
+                    }
+                }
+            }
             p_node.selected_impl->m_manager = impl_manager.get();
 
             std::vector<std::string> cached_kernel_ids;
