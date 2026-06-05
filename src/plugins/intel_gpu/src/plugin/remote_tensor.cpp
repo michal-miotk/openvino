@@ -148,6 +148,7 @@ RemoteTensorImpl::RemoteTensorImpl(RemoteContextImpl::Ptr context,
                                    const ov::element::Type& element_type,
                                    TensorType mem_type,
                                    cldnn::shared_handle mem,
+                                   ov::intel_gpu::os_handle_param os_handle,
                                    cldnn::shared_surface surf,
                                    uint32_t plane)
     : m_context(context)
@@ -156,6 +157,7 @@ RemoteTensorImpl::RemoteTensorImpl(RemoteContextImpl::Ptr context,
     , m_layout(cldnn::layout{ov::PartialShape{shape}, element_type, cldnn::format::get_default_format(shape.size())})
     , m_mem_type(mem_type)
     , m_mem(mem)
+    , m_os_handle(os_handle)
     , m_surf(surf)
     , m_plane(plane) {
     update_hash();
@@ -341,7 +343,7 @@ void RemoteTensorImpl::allocate() {
         break;
     }
     case TensorType::BT_BUF_SHARED_FROM_HANDLE: {
-        m_memory_object = engine.import_buffer(m_layout, m_mem);
+        m_memory_object = engine.import_buffer(m_layout, m_os_handle);
         break;
     }
     case TensorType::BT_USM_SHARED: {
@@ -398,6 +400,7 @@ bool RemoteTensorImpl::supports_caching() const {
 void RemoteTensorImpl::update_hash() {
     if (supports_caching()) {
         m_hash = cldnn::hash_combine(0, m_mem);
+        m_hash = cldnn::hash_combine(m_hash, m_os_handle);
         m_hash = cldnn::hash_combine(m_hash, m_surf);
         m_hash = cldnn::hash_combine(m_hash, m_plane);
         m_hash = cldnn::hash_combine(m_hash, m_shape.size());

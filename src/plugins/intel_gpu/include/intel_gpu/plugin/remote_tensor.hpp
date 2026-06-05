@@ -39,6 +39,11 @@ public:
                      const ov::element::Type& element_type,
                      TensorType mem_type = TensorType::BT_BUF_INTERNAL,
                      cldnn::shared_handle mem = nullptr,
+#ifdef __linux__
+                     ov::intel_gpu::os_handle_param os_handle = -1,
+#else
+                     ov::intel_gpu::os_handle_param os_handle = nullptr,
+#endif
                      cldnn::shared_surface surf = 0,
                      uint32_t plane = 0);
 
@@ -81,6 +86,7 @@ private:
     TensorType m_mem_type;
 
     cldnn::shared_handle m_mem;
+    ov::intel_gpu::os_handle_param m_os_handle;
     cldnn::shared_surface m_surf;
     uint32_t m_plane;
     size_t m_hash = 0;
