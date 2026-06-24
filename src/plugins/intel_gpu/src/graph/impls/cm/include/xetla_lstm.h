@@ -98,8 +98,14 @@ struct gemm_persistent {
     using mem_desc_a_t = mem_desc_t<dtype_a, mem_layout_a, mem_space_a, 8>;
     using mem_desc_b_t = mem_desc_t<dtype_b, mem_layout_b, mem_space_b, 8>;
 
+    // Cache matrix B (the recurrent weights R) in its native dtype_b (fp16)
+    // instead of widening it to dtype_acc (fp32). The manual FMA in run() reads
+    // B back as float, and fp16->float is lossless, so the numerical result is
+    // unchanged while the persistent matB_acc register footprint is halved.
+    // This is what keeps hidden_size=256 inside the GRF budget (8 KB instead of
+    // 16 KB per thread). matA stays in dtype_acc to preserve recurrent accuracy.
     using compute_attr_t
-            = group::compute_attr_t<dtype_acc, dtype_acc, dtype_acc>;
+            = group::compute_attr_t<dtype_acc, dtype_b, dtype_acc>;
     using perf_tuning_knob_t = group::perf_tuning_knob_t<sg_k,
             prefetch_distance, periodic_sync_interval>;
     using compute_policy_t = group::compute_policy_default_fpu<compute_attr_t,
@@ -337,13 +343,30 @@ template <typename dtype_a, typename dtype_b, typename dtype_c,
         mem_layout mem_layout_out, mem_space mem_space_x, mem_space mem_space_w,
         mem_space mem_space_out, gpu_arch arch_tag>
 struct __xetla_kernel_lstm_loop {
+    static constexpr uint32_t SIMD = 16;
+    static constexpr uint32_t gates = 4;
+    // One subgroup (thread) processes SIMD figo elements, so the work-group
+    // spans hidden_size * gates / SIMD threads. For hidden_size=128 this is 32,
+    // for hidden_size=256 this is 64.
+    static constexpr uint32_t num_threads = hidden_size * gates / SIMD;
+
     static_assert(directions == 1 || directions == 2);
-    static_assert(hidden_size == 128);
+    static_assert(hidden_size % SIMD == 0);
     static_assert(hidden_size % 4 == 0);
 
-    static constexpr uint32_t SIMD = 16;
-    static constexpr uint32_t num_threads = 32;
-    static constexpr uint32_t gates = 4;
+    // The recurrent weights R are cached persistently in registers (matB_acc) in
+    // fp16: k_steps(4) * SIMD * (hidden_size / 4) * sizeof(fp16) bytes per thread.
+    // Keep that within half of the GRF file so matA, the partial sums and the FMA
+    // temporaries still fit without spilling, and keep the work-group within the
+    // architecture's threads-per-group limit. For hidden_size=256 both bounds are
+    // hit exactly (8 KB cache, 64 threads); larger sizes fail here on purpose.
+    static constexpr uint32_t r_cache_bytes_per_thread
+            = 4u * SIMD * (hidden_size / 4u) * sizeof(dtype_b);
+    static_assert(num_threads <= arch_attr_t<arch_tag>::max_wg_num,
+            "LSTM work-group exceeds the maximum threads per group");
+    static_assert(2u * r_cache_bytes_per_thread
+                    <= arch_attr_t<arch_tag>::template register_attr<>::grf_in_bytes,
+            "cached recurrent weights would exceed the register budget");
 
     static constexpr uint32_t wg_m = 1;
     static constexpr uint32_t wg_n = hidden_size * gates;

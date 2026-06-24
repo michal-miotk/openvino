@@ -31,10 +31,12 @@ protected:
     [[nodiscard]] JitConstants get_jit_constants(const RuntimeParams& params) const override {
         auto jit = KernelGenerator::get_jit_constants(params);
         const auto& x_shape = params.input_layouts[0].get_shape();
+        const auto& ini_hidden_shape = params.input_layouts[1].get_shape();
 
         jit.add({
             make_jit_constant("KERNEL_NAME", get_entry_point(params)),
             make_jit_constant("INPUT_SIZE", x_shape[2]),
+            make_jit_constant("HIDDEN_SIZE", ini_hidden_shape[2]),
         });
 
         return jit;
@@ -98,10 +100,12 @@ protected:
     [[nodiscard]] JitConstants get_jit_constants(const RuntimeParams& params) const override {
         auto jit_constants = KernelGenerator::get_jit_constants(params);
         const auto& x_shape = params.input_layouts[0].get_shape();
+        const auto& ini_hidden_shape = params.input_layouts[1].get_shape();
 
         jit_constants.add({
             make_jit_constant("KERNEL_NAME", get_entry_point(params)),
             make_jit_constant("INPUT_SIZE", x_shape[2]),
+            make_jit_constant("HIDDEN_SIZE", ini_hidden_shape[2]),
         });
 
         return jit_constants;
