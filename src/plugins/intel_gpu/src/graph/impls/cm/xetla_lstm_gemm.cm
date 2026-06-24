@@ -26,7 +26,8 @@ namespace KERNEL_NAME {
 #define dtype_acc float
 
 //#define INPUT_SIZE 64 // or 256
-#define hidden_size 128
+//#define HIDDEN_SIZE 128 // or 256, provided as a JIT constant
+#define hidden_size HIDDEN_SIZE
 #define directions 2
 
 #define mem_layout_x mem_layout::row_major
