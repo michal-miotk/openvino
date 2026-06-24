@@ -1038,8 +1038,9 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
                     auto input_size = input[2];
                     auto num_dir = output[1];
                     auto hidden_size = output[3];
+                    std::cout << "LSTM input size: " << input_size << ", hidden size: " << hidden_size << std::endl;
 
-                    if (hidden_size != 128 || batch_size != 1 || num_dir != 2 || (input_size != 64 && input_size != 256)) {
+                    if (batch_size != 1 || num_dir != 2) {
                         return false;
                     }
 
