@@ -1,0 +1,1 @@
+I coded optimized version of mvn_gpu_bfyx_opt.cl - it is in current HEAD~1 commit) . Please compare it with previous version (HEAD~2) with scripts inside mvn_scripts directory
