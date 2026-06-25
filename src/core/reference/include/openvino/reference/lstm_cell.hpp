@@ -4,8 +4,13 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cmath>
+#include <type_traits>
+#include <vector>
 
+#include "openvino/core/type/bfloat16.hpp"
+#include "openvino/core/type/float16.hpp"
 #include "openvino/op/lstm_cell.hpp"
 #include "openvino/reference/add.hpp"
 #include "openvino/reference/clamp.hpp"
@@ -19,6 +24,39 @@
 
 namespace ov {
 namespace reference {
+
+// Optimized LSTM kernels accumulate the gate matmuls (Xt*W^T and Ht-1*R^T) in fp32
+// even for fp16/bf16 models. Mirror that accumulation precision here so the reference
+// matches such kernels: widen low-precision operands to fp32, accumulate the dot
+// products in fp32, then round the result back to T. For all other element types this
+// is a plain matmul.
+template <typename T>
+void lstm_gate_matmul(const T* arg0,
+                      const T* arg1,
+                      T* out,
+                      const Shape& arg0_shape,
+                      const Shape& arg1_shape,
+                      const Shape& out_shape,
+                      bool transpose_arg0,
+                      bool transpose_arg1) {
+    if constexpr (std::is_same_v<T, ov::float16> || std::is_same_v<T, ov::bfloat16>) {
+        const std::vector<float> in0(arg0, arg0 + shape_size(arg0_shape));
+        const std::vector<float> in1(arg1, arg1 + shape_size(arg1_shape));
+        std::vector<float> res(shape_size(out_shape));
+        reference::matmul(in0.data(),
+                          in1.data(),
+                          res.data(),
+                          arg0_shape,
+                          arg1_shape,
+                          out_shape,
+                          transpose_arg0,
+                          transpose_arg1);
+        std::copy(res.begin(), res.end(), out);
+    } else {
+        reference::matmul(arg0, arg1, out, arg0_shape, arg1_shape, out_shape, transpose_arg0, transpose_arg1);
+    }
+}
+
 template <typename T>
 void lstm_cell(const T* X,
                const Shape& X_shape,
@@ -85,11 +123,11 @@ void lstm_cell(const T* X,
     auto all_gates_shape_size = gate_shape_size * 4;
     // Xt*(W^T)
     std::vector<T> Xt_W(all_gates_shape_size);
-    reference::matmul(X, W, Xt_W.data(), X_shape, W_shape, all_gates_shape, false, true);
+    lstm_gate_matmul(X, W, Xt_W.data(), X_shape, W_shape, all_gates_shape, false, true);
 
     // Ht-1*(R^T)
     std::vector<T> Ht_R(all_gates_shape_size);
-    reference::matmul(H, R, Ht_R.data(), H_shape, R_shape, all_gates_shape, false, true);
+    lstm_gate_matmul(H, R, Ht_R.data(), H_shape, R_shape, all_gates_shape, false, true);
 
     // Ht-1*(R^T) + Wb + Rb
     std::vector<T> Ht_R_B(all_gates_shape_size);
@@ -233,11 +271,11 @@ void lstm_cell_v1(const T* X,
     }
     // Xt*(W^T)
     std::vector<T> Xt_W(all_gates_shape_size);
-    reference::matmul(X, W, Xt_W.data(), X_shape, W_shape, all_gates_shape, false, true);
+    lstm_gate_matmul(X, W, Xt_W.data(), X_shape, W_shape, all_gates_shape, false, true);
 
     // Ht-1*(R^T)
     std::vector<T> Ht_R(all_gates_shape_size);
-    reference::matmul(H, R, Ht_R.data(), H_shape, R_shape, all_gates_shape, false, true);
+    lstm_gate_matmul(H, R, Ht_R.data(), H_shape, R_shape, all_gates_shape, false, true);
 
     // Ht-1*(R^T) + Wb + Rb
     std::vector<T> Ht_R_B(all_gates_shape_size);
