@@ -186,9 +186,9 @@ struct gemm_persistent {
             : tdesc_update_dir::y_dir;
 
     mem_desc_a_t mem_desc_a;
+    mem_desc_b_t mem_desc_b;
     static_assert(k_size % compute_policy_t::k_stride == 0);
     static constexpr uint32_t k_steps = k_size / compute_policy_t::k_stride;
-    matB_acc_t matB_acc[k_steps];
 
     inline void init(sycl::nd_item<3> &item,
             typename mem_desc_a_t::base_t a, dtype_b *b, uint32_t mat_m,
@@ -215,8 +215,6 @@ struct gemm_persistent {
                 : (start_m + tile_shape::wg_tile_size_y);
         uint32_t boundary_k = wg_tile_k;
 
-        mem_desc_b_t mem_desc_b;
-
         mem_desc_a.init(a, {boundary_k, boundary_m, lda}, {start_k, start_m});
         mem_desc_b.init(b, {boundary_n, boundary_k, ldb}, {start_n, start_k});
 
@@ -227,24 +225,6 @@ struct gemm_persistent {
 
         mem_desc_a.update_coord_y(tile_offset_m);
         mem_desc_b.update_coord_x(tile_offset_n);
-
-        matB_payload_t matB_payload(mem_desc_b);
-        matB_t matB[k_steps];
-
-#pragma unroll
-        for (int i = 0; i < k_steps; i++) {
-            subgroup::tile_load<cache_hint::uncached, cache_hint::uncached>(
-                    matB[i], matB_payload);
-            matB_payload.template update_tdesc<update_dir_b>(
-                    matB_t::tile_size_y);
-            subgroup::elemwise_cvt(matB_acc[i], matB[i]);
-        }
-
-#pragma unroll
-        for (int i = 0; i < k_steps; i++) {
-            subgroup::tile_store<cache_hint::uncached, cache_hint::uncached>(
-                    matB_acc[i], matB_payload);
-        }
     }
 
     inline void run(matAcc_t &result) {
@@ -258,18 +238,34 @@ struct gemm_persistent {
                 matA, matA_payload);
         subgroup::elemwise_cvt(matA_acc, matA);
 
+        // Stream the recurrent weights R one k-tile at a time rather than caching
+        // all k_steps tiles. The full R slice is hidden_size * sg_n * sizeof(dtype_b)
+        // bytes per thread (8 KB for hidden_size=256); keeping it resident would
+        // exceed the normal-GRF budget that the 64-thread work-group is restricted
+        // to (double-GRF, which doubles the budget, is unavailable because it halves
+        // the threads-per-group limit to 32). matB/matB_acc are reused across the
+        // unrolled iterations so only a single tile is live at any time.
+        matB_payload_t matB_payload(mem_desc_b);
+        matB_t matB;
+        matB_acc_t matB_acc;
+        vector<float, k_size> tempA = matA_acc.reg;
+
         cm_fence(CM_SW_BARRIER);
 
 #pragma unroll
         for (int i = 0; i < k_steps; i++) {
+            subgroup::tile_load<cache_hint::cached, cache_hint::cached>(
+                    matB, matB_payload);
+            matB_payload.template update_tdesc<update_dir_b>(
+                    matB_t::tile_size_y);
+            subgroup::elemwise_cvt(matB_acc, matB);
+
             part_res[i].init(0);
 #pragma unroll
             for (int j = 0; j < sg_k; j++) {
-                vector<float, k_size> tempA = matA_acc.reg;
                 float a = tempA[j + i * sg_k];
-                vector<float, sg_n *sg_k> tempB = matB_acc[i].reg;
                 vector<float, sg_n> tempB_simd
-                        = tempB.select<sg_n, 1>(j * sg_n);
+                        = matB_acc.reg.template select<sg_n, 1>(j * sg_n);
                 part_res[i].reg += a * tempB_simd;
             }
         }
@@ -354,19 +350,13 @@ struct __xetla_kernel_lstm_loop {
     static_assert(hidden_size % SIMD == 0);
     static_assert(hidden_size % 4 == 0);
 
-    // The recurrent weights R are cached persistently in registers (matB_acc) in
-    // fp16: k_steps(4) * SIMD * (hidden_size / 4) * sizeof(fp16) bytes per thread.
-    // Keep that within half of the GRF file so matA, the partial sums and the FMA
-    // temporaries still fit without spilling, and keep the work-group within the
-    // architecture's threads-per-group limit. For hidden_size=256 both bounds are
-    // hit exactly (8 KB cache, 64 threads); larger sizes fail here on purpose.
-    static constexpr uint32_t r_cache_bytes_per_thread
-            = 4u * SIMD * (hidden_size / 4u) * sizeof(dtype_b);
+    // The work-group spans hidden_size * gates / SIMD threads and must stay within
+    // the architecture's threads-per-group limit. hidden_size=256 needs 64 threads,
+    // which is only reachable in normal-GRF mode: double-GRF halves the limit to 32.
+    // Because normal GRF cannot hold the whole R slice, the recurrent gemm streams R
+    // one k-tile at a time (see gemm_persistent::run) to keep within the budget.
     static_assert(num_threads <= arch_attr_t<arch_tag>::max_wg_num,
             "LSTM work-group exceeds the maximum threads per group");
-    static_assert(2u * r_cache_bytes_per_thread
-                    <= arch_attr_t<arch_tag>::template register_attr<>::grf_in_bytes,
-            "cached recurrent weights would exceed the register budget");
 
     static constexpr uint32_t wg_m = 1;
     static constexpr uint32_t wg_n = hidden_size * gates;
