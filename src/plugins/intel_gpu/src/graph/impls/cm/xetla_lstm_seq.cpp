@@ -16,8 +16,14 @@ namespace {
 constexpr auto get_lstm_build_options() {
     return " -Qxcm_jit_option=-DPASTokenReduction "
            " -mllvm --vc-disable-indvars-opt=true "
-           " /Qxcm_jit_option=-enableBCR /Qxcm_doubleGRF "
+           " /Qxcm_jit_option=-enableBCR "
            " -DXETLA_CODE_BASE=__CM__ ";
+}
+
+// /Qxcm_doubleGRF doubles the per-thread GRF budget but halves the number of
+// hardware threads that can co-reside in one Xe-core work-group (64 -> 32 on Xe).
+constexpr auto get_lstm_double_grf_option() {
+    return " /Qxcm_doubleGRF ";
 }
 class XetlaLSTMLoopGenerator : public KernelGenerator {
 public:
@@ -25,7 +31,20 @@ public:
 
 protected:
     [[nodiscard]] std::string get_build_options(const RuntimeParams& params) const override {
-        return KernelGenerator::get_build_options(params) + get_lstm_build_options();
+        auto build_options = KernelGenerator::get_build_options(params) + get_lstm_build_options();
+
+        // The loop work-group launches hidden_size * gates / SIMD threads per group
+        // (32 for hidden_size=128, 64 for hidden_size=256). Double-GRF mode halves
+        // the threads-per-group limit to 32, so a 64-thread group is rejected at
+        // enqueue time with CL_INVALID_WORK_GROUP_SIZE. Request double-GRF only while
+        // the work-group still fits within the halved limit.
+        const auto& ini_hidden_shape = params.input_layouts[1].get_shape();
+        const auto hidden_size = ini_hidden_shape[2];
+        if (hidden_size <= 128) {
+            build_options += get_lstm_double_grf_option();
+        }
+
+        return build_options;
     }
 
     [[nodiscard]] JitConstants get_jit_constants(const RuntimeParams& params) const override {
@@ -94,7 +113,9 @@ public:
 
 protected:
     [[nodiscard]] std::string get_build_options(const RuntimeParams& params) const override {
-        return KernelGenerator::get_build_options(params) + get_lstm_build_options();
+        // The gemm work-group uses 16 threads, which fits within the halved double-GRF
+        // limit, so double-GRF is always safe here.
+        return KernelGenerator::get_build_options(params) + get_lstm_build_options() + get_lstm_double_grf_option();
     }
 
     [[nodiscard]] JitConstants get_jit_constants(const RuntimeParams& params) const override {
