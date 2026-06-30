@@ -2955,8 +2955,8 @@ TEST(GpuRemoteTensorFromCpu, smoke_allocAlignedCPUMemory) {
     ov::Core core;
     std::string target_device = ov::test::utils::DEVICE_GPU;
     uint32_t cache_line_size = core.get_property(target_device, ov::intel_gpu::cache_line_size);
-    const uint float_size = size(float);
-    const ov::Shape shape{cache_line_size/float_siz};
+    const uint float_size = sizeof(float);
+    const ov::Shape shape{cache_line_size/float_size};
     const size_t element_count = ov::shape_size(shape);
     const size_t byte_size = element_count * sizeof(float);
     
