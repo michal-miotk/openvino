@@ -5,6 +5,9 @@
 #ifdef OV_GPU_WITH_OCL_RT
 
 #include <algorithm>
+#include <chrono>
+#include <iomanip>
+#include <sys/mman.h>
 
 #include "openvino/core/preprocess/pre_post_process.hpp"
 #include "openvino/op/add.hpp"
@@ -2975,6 +2978,35 @@ TEST(GpuRemoteTensorFromCpu, smoke_allocAlignedCPUMemory) {
                                                       shape,
                                                       ov::intel_gpu::VirtualAddressMemory(output_ptr));
 
+        // Extract CPU VA pointer from remote tensor properties
+        auto remote_input_params = remote_input_tensor.get_params();
+        void* input_ptr_from_remote = nullptr;
+        auto output_ptr_from_remote = static_cast<void*>(nullptr);
+        
+        try {
+            input_ptr_from_remote = remote_input_params.at(ov::intel_gpu::cpu_va.name()).as<void*>();
+        } catch (const std::exception& e) {
+            std::cout << "Warning: Could not extract cpu_va from input remote tensor: " << e.what() << std::endl;
+        }
+
+        auto remote_output_params = remote_output_tensor.get_params();
+        try {
+            output_ptr_from_remote = remote_output_params.at(ov::intel_gpu::cpu_va.name()).as<void*>();
+        } catch (const std::exception& e) {
+            std::cout << "Warning: Could not extract cpu_va from output remote tensor: " << e.what() << std::endl;
+        }
+
+        std::cout << "\nCPU VA Remote Tensors:"
+                  << "\n  Allocated input ptr:   " << input_ptr
+                  << "\n  Remote input ptr:      " << input_ptr_from_remote
+                  << "\n  Match: " << (input_ptr == input_ptr_from_remote ? "YES" : "NO")
+                  << "\n  Allocated output ptr:  " << output_ptr
+                  << "\n  Remote output ptr:     " << output_ptr_from_remote
+                  << "\n  Match: " << (output_ptr == output_ptr_from_remote ? "YES" : "NO")
+                  << "\n  Input shape:  " << remote_input_tensor.get_shape()
+                  << "\n  Output shape: " << remote_output_tensor.get_shape()
+                  << "\n  Byte size: " << remote_input_tensor.get_byte_size() << std::endl;
+
         auto model = make_copy_model(shape);
         auto compiled = core.compile_model(model, ctx);
         auto infer_req = compiled.create_infer_request();
@@ -2989,6 +3021,119 @@ TEST(GpuRemoteTensorFromCpu, smoke_allocAlignedCPUMemory) {
 
     ov::util::aligned_free(input_ptr);
     ov::util::aligned_free(output_ptr);
+}
+
+TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative) {
+    ov::Core core;
+    std::string target_device = ov::test::utils::DEVICE_GPU;
+    uint32_t cacheline_size = core.get_property(target_device, ov::intel_gpu::cacheline_size);
+    ASSERT_GT(cacheline_size, 0u);
+    
+    const ov::Shape shape{80, 10, 1151, 128};
+    const size_t element_count = ov::shape_size(shape);
+    const size_t byte_size = element_count * ov::element::f16.size();
+    const int iterations = 100;
+    
+    auto ctx = core.get_default_context(target_device).as<ov::intel_gpu::ocl::ClContext>();
+    auto model = make_copy_model(shape);
+    auto compiled = core.compile_model(model, ctx);
+    // ===== Test 1: Remote CPU VA Tensors =====
+    void* input_ptr_cpu_va = ov::util::aligned_alloc(byte_size, cacheline_size);
+    void* output_ptr_cpu_va = ov::util::aligned_alloc(byte_size, cacheline_size);
+    std::fill_n(static_cast<ov::float16*>(input_ptr_cpu_va), element_count, ov::float16(2.0f));
+    std::fill_n(static_cast<ov::float16*>(output_ptr_cpu_va), element_count, ov::float16(0.0f));
+    
+    auto remote_input_tensor_cpu_va = ctx.create_tensor(ov::element::f16,
+                                                        shape,
+                                                        ov::intel_gpu::VirtualAddressMemory(input_ptr_cpu_va));
+    auto remote_output_tensor_cpu_va = ctx.create_tensor(ov::element::f16,
+                                                         shape,
+                                                         ov::intel_gpu::VirtualAddressMemory(output_ptr_cpu_va));
+    auto remote_input_params = remote_input_tensor_cpu_va.get_params();
+    void* input_ptr_from_remote = nullptr;
+    auto output_ptr_from_remote = static_cast<void*>(nullptr);
+    
+    try {
+        input_ptr_from_remote = remote_input_params.at(ov::intel_gpu::cpu_va.name()).as<void*>();
+    } catch (const std::exception& e) {
+        std::cout << "Warning: Could not extract cpu_va from input remote tensor: " << e.what() << std::endl;
+    }
+
+    auto remote_output_params = remote_output_tensor_cpu_va.get_params();
+    try {
+        output_ptr_from_remote = remote_output_params.at(ov::intel_gpu::cpu_va.name()).as<void*>();
+        std::cout << "output ptr from remote is " << output_ptr_from_remote << std::endl;
+    } catch (const std::exception& e) {
+        std::cout << "Warning: Could not extract cpu_va from output remote tensor: " << e.what() << std::endl;
+    }
+    std::cout << "\nCPU VA Remote Tensors:"
+                  << "\n  Allocated input ptr:   " << input_ptr_cpu_va
+                  << "\n  Remote input ptr:      " << input_ptr_from_remote
+                  << "\n  Match: " << (input_ptr_cpu_va == input_ptr_from_remote ? "YES" : "NO")
+                  << "\n  Allocated output ptr:  " << output_ptr_cpu_va
+                  << "\n  Remote output ptr:     " << output_ptr_from_remote
+                  << "\n  Match: " << (output_ptr_cpu_va == output_ptr_from_remote ? "YES" : "NO") << std::endl;
+
+    auto infer_req_cpu_va = compiled.create_infer_request();
+    infer_req_cpu_va.set_tensor(compiled.input(), remote_input_tensor_cpu_va);
+    infer_req_cpu_va.set_tensor(compiled.output(), remote_output_tensor_cpu_va);
+    
+    // Warmup
+    infer_req_cpu_va.infer();
+    
+    auto start_cpu_va = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < iterations; ++i) {
+        infer_req_cpu_va.infer();
+    }
+    auto end_cpu_va = std::chrono::high_resolution_clock::now();
+    auto duration_cpu_va = std::chrono::duration_cast<std::chrono::microseconds>(end_cpu_va - start_cpu_va);
+    
+    ov::util::aligned_free(input_ptr_cpu_va);
+    ov::util::aligned_free(output_ptr_cpu_va);
+    
+    // ===== Test 2: Native Tensors (USM_HOST via allocate_inputs) =====
+    auto infer_req_native = compiled.create_infer_request();
+    
+    // Print native tensor allocation info
+    auto native_input = infer_req_native.get_input_tensor();
+    auto native_output = infer_req_native.get_output_tensor();
+    std::cout << "\nNative (USM_HOST) Input Tensor:"
+              << "\n  Shape: " << native_input.get_shape()
+              << "\n  Element Type: " << native_input.get_element_type()
+              << "\n  Byte Size: " << native_input.get_byte_size();
+    std::cout << "\nNative (USM_HOST) Output Tensor:"
+              << "\n  Shape: " << native_output.get_shape()
+              << "\n  Element Type: " << native_output.get_element_type()
+              << "\n  Byte Size: " << native_output.get_byte_size() << std::endl;
+    
+    // Warmup
+    infer_req_native.infer();
+    
+    auto start_native = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < iterations; ++i) {
+        infer_req_native.infer();
+    }
+    auto end_native = std::chrono::high_resolution_clock::now();
+    auto duration_native = std::chrono::duration_cast<std::chrono::microseconds>(end_native - start_native);
+    
+    // ===== Print Results =====
+    auto avg_cpu_va = duration_cpu_va.count() / static_cast<double>(iterations);
+    auto avg_native = duration_native.count() / static_cast<double>(iterations);
+    auto ratio = avg_cpu_va / avg_native;
+    
+    std::cout << std::fixed << std::setprecision(3);
+    std::cout << "\n=== Performance Comparison (shape: " << ov::Shape(shape) << ") ===" << std::endl;
+    std::cout << "Remote CPU VA:  " << avg_cpu_va << " µs/iter" << std::endl;
+    std::cout << "Native Tensors: " << avg_native << " µs/iter" << std::endl;
+    std::cout << "Ratio (CPU_VA / Native): " << ratio << std::endl;
+    if (ratio < 1.0) {
+        std::cout << "💡 CPU VA is " << (1.0 - ratio) * 100.0 << "% faster (zero-copy benefit!)" << std::endl;
+    } else {
+        std::cout << "💡 Native is " << (ratio - 1.0) * 100.0 << "% faster (overhead in CPU VA)" << std::endl;
+    }
+    
+    EXPECT_GT(avg_cpu_va, 0.0);
+    EXPECT_GT(avg_native, 0.0);
 }
 
 #endif  // OV_GPU_WITH_OCL_RT
