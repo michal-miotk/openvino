@@ -3023,7 +3023,59 @@ TEST(GpuRemoteTensorFromCpu, smoke_allocAlignedCPUMemory) {
     ov::util::aligned_free(output_ptr);
 }
 
-TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative) {
+#if defined(__linux__)
+// Some libc headers don't expose the huge page mmap flags; define them defensively.
+#    ifndef MAP_ANONYMOUS
+#        define MAP_ANONYMOUS MAP_ANON
+#    endif
+#    ifndef MAP_HUGETLB
+#        define MAP_HUGETLB 0x40000
+#    endif
+#    ifndef MAP_HUGE_SHIFT
+#        define MAP_HUGE_SHIFT 26
+#    endif
+#    ifndef MAP_HUGE_2MB
+#        define MAP_HUGE_2MB (21 << MAP_HUGE_SHIFT)
+#    endif
+#    ifndef MAP_HUGE_1GB
+#        define MAP_HUGE_1GB (30 << MAP_HUGE_SHIFT)
+#    endif
+#endif  // defined(__linux__)
+
+namespace {
+#if defined(__linux__)
+// Descriptor for an mmap-backed buffer, kept so the mapping can be released with its exact length.
+struct ContiguousHostBuffer {
+    void* ptr = nullptr;
+    size_t mapped_size = 0;
+};
+
+// Allocates a host buffer of at least byte_size via mmap using the requested page size.
+// huge_flag must be 0 for the default 4 KiB pages, or MAP_HUGE_2MB / MAP_HUGE_1GB for
+// hugetlb pages. The mapping spans ceil(byte_size / page_size) pages, so it is physically
+// contiguous end-to-end only when the whole buffer fits into a single page.
+ContiguousHostBuffer allocate_mmap(size_t byte_size, size_t page_size, int huge_flag) {
+    const size_t mapped_size = ((byte_size + page_size - 1) / page_size) * page_size;
+    int flags = MAP_PRIVATE | MAP_ANONYMOUS;
+    if (huge_flag != 0)
+        flags |= MAP_HUGETLB | huge_flag;
+
+    void* ptr = mmap(nullptr, mapped_size, PROT_READ | PROT_WRITE, flags, -1, 0);
+    if (ptr == MAP_FAILED)
+        return {};
+    return {ptr, mapped_size};
+}
+#endif  // defined(__linux__)
+
+// Allocation strategy for the CPU-side buffers backing the remote CPU VA tensors.
+enum class CpuVaAllocMode {
+    AlignedAlloc,  // ov::util::aligned_alloc: virtually contiguous host memory
+    Mmap4KiB,      // mmap with default 4 KiB pages (Linux only)
+    Mmap2MiB,      // mmap with 2 MiB huge pages (Linux only)
+    Mmap1GiB,      // mmap with 1 GiB huge pages (Linux only)
+};
+
+void run_performance_remote_cpu_va_vs_native(CpuVaAllocMode alloc_mode) {
     ov::Core core;
     std::string target_device = ov::test::utils::DEVICE_GPU;
     uint32_t cacheline_size = core.get_property(target_device, ov::intel_gpu::cacheline_size);
@@ -3038,8 +3090,65 @@ TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative) {
     auto model = make_copy_model(shape);
     auto compiled = core.compile_model(model, ctx);
     // ===== Test 1: Remote CPU VA Tensors =====
-    void* input_ptr_cpu_va = ov::util::aligned_alloc(byte_size, cacheline_size);
-    void* output_ptr_cpu_va = ov::util::aligned_alloc(byte_size, cacheline_size);
+    void* input_ptr_cpu_va = nullptr;
+    void* output_ptr_cpu_va = nullptr;
+#if defined(__linux__)
+    ContiguousHostBuffer input_buffer;
+    ContiguousHostBuffer output_buffer;
+#endif
+    if (alloc_mode == CpuVaAllocMode::AlignedAlloc) {
+        // Virtually contiguous host memory (default 4 KiB pages).
+        input_ptr_cpu_va = ov::util::aligned_alloc(byte_size, cacheline_size);
+        output_ptr_cpu_va = ov::util::aligned_alloc(byte_size, cacheline_size);
+    } else {
+#if defined(__linux__)
+        // mmap-backed host memory with an explicit page size.
+        size_t page_size = 0;
+        int huge_flag = 0;
+        switch (alloc_mode) {
+            case CpuVaAllocMode::Mmap4KiB:
+                page_size = size_t(4) << 10;
+                huge_flag = 0;
+                break;
+            case CpuVaAllocMode::Mmap2MiB:
+                page_size = size_t(2) << 20;
+                huge_flag = MAP_HUGE_2MB;
+                break;
+            case CpuVaAllocMode::Mmap1GiB:
+                page_size = size_t(1) << 30;
+                huge_flag = MAP_HUGE_1GB;
+                break;
+            default:
+                break;
+        }
+        ASSERT_NE(page_size, 0u);
+
+        input_buffer = allocate_mmap(byte_size, page_size, huge_flag);
+        output_buffer = allocate_mmap(byte_size, page_size, huge_flag);
+        if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
+            if (input_buffer.ptr != nullptr)
+                munmap(input_buffer.ptr, input_buffer.mapped_size);
+            if (output_buffer.ptr != nullptr)
+                munmap(output_buffer.ptr, output_buffer.mapped_size);
+            if (huge_flag == 0) {
+                FAIL() << "mmap of " << byte_size << " bytes with 4 KiB pages failed (out of memory?)";
+            } else {
+                const size_t mapped = ((byte_size + page_size - 1) / page_size) * page_size;
+                const size_t pages_needed = 2 * (mapped / page_size);
+                GTEST_SKIP() << "mmap with " << (page_size >> 20) << " MiB huge pages failed. Reserve at least "
+                             << pages_needed << " pages, e.g.: echo " << pages_needed
+                             << " | sudo tee /sys/kernel/mm/hugepages/hugepages-" << (page_size >> 10)
+                             << "kB/nr_hugepages";
+            }
+        }
+        input_ptr_cpu_va = input_buffer.ptr;
+        output_ptr_cpu_va = output_buffer.ptr;
+        std::cout << "Allocated CPU buffers via mmap (page size: " << (page_size >> 10)
+                  << " KiB, mapped size: " << (input_buffer.mapped_size >> 20) << " MiB each)" << std::endl;
+#else
+        GTEST_SKIP() << "mmap allocation is only supported on Linux";
+#endif
+    }
     std::fill_n(static_cast<ov::float16*>(input_ptr_cpu_va), element_count, ov::float16(2.0f));
     std::fill_n(static_cast<ov::float16*>(output_ptr_cpu_va), element_count, ov::float16(0.0f));
     
@@ -3050,14 +3159,9 @@ TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative) {
                                                          shape,
                                                          ov::intel_gpu::VirtualAddressMemory(output_ptr_cpu_va));
     auto remote_input_params = remote_input_tensor_cpu_va.get_params();
-    void* input_ptr_from_remote = nullptr;
+
     auto output_ptr_from_remote = static_cast<void*>(nullptr);
-    
-    try {
-        input_ptr_from_remote = remote_input_params.at(ov::intel_gpu::cpu_va.name()).as<void*>();
-    } catch (const std::exception& e) {
-        std::cout << "Warning: Could not extract cpu_va from input remote tensor: " << e.what() << std::endl;
-    }
+
 
     auto remote_output_params = remote_output_tensor_cpu_va.get_params();
     try {
@@ -3066,13 +3170,6 @@ TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative) {
     } catch (const std::exception& e) {
         std::cout << "Warning: Could not extract cpu_va from output remote tensor: " << e.what() << std::endl;
     }
-    std::cout << "\nCPU VA Remote Tensors:"
-                  << "\n  Allocated input ptr:   " << input_ptr_cpu_va
-                  << "\n  Remote input ptr:      " << input_ptr_from_remote
-                  << "\n  Match: " << (input_ptr_cpu_va == input_ptr_from_remote ? "YES" : "NO")
-                  << "\n  Allocated output ptr:  " << output_ptr_cpu_va
-                  << "\n  Remote output ptr:     " << output_ptr_from_remote
-                  << "\n  Match: " << (output_ptr_cpu_va == output_ptr_from_remote ? "YES" : "NO") << std::endl;
 
     auto infer_req_cpu_va = compiled.create_infer_request();
     infer_req_cpu_va.set_tensor(compiled.input(), remote_input_tensor_cpu_va);
@@ -3088,8 +3185,15 @@ TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative) {
     auto end_cpu_va = std::chrono::high_resolution_clock::now();
     auto duration_cpu_va = std::chrono::duration_cast<std::chrono::microseconds>(end_cpu_va - start_cpu_va);
     
-    ov::util::aligned_free(input_ptr_cpu_va);
-    ov::util::aligned_free(output_ptr_cpu_va);
+    if (alloc_mode == CpuVaAllocMode::AlignedAlloc) {
+        ov::util::aligned_free(input_ptr_cpu_va);
+        ov::util::aligned_free(output_ptr_cpu_va);
+    } else {
+#if defined(__linux__)
+        munmap(input_ptr_cpu_va, input_buffer.mapped_size);
+        munmap(output_ptr_cpu_va, output_buffer.mapped_size);
+#endif
+    }
     
     // ===== Test 2: Native Tensors (USM_HOST via allocate_inputs) =====
     auto infer_req_native = compiled.create_infer_request();
@@ -3097,15 +3201,7 @@ TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative) {
     // Print native tensor allocation info
     auto native_input = infer_req_native.get_input_tensor();
     auto native_output = infer_req_native.get_output_tensor();
-    std::cout << "\nNative (USM_HOST) Input Tensor:"
-              << "\n  Shape: " << native_input.get_shape()
-              << "\n  Element Type: " << native_input.get_element_type()
-              << "\n  Byte Size: " << native_input.get_byte_size();
-    std::cout << "\nNative (USM_HOST) Output Tensor:"
-              << "\n  Shape: " << native_output.get_shape()
-              << "\n  Element Type: " << native_output.get_element_type()
-              << "\n  Byte Size: " << native_output.get_byte_size() << std::endl;
-    
+
     // Warmup
     infer_req_native.infer();
     
@@ -3134,6 +3230,23 @@ TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative) {
     
     EXPECT_GT(avg_cpu_va, 0.0);
     EXPECT_GT(avg_native, 0.0);
+}
+}  // namespace
+
+TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative_aligned_alloc) {
+    run_performance_remote_cpu_va_vs_native(CpuVaAllocMode::AlignedAlloc);
+}
+
+TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative_mmap_4kb) {
+    run_performance_remote_cpu_va_vs_native(CpuVaAllocMode::Mmap4KiB);
+}
+
+TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative_mmap_2mb) {
+    run_performance_remote_cpu_va_vs_native(CpuVaAllocMode::Mmap2MiB);
+}
+
+TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative_mmap_1gb) {
+    run_performance_remote_cpu_va_vs_native(CpuVaAllocMode::Mmap1GiB);
 }
 
 #endif  // OV_GPU_WITH_OCL_RT
