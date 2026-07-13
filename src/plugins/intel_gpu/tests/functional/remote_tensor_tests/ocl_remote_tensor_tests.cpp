@@ -3075,19 +3075,17 @@ enum class CpuVaAllocMode {
     Mmap1GiB,      // mmap with 1 GiB huge pages (Linux only)
 };
 
-void run_performance_remote_cpu_va_vs_native(CpuVaAllocMode alloc_mode) {
+void run_performance_remote_cpu_va_vs_native(CpuVaAllocMode alloc_mode, const ov::Shape shape) {
     ov::Core core;
     std::string target_device = ov::test::utils::DEVICE_GPU;
     uint32_t cacheline_size = core.get_property(target_device, ov::intel_gpu::cacheline_size);
     ASSERT_GT(cacheline_size, 0u);
-    
-    const ov::Shape shape{80, 10, 1151, 128};
     const size_t element_count = ov::shape_size(shape);
     const size_t byte_size = element_count * ov::element::f16.size();
     const int iterations = 100;
     
     auto ctx = core.get_default_context(target_device).as<ov::intel_gpu::ocl::ClContext>();
-    auto model = make_copy_model(shape);
+    auto model = make_copy_modelf16(shape);
     auto compiled = core.compile_model(model, ctx);
     // ===== Test 1: Remote CPU VA Tensors =====
     void* input_ptr_cpu_va = nullptr;
@@ -3234,19 +3232,27 @@ void run_performance_remote_cpu_va_vs_native(CpuVaAllocMode alloc_mode) {
 }  // namespace
 
 TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative_aligned_alloc) {
-    run_performance_remote_cpu_va_vs_native(CpuVaAllocMode::AlignedAlloc);
+    run_performance_remote_cpu_va_vs_native(CpuVaAllocMode::AlignedAlloc, ov::Shape{80, 10, 1151, 128});
 }
 
 TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative_mmap_4kb) {
-    run_performance_remote_cpu_va_vs_native(CpuVaAllocMode::Mmap4KiB);
+    run_performance_remote_cpu_va_vs_native(CpuVaAllocMode::Mmap4KiB, ov::Shape{80, 10, 1151, 128});
 }
 
 TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative_mmap_2mb) {
-    run_performance_remote_cpu_va_vs_native(CpuVaAllocMode::Mmap2MiB);
+    run_performance_remote_cpu_va_vs_native(CpuVaAllocMode::Mmap2MiB, ov::Shape{80, 10, 1151, 128});
 }
 
 TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative_mmap_1gb) {
-    run_performance_remote_cpu_va_vs_native(CpuVaAllocMode::Mmap1GiB);
+    run_performance_remote_cpu_va_vs_native(CpuVaAllocMode::Mmap1GiB, ov::Shape{80, 10, 1151, 128});
+}
+
+TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative_aligned_alloc_small) {
+    run_performance_remote_cpu_va_vs_native(CpuVaAllocMode::AlignedAlloc, ov::Shape{4, 1024});
+}
+
+TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative_mmap_4kb_small) {
+    run_performance_remote_cpu_va_vs_native(CpuVaAllocMode::Mmap4KiB, ov::Shape{4, 1024});
 }
 
 #endif  // OV_GPU_WITH_OCL_RT
