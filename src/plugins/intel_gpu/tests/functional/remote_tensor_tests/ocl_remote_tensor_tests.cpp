@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <fstream>
 #include <iomanip>
 #include <sys/mman.h>
 
@@ -3040,6 +3041,12 @@ TEST(GpuRemoteTensorFromCpu, smoke_allocAlignedCPUMemory) {
 #    ifndef MAP_HUGE_1GB
 #        define MAP_HUGE_1GB (30 << MAP_HUGE_SHIFT)
 #    endif
+#    ifndef MADV_HUGEPAGE
+#        define MADV_HUGEPAGE 14
+#    endif
+#    ifndef MADV_COLLAPSE
+#        define MADV_COLLAPSE 25
+#    endif
 #endif  // defined(__linux__)
 
 namespace {
@@ -3065,14 +3072,60 @@ ContiguousHostBuffer allocate_mmap(size_t byte_size, size_t page_size, int huge_
         return {};
     return {ptr, mapped_size};
 }
+
+// Allocates a 2 MiB-aligned anonymous buffer and requests Transparent Huge Page (THP) backing.
+// Unlike hugetlb, THP needs no reserved pool: MADV_HUGEPAGE makes the fault path prefer 2 MiB
+// pages, and MADV_COLLAPSE (kernel >= 5.17) collapses the range synchronously. THP is
+// best-effort, so the buffer may still fall back to 4 KiB pages under memory fragmentation.
+ContiguousHostBuffer allocate_mmap_thp(size_t byte_size) {
+    const size_t align = size_t(2) << 20;  // PMD-sized THP on x86-64
+    const size_t mapped_size = ((byte_size + align - 1) / align) * align;
+
+    // Over-map by one huge page so a 2 MiB-aligned start can be carved out, then trim the slack.
+    void* raw = mmap(nullptr, mapped_size + align, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (raw == MAP_FAILED)
+        return {};
+
+    const uintptr_t base = reinterpret_cast<uintptr_t>(raw);
+    const uintptr_t aligned = (base + align - 1) & ~(align - 1);
+    if (aligned != base)
+        munmap(raw, aligned - base);
+    const uintptr_t region_end = aligned + mapped_size;
+    const uintptr_t raw_end = base + mapped_size + align;
+    if (raw_end > region_end)
+        munmap(reinterpret_cast<void*>(region_end), raw_end - region_end);
+
+    void* ptr = reinterpret_cast<void*>(aligned);
+    madvise(ptr, mapped_size, MADV_HUGEPAGE);
+    madvise(ptr, mapped_size, MADV_COLLAPSE);  // best-effort synchronous collapse; ignore failure
+    return {ptr, mapped_size};
+}
+
+// Returns a named size field (in kB) from /proc/self/smaps_rollup, or -1 if unavailable.
+long read_smaps_rollup_kb(const std::string& field) {
+    std::ifstream f("/proc/self/smaps_rollup");
+    const std::string key = field + ":";
+    std::string line;
+    while (std::getline(f, line)) {
+        if (line.rfind(key, 0) == 0) {
+            try {
+                return std::stol(line.substr(key.size()));
+            } catch (...) {
+                return -1;
+            }
+        }
+    }
+    return -1;
+}
 #endif  // defined(__linux__)
 
 // Allocation strategy for the CPU-side buffers backing the remote CPU VA tensors.
 enum class CpuVaAllocMode {
     AlignedAlloc,  // ov::util::aligned_alloc: virtually contiguous host memory
     Mmap4KiB,      // mmap with default 4 KiB pages (Linux only)
-    Mmap2MiB,      // mmap with 2 MiB huge pages (Linux only)
-    Mmap1GiB,      // mmap with 1 GiB huge pages (Linux only)
+    Mmap2MiB,      // mmap with 2 MiB hugetlb pages, needs reserved pool (Linux only)
+    Mmap2MiBThp,   // mmap + THP (MADV_HUGEPAGE/MADV_COLLAPSE), no pool reservation (Linux only)
+    Mmap1GiB,      // mmap with 1 GiB hugetlb pages, needs reserved pool (Linux only)
 };
 
 void run_performance_remote_cpu_va_vs_native(CpuVaAllocMode alloc_mode, const ov::Shape shape) {
@@ -3100,55 +3153,80 @@ void run_performance_remote_cpu_va_vs_native(CpuVaAllocMode alloc_mode, const ov
         output_ptr_cpu_va = ov::util::aligned_alloc(byte_size, cacheline_size);
     } else {
 #if defined(__linux__)
-        // mmap-backed host memory with an explicit page size.
-        size_t page_size = 0;
-        int huge_flag = 0;
-        switch (alloc_mode) {
-            case CpuVaAllocMode::Mmap4KiB:
-                page_size = size_t(4) << 10;
-                huge_flag = 0;
-                break;
-            case CpuVaAllocMode::Mmap2MiB:
-                page_size = size_t(2) << 20;
-                huge_flag = MAP_HUGE_2MB;
-                break;
-            case CpuVaAllocMode::Mmap1GiB:
-                page_size = size_t(1) << 30;
-                huge_flag = MAP_HUGE_1GB;
-                break;
-            default:
-                break;
-        }
-        ASSERT_NE(page_size, 0u);
-
-        input_buffer = allocate_mmap(byte_size, page_size, huge_flag);
-        output_buffer = allocate_mmap(byte_size, page_size, huge_flag);
-        if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
-            if (input_buffer.ptr != nullptr)
-                munmap(input_buffer.ptr, input_buffer.mapped_size);
-            if (output_buffer.ptr != nullptr)
-                munmap(output_buffer.ptr, output_buffer.mapped_size);
-            if (huge_flag == 0) {
-                FAIL() << "mmap of " << byte_size << " bytes with 4 KiB pages failed (out of memory?)";
-            } else {
-                const size_t mapped = ((byte_size + page_size - 1) / page_size) * page_size;
-                const size_t pages_needed = 2 * (mapped / page_size);
-                GTEST_SKIP() << "mmap with " << (page_size >> 20) << " MiB huge pages failed. Reserve at least "
-                             << pages_needed << " pages, e.g.: echo " << pages_needed
-                             << " | sudo tee /sys/kernel/mm/hugepages/hugepages-" << (page_size >> 10)
-                             << "kB/nr_hugepages";
+        if (alloc_mode == CpuVaAllocMode::Mmap2MiBThp) {
+            // Transparent Huge Pages: 2 MiB backing without reserving a hugetlb pool.
+            input_buffer = allocate_mmap_thp(byte_size);
+            output_buffer = allocate_mmap_thp(byte_size);
+            if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
+                if (input_buffer.ptr != nullptr)
+                    munmap(input_buffer.ptr, input_buffer.mapped_size);
+                if (output_buffer.ptr != nullptr)
+                    munmap(output_buffer.ptr, output_buffer.mapped_size);
+                FAIL() << "anonymous mmap for THP failed (out of memory?)";
             }
+            input_ptr_cpu_va = input_buffer.ptr;
+            output_ptr_cpu_va = output_buffer.ptr;
+            std::cout << "Allocated CPU buffers via mmap + THP (2 MiB requested, mapped size: "
+                      << (input_buffer.mapped_size >> 20) << " MiB each)" << std::endl;
+        } else {
+            // mmap-backed host memory with an explicit page size (hugetlb pool).
+            size_t page_size = 0;
+            int huge_flag = 0;
+            switch (alloc_mode) {
+                case CpuVaAllocMode::Mmap4KiB:
+                    page_size = size_t(4) << 10;
+                    huge_flag = 0;
+                    break;
+                case CpuVaAllocMode::Mmap2MiB:
+                    page_size = size_t(2) << 20;
+                    huge_flag = MAP_HUGE_2MB;
+                    break;
+                case CpuVaAllocMode::Mmap1GiB:
+                    page_size = size_t(1) << 30;
+                    huge_flag = MAP_HUGE_1GB;
+                    break;
+                default:
+                    break;
+            }
+            ASSERT_NE(page_size, 0u);
+
+            input_buffer = allocate_mmap(byte_size, page_size, huge_flag);
+            output_buffer = allocate_mmap(byte_size, page_size, huge_flag);
+            if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
+                if (input_buffer.ptr != nullptr)
+                    munmap(input_buffer.ptr, input_buffer.mapped_size);
+                if (output_buffer.ptr != nullptr)
+                    munmap(output_buffer.ptr, output_buffer.mapped_size);
+                if (huge_flag == 0) {
+                    FAIL() << "mmap of " << byte_size << " bytes with 4 KiB pages failed (out of memory?)";
+                } else {
+                    const size_t mapped = ((byte_size + page_size - 1) / page_size) * page_size;
+                    const size_t pages_needed = 2 * (mapped / page_size);
+                    GTEST_SKIP() << "mmap with " << (page_size >> 20) << " MiB huge pages failed. Reserve at least "
+                                 << pages_needed << " pages, e.g.: echo " << pages_needed
+                                 << " | sudo tee /sys/kernel/mm/hugepages/hugepages-" << (page_size >> 10)
+                                 << "kB/nr_hugepages";
+                }
+            }
+            input_ptr_cpu_va = input_buffer.ptr;
+            output_ptr_cpu_va = output_buffer.ptr;
+            std::cout << "Allocated CPU buffers via mmap (page size: " << (page_size >> 10)
+                      << " KiB, mapped size: " << (input_buffer.mapped_size >> 20) << " MiB each)" << std::endl;
         }
-        input_ptr_cpu_va = input_buffer.ptr;
-        output_ptr_cpu_va = output_buffer.ptr;
-        std::cout << "Allocated CPU buffers via mmap (page size: " << (page_size >> 10)
-                  << " KiB, mapped size: " << (input_buffer.mapped_size >> 20) << " MiB each)" << std::endl;
 #else
         GTEST_SKIP() << "mmap allocation is only supported on Linux";
 #endif
     }
     std::fill_n(static_cast<ov::float16*>(input_ptr_cpu_va), element_count, ov::float16(2.0f));
     std::fill_n(static_cast<ov::float16*>(output_ptr_cpu_va), element_count, ov::float16(0.0f));
+#if defined(__linux__)
+    if (alloc_mode == CpuVaAllocMode::Mmap2MiBThp) {
+        // Report how much of the process is actually THP-backed (THP is best-effort).
+        const long anon_thp_kb = read_smaps_rollup_kb("AnonHugePages");
+        std::cout << "THP AnonHugePages (process): " << anon_thp_kb << " kB (expected ~"
+                  << (2 * (byte_size >> 10)) << " kB if both buffers are fully 2 MiB-backed)" << std::endl;
+    }
+#endif
     
     auto remote_input_tensor_cpu_va = ctx.create_tensor(ov::element::f16,
                                                         shape,
@@ -3241,6 +3319,10 @@ TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative_mmap_4kb) {
 
 TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative_mmap_2mb) {
     run_performance_remote_cpu_va_vs_native(CpuVaAllocMode::Mmap2MiB, ov::Shape{80, 10, 1151, 128});
+}
+
+TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative_mmap_2mb_thp) {
+    run_performance_remote_cpu_va_vs_native(CpuVaAllocMode::Mmap2MiBThp, ov::Shape{80, 10, 1151, 128});
 }
 
 TEST(GpuRemoteTensorFromCpu, smoke_performanceRemoteCpuVaVsNative_mmap_1gb) {
