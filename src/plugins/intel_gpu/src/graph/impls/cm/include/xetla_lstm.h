@@ -259,12 +259,13 @@ struct gemm_persistent {
         for (int i = 0; i < k_steps; i++) {
             matAcc_t part_res;
             part_res.init(0);
+            const int k_offset = i * sg_k;
             vector<float, sg_n *sg_k> tempB = matB_acc[i].reg;
 #pragma unroll
             for (int j = 0; j < sg_k; j++) {
                 vector<float, sg_n> tempB_simd
                         = tempB.select<sg_n, 1>(j * sg_n);
-                part_res.reg += tempA[j + i * sg_k] * tempB_simd;
+                part_res.reg += tempA[j + k_offset] * tempB_simd;
             }
             result.reg += part_res.reg;
         }
