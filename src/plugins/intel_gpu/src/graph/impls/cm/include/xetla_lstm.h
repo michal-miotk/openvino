@@ -242,8 +242,6 @@ struct gemm_persistent {
     }
 
     inline void run(matAcc_t &result) {
-
-        matAcc_t part_res[k_steps];
         matA_t matA;
         matA_acc_t matA_acc;
         matA_payload_t matA_payload(mem_desc_a);
@@ -254,25 +252,24 @@ struct gemm_persistent {
 
         cm_fence(CM_SW_BARRIER);
 
+        vector<float, k_size> tempA = matA_acc.reg;
+        result.init(0);
+
 #pragma unroll
         for (int i = 0; i < k_steps; i++) {
-            part_res[i].init(0);
+            matAcc_t part_res;
+            part_res.init(0);
+            vector<float, sg_n *sg_k> tempB = matB_acc[i].reg;
 #pragma unroll
             for (int j = 0; j < sg_k; j++) {
-                vector<float, k_size> tempA = matA_acc.reg;
-                float a = tempA[j + i * sg_k];
-                vector<float, sg_n *sg_k> tempB = matB_acc[i].reg;
                 vector<float, sg_n> tempB_simd
                         = tempB.select<sg_n, 1>(j * sg_n);
-                part_res[i].reg += a * tempB_simd;
+                part_res.reg += tempA[j + i * sg_k] * tempB_simd;
             }
+            result.reg += part_res.reg;
         }
+
         cm_fence(CM_SW_BARRIER);
-        result.init(0);
-#pragma unroll
-        for (int i = 0; i < k_steps; i++) {
-            result.reg += part_res[i].reg;
-        }
     }
 };
 
