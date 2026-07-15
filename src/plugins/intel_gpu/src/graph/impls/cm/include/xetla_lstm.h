@@ -98,13 +98,14 @@ struct gemm_persistent {
     using mem_desc_a_t = mem_desc_t<dtype_a, mem_layout_a, mem_space_a, 8>;
     using mem_desc_b_t = mem_desc_t<dtype_b, mem_layout_b, mem_space_b, 8>;
 
-    // Widen matrix B (the recurrent weights R) to dtype_acc (fp32) for the
-    // multiply-accumulate. R is loaded from global memory as dtype_b (fp16) and
-    // converted to fp32 by elemwise_cvt in run(), so both the FMA operand and its
-    // accumulator run fully in fp32. matA is dtype_acc as well, preserving
-    // recurrent accuracy.
+    // Cache matrix B (the recurrent weights R) in its native dtype_b (fp16)
+    // instead of widening it to dtype_acc (fp32). The manual FMA in run() reads
+    // B back as float, and fp16->float is lossless, so the numerical result is
+    // unchanged while the persistent matB_acc register footprint is halved.
+    // This is what keeps hidden_size=256 inside the GRF budget (8 KB instead of
+    // 16 KB per thread). matA stays in dtype_acc to preserve recurrent accuracy.
     using compute_attr_t
-            = group::compute_attr_t<dtype_acc, dtype_acc, dtype_acc>;
+            = group::compute_attr_t<dtype_acc, dtype_b, dtype_acc>;
     using perf_tuning_knob_t = group::perf_tuning_knob_t<sg_k,
             prefetch_distance, periodic_sync_interval>;
     using compute_policy_t = group::compute_policy_default_fpu<compute_attr_t,
