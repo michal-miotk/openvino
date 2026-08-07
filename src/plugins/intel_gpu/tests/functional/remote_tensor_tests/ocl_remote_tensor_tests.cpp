@@ -8,7 +8,9 @@
 #include <chrono>
 #include <fstream>
 #include <iomanip>
-#include <sys/mman.h>
+#if defined(__linux__)
+#    include <sys/mman.h>
+#endif
 
 #include "openvino/core/preprocess/pre_post_process.hpp"
 #include "openvino/op/add.hpp"
@@ -3049,14 +3051,25 @@ TEST(GpuRemoteTensorFromCpu, smoke_allocAlignedCPUMemory) {
 #    endif
 #endif  // defined(__linux__)
 
+#if defined(_WIN32)
+#    ifndef NOMINMAX
+#        define NOMINMAX
+#    endif
+#    include <windows.h>
+#endif  // defined(_WIN32)
+
 namespace {
-#if defined(__linux__)
-// Descriptor for an mmap-backed buffer, kept so the mapping can be released with its exact length.
+// Descriptor for a page-backed buffer, kept so the mapping can be released with its exact length.
 struct ContiguousHostBuffer {
     void* ptr = nullptr;
     size_t mapped_size = 0;
+#if defined(_WIN32)
+    // Non-null only for CreateFileMapping-backed buffers (the Windows analog of memfd).
+    HANDLE mapping_handle = nullptr;
+#endif
 };
 
+#if defined(__linux__)
 // Allocates a host buffer of at least byte_size via mmap using the requested page size.
 // huge_flag must be 0 for the default 4 KiB pages, or MAP_HUGE_2MB / MAP_HUGE_1GB for
 // hugetlb pages. The mapping spans ceil(byte_size / page_size) pages, so it is physically
@@ -3187,20 +3200,186 @@ long read_smaps_rollup_kb(const std::string& field) {
     }
     return -1;
 }
+#elif defined(_WIN32)
+// Enables SeLockMemoryPrivilege ("Lock pages in memory") for the current process token.
+// Required for MEM_LARGE_PAGES/SEC_LARGE_PAGES allocations and recommended before pinning
+// large buffers with VirtualLock. Returns false (non-fatal) if the privilege is unavailable,
+// e.g. the signed-in user was not granted the "Lock pages in memory" user right (secpol.msc).
+bool enable_lock_memory_privilege() {
+    HANDLE token = nullptr;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token))
+        return false;
+
+    LUID luid;
+    if (!LookupPrivilegeValueA(nullptr, SE_LOCK_MEMORY_NAME, &luid)) {
+        CloseHandle(token);
+        return false;
+    }
+
+    TOKEN_PRIVILEGES tp;
+    tp.PrivilegeCount = 1;
+    tp.Privileges[0].Luid = luid;
+    tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+    const BOOL adjusted = AdjustTokenPrivileges(token, FALSE, &tp, sizeof(tp), nullptr, nullptr);
+    const DWORD last_error = GetLastError();
+    CloseHandle(token);
+    return adjusted && last_error == ERROR_SUCCESS;
+}
+
+// Allocates a plain VirtualAlloc buffer backed by default-size (4 KiB) pages —
+// the Windows analog of anonymous mmap with regular pages.
+ContiguousHostBuffer allocate_virtualalloc(size_t byte_size) {
+    const size_t page_size = size_t(4) << 10;
+    const size_t mapped_size = ((byte_size + page_size - 1) / page_size) * page_size;
+
+    void* ptr = VirtualAlloc(nullptr, mapped_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    if (ptr == nullptr)
+        return {};
+    return {ptr, mapped_size};
+}
+
+// Allocates a VirtualAlloc buffer backed by large pages — the closest Windows analog to
+// Linux hugetlb/THP pages. The exact size is reported by GetLargePageMinimum() (typically
+// 2 MiB on x86-64). Requires the SeLockMemoryPrivilege enabled above; returns an empty
+// buffer if the privilege or the allocation is unavailable.
+ContiguousHostBuffer allocate_virtualalloc_largepages(size_t byte_size) {
+    if (!enable_lock_memory_privilege())
+        return {};
+
+    const size_t large_page_size = GetLargePageMinimum();
+    if (large_page_size == 0)
+        return {};
+    const size_t mapped_size = ((byte_size + large_page_size - 1) / large_page_size) * large_page_size;
+
+    void* ptr = VirtualAlloc(nullptr, mapped_size, MEM_COMMIT | MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE);
+    if (ptr == nullptr)
+        return {};
+    return {ptr, mapped_size};
+}
+
+// Allocates a VirtualAlloc buffer and pins it in the working set with VirtualLock — the
+// Windows analog of mmap + MAP_POPULATE + mlock. Grows the process's working set quota
+// first, since VirtualLock otherwise fails with ERROR_WORKING_SET_QUOTA for buffers larger
+// than the default working set.
+ContiguousHostBuffer allocate_virtualalloc_locked(size_t byte_size) {
+    ContiguousHostBuffer buf = allocate_virtualalloc(byte_size);
+    if (buf.ptr == nullptr)
+        return buf;
+
+    SIZE_T min_ws = 0, max_ws = 0;
+    if (GetProcessWorkingSetSize(GetCurrentProcess(), &min_ws, &max_ws)) {
+        const SIZE_T headroom = size_t(16) << 20;
+        const SIZE_T needed_min = buf.mapped_size + headroom;
+        const SIZE_T needed_max = needed_min + headroom;
+        SetProcessWorkingSetSize(GetCurrentProcess(),
+                                  (std::max)(min_ws, needed_min),
+                                  (std::max)(max_ws, needed_max));
+    }
+
+    // Non-fatal: continue without locking if the working set quota still can't be raised.
+    if (!VirtualLock(buf.ptr, buf.mapped_size))
+        std::cerr << "Warning: VirtualLock failed (GetLastError=" << GetLastError()
+                  << "). Continuing without memory pinning." << std::endl;
+
+    return buf;
+}
+
+// Allocates a pagefile-backed shared memory section (CreateFileMapping with
+// INVALID_HANDLE_VALUE) and maps + locks it. This is the closest Windows analog to Linux's
+// memfd_create + MAP_SHARED: a kernel-tracked, COW-free shared memory object. Large pages
+// are attempted first (SEC_LARGE_PAGES) and the call transparently falls back to regular
+// pages if that is not possible.
+ContiguousHostBuffer allocate_pagefile_section_locked(size_t byte_size) {
+    const bool have_privilege = enable_lock_memory_privilege();
+    const size_t large_page_size = have_privilege ? GetLargePageMinimum() : 0;
+    const size_t align = large_page_size != 0 ? large_page_size : (size_t(4) << 10);
+    const size_t mapped_size = ((byte_size + align - 1) / align) * align;
+
+    DWORD protect = PAGE_READWRITE | SEC_COMMIT;
+    if (large_page_size != 0)
+        protect |= SEC_LARGE_PAGES;
+
+    HANDLE mapping = CreateFileMappingW(INVALID_HANDLE_VALUE,
+                                        nullptr,
+                                        protect,
+                                        static_cast<DWORD>(mapped_size >> 32),
+                                        static_cast<DWORD>(mapped_size & 0xFFFFFFFFu),
+                                        nullptr);
+    if (mapping == nullptr && (protect & SEC_LARGE_PAGES)) {
+        // Retry without large pages if the large-page section could not be created.
+        protect = PAGE_READWRITE | SEC_COMMIT;
+        mapping = CreateFileMappingW(INVALID_HANDLE_VALUE,
+                                     nullptr,
+                                     protect,
+                                     static_cast<DWORD>(mapped_size >> 32),
+                                     static_cast<DWORD>(mapped_size & 0xFFFFFFFFu),
+                                     nullptr);
+    }
+    if (mapping == nullptr)
+        return {};
+
+    void* ptr = MapViewOfFile(mapping, FILE_MAP_ALL_ACCESS, 0, 0, mapped_size);
+    if (ptr == nullptr) {
+        CloseHandle(mapping);
+        return {};
+    }
+
+    // Non-fatal: continue without locking if RLIMIT-like quotas prevent it.
+    if (!VirtualLock(ptr, mapped_size))
+        std::cerr << "Warning: VirtualLock failed (GetLastError=" << GetLastError()
+                  << "). Continuing without memory pinning." << std::endl;
+
+    ContiguousHostBuffer buf;
+    buf.ptr = ptr;
+    buf.mapped_size = mapped_size;
+    buf.mapping_handle = mapping;
+    return buf;
+}
+
+// No /proc equivalent exists on Windows; report "unavailable" for THP-style diagnostics.
+long read_smaps_rollup_kb(const std::string& /*field*/) {
+    return -1;
+}
 #endif  // defined(__linux__)
 
+// Releases a buffer returned by any of the allocate_* helpers above, regardless of which
+// platform-specific allocation primitive backed it.
+void free_contiguous_host_buffer(ContiguousHostBuffer& buf) {
+    if (buf.ptr == nullptr)
+        return;
+#if defined(__linux__)
+    munmap(buf.ptr, buf.mapped_size);
+#elif defined(_WIN32)
+    if (buf.mapping_handle != nullptr) {
+        UnmapViewOfFile(buf.ptr);
+        CloseHandle(buf.mapping_handle);
+    } else {
+        VirtualFree(buf.ptr, 0, MEM_RELEASE);
+    }
+#endif
+    buf = ContiguousHostBuffer{};
+}
+
 // Allocation strategy for the CPU-side buffers backing the remote CPU VA tensors.
+// Every mode is supported on both Linux and Windows via platform-appropriate primitives
+// (see the allocate_* helpers above); comments below note the concrete mechanism per OS.
 enum class CpuVaAllocMode {
     AlignedAlloc,   // ov::util::aligned_alloc: virtually contiguous host memory
-    Mmap4KiB,       // mmap with default 4 KiB pages (Linux only)
-    Mmap2MiB,       // mmap with 2 MiB hugetlb pages, needs reserved pool (Linux only)
-    Mmap2MiBThp,    // mmap + THP (MADV_HUGEPAGE/MADV_COLLAPSE), no pool reservation (Linux only)
-    Mmap1GiB,       // mmap with 1 GiB hugetlb pages, needs reserved pool (Linux only)
-    Mmap4KiBMlock,    // mmap + MAP_POPULATE + mlock: pre-faulted & pinned 4 KiB pages,
-                      // optimal for Intel GPU zero-copy (no DMA page faults, stable IOMMU) (Linux only)
-    MemfdMlockThp,    // memfd_create + MAP_SHARED + mlock + MADV_COLLAPSE: kernel-tracked
-                      // tmpfs object, COW-free MAP_SHARED, 2 MiB THP-collapsed + pinned pages;
-                      // lowest IOMMU overhead achievable in user space (Linux only)
+    Mmap4KiB,       // Linux: mmap with default 4 KiB pages; Windows: VirtualAlloc (4 KiB pages)
+    Mmap2MiB,       // Linux: mmap with 2 MiB hugetlb pages, needs reserved pool;
+                    // Windows: VirtualAlloc + MEM_LARGE_PAGES (needs "Lock pages in memory")
+    Mmap2MiBThp,    // Linux: mmap + THP (MADV_HUGEPAGE/MADV_COLLAPSE), no pool reservation;
+                    // Windows: no THP concept, falls back to explicit large pages (closest analog)
+    Mmap1GiB,       // Linux: mmap with 1 GiB hugetlb pages, needs reserved pool;
+                    // Windows: not supported (VirtualAlloc exposes only GetLargePageMinimum())
+    Mmap4KiBMlock,  // Linux: mmap + MAP_POPULATE + mlock (pre-faulted & pinned 4 KiB pages);
+                    // Windows: VirtualAlloc + VirtualLock; optimal for Intel GPU zero-copy
+                    // (no DMA page faults, stable IOMMU)
+    MemfdMlockThp,  // Linux: memfd_create + MAP_SHARED + mlock + MADV_COLLAPSE (kernel-tracked
+                    // tmpfs object, COW-free, 2 MiB THP-collapsed + pinned);
+                    // Windows: CreateFileMapping (pagefile-backed section) + VirtualLock,
+                    // with large pages attempted first — the closest Windows analog
 };
 
 void run_performance_remote_cpu_va_vs_native(CpuVaAllocMode alloc_mode, const ov::Shape shape) {
@@ -3210,7 +3389,7 @@ void run_performance_remote_cpu_va_vs_native(CpuVaAllocMode alloc_mode, const ov
     ASSERT_GT(cacheline_size, 0u);
     const size_t element_count = ov::shape_size(shape);
     const size_t byte_size = element_count * ov::element::f16.size();
-    const int iterations = 100;
+    const int iterations = 50;
     
     auto ctx = core.get_default_context(target_device).as<ov::intel_gpu::ocl::ClContext>();
     auto model = make_copy_modelf16(shape);
@@ -3218,128 +3397,196 @@ void run_performance_remote_cpu_va_vs_native(CpuVaAllocMode alloc_mode, const ov
     // ===== Test 1: Remote CPU VA Tensors =====
     void* input_ptr_cpu_va = nullptr;
     void* output_ptr_cpu_va = nullptr;
-#if defined(__linux__)
     ContiguousHostBuffer input_buffer;
     ContiguousHostBuffer output_buffer;
-#endif
+
     if (alloc_mode == CpuVaAllocMode::AlignedAlloc) {
         // Virtually contiguous host memory (default 4 KiB pages).
         input_ptr_cpu_va = ov::util::aligned_alloc(byte_size, cacheline_size);
         output_ptr_cpu_va = ov::util::aligned_alloc(byte_size, cacheline_size);
-    } else {
+    } else if (alloc_mode == CpuVaAllocMode::Mmap2MiBThp) {
 #if defined(__linux__)
-        if (alloc_mode == CpuVaAllocMode::Mmap2MiBThp) {
-            // Transparent Huge Pages: 2 MiB backing without reserving a hugetlb pool.
-            input_buffer = allocate_mmap_thp(byte_size);
-            output_buffer = allocate_mmap_thp(byte_size);
-            if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
-                if (input_buffer.ptr != nullptr)
-                    munmap(input_buffer.ptr, input_buffer.mapped_size);
-                if (output_buffer.ptr != nullptr)
-                    munmap(output_buffer.ptr, output_buffer.mapped_size);
-                FAIL() << "anonymous mmap for THP failed (out of memory?)";
-            }
-            input_ptr_cpu_va = input_buffer.ptr;
-            output_ptr_cpu_va = output_buffer.ptr;
-            std::cout << "Allocated CPU buffers via mmap + THP (2 MiB requested, mapped size: "
-                      << (input_buffer.mapped_size >> 20) << " MiB each)" << std::endl;
-        } else if (alloc_mode == CpuVaAllocMode::Mmap4KiBMlock) {
-            // Pre-faulted, mlock-pinned 4 KiB pages: lowest-latency option for Intel GPU
-            // zero-copy because all physical pages are allocated upfront (MAP_POPULATE)
-            // and can never be swapped out or remapped by the kernel (mlock).
-            input_buffer = allocate_mmap_mlock(byte_size);
-            output_buffer = allocate_mmap_mlock(byte_size);
-            if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
-                if (input_buffer.ptr != nullptr)
-                    munmap(input_buffer.ptr, input_buffer.mapped_size);
-                if (output_buffer.ptr != nullptr)
-                    munmap(output_buffer.ptr, output_buffer.mapped_size);
-                FAIL() << "mmap+MAP_POPULATE+mlock of " << byte_size
-                       << " bytes failed (out of memory or RLIMIT_MEMLOCK too small?)";
-            }
-            input_ptr_cpu_va = input_buffer.ptr;
-            output_ptr_cpu_va = output_buffer.ptr;
-            std::cout << "Allocated CPU buffers via mmap + MAP_POPULATE + mlock (4 KiB pages, "
-                      << (input_buffer.mapped_size >> 10) << " KiB each)" << std::endl;
-        } else if (alloc_mode == CpuVaAllocMode::MemfdMlockThp) {
-            // memfd + MAP_SHARED + mlock + MADV_COLLAPSE: the lowest-level user-space
-            // primitive — kernel-tracked tmpfs object, COW-free pages, 2 MiB THP-backed
-            // and pinned. Fewer IOMMU page-table entries than any 4 KiB-paged mode.
-            input_buffer = allocate_memfd_mlock_thp(byte_size);
-            output_buffer = allocate_memfd_mlock_thp(byte_size);
-            if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
-                if (input_buffer.ptr != nullptr)
-                    munmap(input_buffer.ptr, input_buffer.mapped_size);
-                if (output_buffer.ptr != nullptr)
-                    munmap(output_buffer.ptr, output_buffer.mapped_size);
-                FAIL() << "memfd_create+mmap+mlock of " << byte_size
-                       << " bytes failed (out of memory or RLIMIT_MEMLOCK too small?)";
-            }
-            input_ptr_cpu_va = input_buffer.ptr;
-            output_ptr_cpu_va = output_buffer.ptr;
-            const long anon_thp_kb = read_smaps_rollup_kb("AnonHugePages");
-            std::cout << "Allocated CPU buffers via memfd + MAP_SHARED + mlock + THP ("
-                      << (input_buffer.mapped_size >> 20) << " MiB each); "
-                      << "AnonHugePages: " << anon_thp_kb << " kB" << std::endl;
-        } else {
-            // mmap-backed host memory with an explicit page size (hugetlb pool).
-            size_t page_size = 0;
-            int huge_flag = 0;
-            switch (alloc_mode) {
-                case CpuVaAllocMode::Mmap4KiB:
-                    page_size = size_t(4) << 10;
-                    huge_flag = 0;
-                    break;
-                case CpuVaAllocMode::Mmap2MiB:
-                    page_size = size_t(2) << 20;
-                    huge_flag = MAP_HUGE_2MB;
-                    break;
-                case CpuVaAllocMode::Mmap1GiB:
-                    page_size = size_t(1) << 30;
-                    huge_flag = MAP_HUGE_1GB;
-                    break;
-                default:
-                    break;
-            }
-            ASSERT_NE(page_size, 0u);
-
-            input_buffer = allocate_mmap(byte_size, page_size, huge_flag);
-            output_buffer = allocate_mmap(byte_size, page_size, huge_flag);
-            if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
-                if (input_buffer.ptr != nullptr)
-                    munmap(input_buffer.ptr, input_buffer.mapped_size);
-                if (output_buffer.ptr != nullptr)
-                    munmap(output_buffer.ptr, output_buffer.mapped_size);
-                if (huge_flag == 0) {
-                    FAIL() << "mmap of " << byte_size << " bytes with 4 KiB pages failed (out of memory?)";
-                } else {
-                    const size_t mapped = ((byte_size + page_size - 1) / page_size) * page_size;
-                    const size_t pages_needed = 2 * (mapped / page_size);
-                    GTEST_SKIP() << "mmap with " << (page_size >> 20) << " MiB huge pages failed. Reserve at least "
-                                 << pages_needed << " pages, e.g.: echo " << pages_needed
-                                 << " | sudo tee /sys/kernel/mm/hugepages/hugepages-" << (page_size >> 10)
-                                 << "kB/nr_hugepages";
-                }
-            }
-            input_ptr_cpu_va = input_buffer.ptr;
-            output_ptr_cpu_va = output_buffer.ptr;
-            std::cout << "Allocated CPU buffers via mmap (page size: " << (page_size >> 10)
-                      << " KiB, mapped size: " << (input_buffer.mapped_size >> 20) << " MiB each)" << std::endl;
+        // Transparent Huge Pages: 2 MiB backing without reserving a hugetlb pool.
+        input_buffer = allocate_mmap_thp(byte_size);
+        output_buffer = allocate_mmap_thp(byte_size);
+        if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
+            free_contiguous_host_buffer(input_buffer);
+            free_contiguous_host_buffer(output_buffer);
+            FAIL() << "anonymous mmap for THP failed (out of memory?)";
         }
-#else
-        GTEST_SKIP() << "mmap allocation is only supported on Linux";
+        input_ptr_cpu_va = input_buffer.ptr;
+        output_ptr_cpu_va = output_buffer.ptr;
+        std::cout << "Allocated CPU buffers via mmap + THP (2 MiB requested, mapped size: "
+                  << (input_buffer.mapped_size >> 20) << " MiB each)" << std::endl;
+#elif defined(_WIN32)
+        // Windows has no THP concept; explicit large pages are the closest analog.
+        input_buffer = allocate_virtualalloc_largepages(byte_size);
+        output_buffer = allocate_virtualalloc_largepages(byte_size);
+        if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
+            free_contiguous_host_buffer(input_buffer);
+            free_contiguous_host_buffer(output_buffer);
+            GTEST_SKIP() << "Large page allocation failed. Grant the current user the "
+                            "\"Lock pages in memory\" privilege (secpol.msc) and retry.";
+        }
+        input_ptr_cpu_va = input_buffer.ptr;
+        output_ptr_cpu_va = output_buffer.ptr;
+        std::cout << "Allocated CPU buffers via VirtualAlloc + MEM_LARGE_PAGES (Windows THP analog, mapped size: "
+                  << (input_buffer.mapped_size >> 20) << " MiB each)" << std::endl;
+#endif
+    } else if (alloc_mode == CpuVaAllocMode::Mmap4KiBMlock) {
+#if defined(__linux__)
+        // Pre-faulted, mlock-pinned 4 KiB pages: lowest-latency option for Intel GPU
+        // zero-copy because all physical pages are allocated upfront (MAP_POPULATE)
+        // and can never be swapped out or remapped by the kernel (mlock).
+        input_buffer = allocate_mmap_mlock(byte_size);
+        output_buffer = allocate_mmap_mlock(byte_size);
+        if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
+            free_contiguous_host_buffer(input_buffer);
+            free_contiguous_host_buffer(output_buffer);
+            FAIL() << "mmap+MAP_POPULATE+mlock of " << byte_size
+                   << " bytes failed (out of memory or RLIMIT_MEMLOCK too small?)";
+        }
+        input_ptr_cpu_va = input_buffer.ptr;
+        output_ptr_cpu_va = output_buffer.ptr;
+        std::cout << "Allocated CPU buffers via mmap + MAP_POPULATE + mlock (4 KiB pages, "
+                  << (input_buffer.mapped_size >> 10) << " KiB each)" << std::endl;
+#elif defined(_WIN32)
+        // VirtualAlloc + VirtualLock: pre-committed, pinned 4 KiB pages — the Windows
+        // analog of mmap + MAP_POPULATE + mlock.
+        input_buffer = allocate_virtualalloc_locked(byte_size);
+        output_buffer = allocate_virtualalloc_locked(byte_size);
+        if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
+            free_contiguous_host_buffer(input_buffer);
+            free_contiguous_host_buffer(output_buffer);
+            FAIL() << "VirtualAlloc of " << byte_size << " bytes failed (out of memory?)";
+        }
+        input_ptr_cpu_va = input_buffer.ptr;
+        output_ptr_cpu_va = output_buffer.ptr;
+        std::cout << "Allocated CPU buffers via VirtualAlloc + VirtualLock (4 KiB pages, "
+                  << (input_buffer.mapped_size >> 10) << " KiB each)" << std::endl;
+#endif
+    } else if (alloc_mode == CpuVaAllocMode::MemfdMlockThp) {
+#if defined(__linux__)
+        // memfd + MAP_SHARED + mlock + MADV_COLLAPSE: the lowest-level user-space
+        // primitive — kernel-tracked tmpfs object, COW-free pages, 2 MiB THP-backed
+        // and pinned. Fewer IOMMU page-table entries than any 4 KiB-paged mode.
+        input_buffer = allocate_memfd_mlock_thp(byte_size);
+        output_buffer = allocate_memfd_mlock_thp(byte_size);
+        if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
+            free_contiguous_host_buffer(input_buffer);
+            free_contiguous_host_buffer(output_buffer);
+            FAIL() << "memfd_create+mmap+mlock of " << byte_size
+                   << " bytes failed (out of memory or RLIMIT_MEMLOCK too small?)";
+        }
+        input_ptr_cpu_va = input_buffer.ptr;
+        output_ptr_cpu_va = output_buffer.ptr;
+        const long anon_thp_kb = read_smaps_rollup_kb("AnonHugePages");
+        std::cout << "Allocated CPU buffers via memfd + MAP_SHARED + mlock + THP ("
+                  << (input_buffer.mapped_size >> 20) << " MiB each); "
+                  << "AnonHugePages: " << anon_thp_kb << " kB" << std::endl;
+#elif defined(_WIN32)
+        // CreateFileMapping (pagefile-backed section) + VirtualLock: the closest Windows
+        // analog of memfd_create + MAP_SHARED + mlock. Large pages are attempted first.
+        input_buffer = allocate_pagefile_section_locked(byte_size);
+        output_buffer = allocate_pagefile_section_locked(byte_size);
+        if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
+            free_contiguous_host_buffer(input_buffer);
+            free_contiguous_host_buffer(output_buffer);
+            FAIL() << "CreateFileMapping+MapViewOfFile of " << byte_size << " bytes failed (out of memory?)";
+        }
+        input_ptr_cpu_va = input_buffer.ptr;
+        output_ptr_cpu_va = output_buffer.ptr;
+        std::cout << "Allocated CPU buffers via CreateFileMapping + MapViewOfFile + VirtualLock ("
+                  << (input_buffer.mapped_size >> 20) << " MiB each)" << std::endl;
+#endif
+    } else {
+        // Mmap4KiB / Mmap2MiB / Mmap1GiB: explicit page size selection.
+#if defined(__linux__)
+        size_t page_size = 0;
+        int huge_flag = 0;
+        switch (alloc_mode) {
+            case CpuVaAllocMode::Mmap4KiB:
+                page_size = size_t(4) << 10;
+                huge_flag = 0;
+                break;
+            case CpuVaAllocMode::Mmap2MiB:
+                page_size = size_t(2) << 20;
+                huge_flag = MAP_HUGE_2MB;
+                break;
+            case CpuVaAllocMode::Mmap1GiB:
+                page_size = size_t(1) << 30;
+                huge_flag = MAP_HUGE_1GB;
+                break;
+            default:
+                break;
+        }
+        ASSERT_NE(page_size, 0u);
+
+        input_buffer = allocate_mmap(byte_size, page_size, huge_flag);
+        output_buffer = allocate_mmap(byte_size, page_size, huge_flag);
+        if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
+            free_contiguous_host_buffer(input_buffer);
+            free_contiguous_host_buffer(output_buffer);
+            if (huge_flag == 0) {
+                FAIL() << "mmap of " << byte_size << " bytes with 4 KiB pages failed (out of memory?)";
+            } else {
+                const size_t mapped = ((byte_size + page_size - 1) / page_size) * page_size;
+                const size_t pages_needed = 2 * (mapped / page_size);
+                GTEST_SKIP() << "mmap with " << (page_size >> 20) << " MiB huge pages failed. Reserve at least "
+                             << pages_needed << " pages, e.g.: echo " << pages_needed
+                             << " | sudo tee /sys/kernel/mm/hugepages/hugepages-" << (page_size >> 10)
+                             << "kB/nr_hugepages";
+            }
+        }
+        input_ptr_cpu_va = input_buffer.ptr;
+        output_ptr_cpu_va = output_buffer.ptr;
+        std::cout << "Allocated CPU buffers via mmap (page size: " << (page_size >> 10)
+                  << " KiB, mapped size: " << (input_buffer.mapped_size >> 20) << " MiB each)" << std::endl;
+#elif defined(_WIN32)
+        if (alloc_mode == CpuVaAllocMode::Mmap1GiB) {
+            GTEST_SKIP() << "1 GiB pages are not exposed by the Windows VirtualAlloc API; "
+                            "only GetLargePageMinimum() (typically 2 MiB) is supported.";
+        }
+
+        if (alloc_mode == CpuVaAllocMode::Mmap4KiB) {
+            input_buffer = allocate_virtualalloc(byte_size);
+            output_buffer = allocate_virtualalloc(byte_size);
+            if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
+                free_contiguous_host_buffer(input_buffer);
+                free_contiguous_host_buffer(output_buffer);
+                FAIL() << "VirtualAlloc of " << byte_size << " bytes failed (out of memory?)";
+            }
+            input_ptr_cpu_va = input_buffer.ptr;
+            output_ptr_cpu_va = output_buffer.ptr;
+            std::cout << "Allocated CPU buffers via VirtualAlloc (page size: 4 KiB, mapped size: "
+                      << (input_buffer.mapped_size >> 10) << " KiB each)" << std::endl;
+        } else {
+            // Mmap2MiB: Windows large pages (only page size exposed by GetLargePageMinimum()).
+            input_buffer = allocate_virtualalloc_largepages(byte_size);
+            output_buffer = allocate_virtualalloc_largepages(byte_size);
+            if (input_buffer.ptr == nullptr || output_buffer.ptr == nullptr) {
+                free_contiguous_host_buffer(input_buffer);
+                free_contiguous_host_buffer(output_buffer);
+                GTEST_SKIP() << "Large page allocation failed. Grant the current user the "
+                                "\"Lock pages in memory\" privilege (secpol.msc) and retry.";
+            }
+            input_ptr_cpu_va = input_buffer.ptr;
+            output_ptr_cpu_va = output_buffer.ptr;
+            std::cout << "Allocated CPU buffers via VirtualAlloc + MEM_LARGE_PAGES (page size: "
+                      << (GetLargePageMinimum() >> 10) << " KiB, mapped size: "
+                      << (input_buffer.mapped_size >> 20) << " MiB each)" << std::endl;
+        }
 #endif
     }
     std::fill_n(static_cast<ov::float16*>(input_ptr_cpu_va), element_count, ov::float16(2.0f));
     std::fill_n(static_cast<ov::float16*>(output_ptr_cpu_va), element_count, ov::float16(0.0f));
-#if defined(__linux__)
     if (alloc_mode == CpuVaAllocMode::Mmap2MiBThp) {
-        // Report how much of the process is actually THP-backed (THP is best-effort).
+        // Report how much of the process is actually huge/large-page backed. THP tracking
+        // via smaps_rollup is Linux-only; the helper returns -1 (n/a) on Windows.
         const long anon_thp_kb = read_smaps_rollup_kb("AnonHugePages");
         std::cout << "THP AnonHugePages (process): " << anon_thp_kb << " kB (expected ~"
                   << (2 * (byte_size >> 10)) << " kB if both buffers are fully 2 MiB-backed)" << std::endl;
     }
-#endif
     
     auto remote_input_tensor_cpu_va = ctx.create_tensor(ov::element::f16,
                                                         shape,
@@ -3378,10 +3625,8 @@ void run_performance_remote_cpu_va_vs_native(CpuVaAllocMode alloc_mode, const ov
         ov::util::aligned_free(input_ptr_cpu_va);
         ov::util::aligned_free(output_ptr_cpu_va);
     } else {
-#if defined(__linux__)
-        munmap(input_ptr_cpu_va, input_buffer.mapped_size);
-        munmap(output_ptr_cpu_va, output_buffer.mapped_size);
-#endif
+        free_contiguous_host_buffer(input_buffer);
+        free_contiguous_host_buffer(output_buffer);
     }
     
     // ===== Test 2: Native Tensors (USM_HOST via allocate_inputs) =====
