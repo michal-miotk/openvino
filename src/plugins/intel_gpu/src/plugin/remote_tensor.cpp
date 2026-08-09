@@ -448,6 +448,9 @@ bool RemoteTensorImpl::is_surface() const noexcept {
 }
 
 cldnn::memory::ptr RemoteTensorImpl::get_memory() const {
+    if (m_mem_type == TensorType::BT_CPU_VA && m_memory_object->get_layout() == m_layout)
+        return m_memory_object;
+
     auto engine = m_memory_object->get_engine();
     return engine->reinterpret_buffer(*m_memory_object, m_layout);
 }
