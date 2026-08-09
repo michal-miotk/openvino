@@ -404,6 +404,9 @@ event::ptr network::set_input_data(const primitive_id& id, memory::ptr data, boo
         CLDNN_ERROR_MESSAGE(id, "primitive " + id + " is not an input");
     }
     auto input = std::static_pointer_cast<input_layout_inst>(primitive_inst);
+    if (input->output_memory_ptr() == data)
+        return nullptr;
+
     const bool was_unallocated = !input->output_memory_ptr();
     auto ev = input->set_data(data, need_to_check_memory_to_set);
 
