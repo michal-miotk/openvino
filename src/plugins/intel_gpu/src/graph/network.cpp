@@ -404,6 +404,12 @@ event::ptr network::set_input_data(const primitive_id& id, memory::ptr data, boo
         CLDNN_ERROR_MESSAGE(id, "primitive " + id + " is not an input");
     }
     auto input = std::static_pointer_cast<input_layout_inst>(primitive_inst);
+    // Reusing the same binding does not freeze its contents: CPU_VA callers may
+    // update the raw host pointer directly between inferences. Only identity and
+    // layout metadata are stable, so no map, lock, or synchronization is needed.
+    if (input->output_memory_ptr() == data && input->get_output_layout() == data->get_layout())
+        return nullptr;
+
     const bool was_unallocated = !input->output_memory_ptr();
     auto ev = input->set_data(data, need_to_check_memory_to_set);
 

@@ -385,6 +385,9 @@ memory_ptr ocl_engine::create_hostbuffer_impl(void* cpu_address, size_t data_siz
                     "[GPU] shared buffer pointer must be ", minimal_alignment, "-byte aligned");
     OPENVINO_ASSERT((data_size % minimal_alignment) == 0,
                     "[GPU] shared buffer size must be a multiple of ", minimal_alignment, " bytes");
+    // Keep the imported allocation in host memory. CPU_VA is a direct-pointer contract:
+    // neither mapping nor an explicit migration/synchronization step is required before
+    // the caller reads or writes cpu_address.
     flags |= CL_MEM_FORCE_HOST_MEMORY_INTEL;
 #endif
     cl::Buffer buffer(get_cl_context(), flags, data_size, cpu_address, &err);
