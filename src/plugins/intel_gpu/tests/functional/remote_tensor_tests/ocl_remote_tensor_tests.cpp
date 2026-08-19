@@ -3110,13 +3110,7 @@ TEST(GpuRemoteTensorFromCpu, smoke_allocAlignedCPUMemory) {
 
 using MmapFileMemoryParams = std::tuple<std::size_t, std::size_t>;
 
-class GpuRemoteTensorFromFile : public ::testing::TestWithParam<MmapFileMemoryParams> {
-public:
-    static std::string getTestCaseName(const testing::TestParamInfo<MmapFileMemoryParams>& obj) {
-        const auto& [offset, bytes_after_offset] = obj.param;
-        return "offset_" + std::to_string(offset) + "_bytes_after_offset_" + std::to_string(bytes_after_offset);
-    }
-
+class GpuRemoteTensorFromFileBase : public ::testing::Test {
 protected:
     std::filesystem::path m_file_path;
 
@@ -3146,6 +3140,15 @@ protected:
             values[i] = static_cast<float>(i + 1);
         }
         return values;
+    }
+};
+
+class GpuRemoteTensorFromFile : public GpuRemoteTensorFromFileBase,
+                                public ::testing::WithParamInterface<MmapFileMemoryParams> {
+public:
+    static std::string getTestCaseName(const testing::TestParamInfo<MmapFileMemoryParams>& obj) {
+        const auto& [offset, bytes_after_offset] = obj.param;
+        return "offset_" + std::to_string(offset) + "_bytes_after_offset_" + std::to_string(bytes_after_offset);
     }
 };
 
@@ -3263,5 +3266,56 @@ INSTANTIATE_TEST_SUITE_P(smoke_mmapFileMemory,
                          GpuRemoteTensorFromFile,
                          ::testing::ValuesIn(generate_mmap_file_memory_params()),
                          GpuRemoteTensorFromFile::getTestCaseName);
+
+class GpuRemoteTensorFromRecreatedFile : public GpuRemoteTensorFromFileBase {};
+
+// A tensor created from a path must observe the file content at creation time. Deleting the file and
+// recreating it with the same name yields a different inode/file id, so any identity- or path-keyed
+// reuse of the previous mapping would silently feed stale data to inference.
+TEST_F(GpuRemoteTensorFromRecreatedFile, smoke_mmapFileMemoryAfterFileRecreate) {
+    ov::Core core;
+    const std::string target_device = ov::test::utils::DEVICE_GPU;
+    const ov::Shape shape{64};
+    const size_t element_count = ov::shape_size(shape);
+    const size_t byte_size = element_count * sizeof(float);
+
+    auto ctx = core.get_default_context(target_device).as<ov::intel_gpu::ocl::ClContext>();
+    auto compiled = core.compile_model(make_copy_model(shape), ctx);
+
+    const std::size_t cacheline = core.get_property(target_device, ov::intel_gpu::cacheline_size);
+    const std::size_t output_buffer_size = ((byte_size + cacheline - 1) / cacheline) * cacheline;
+    void* output_ptr = ov::util::aligned_alloc(output_buffer_size, cacheline);
+
+    auto infer_from_file_and_check = [&](float expected) {
+        std::fill_n(static_cast<char*>(output_ptr), output_buffer_size, 0);
+
+        auto remote_input_tensor =
+            ctx.create_tensor(ov::element::f32,
+                              shape,
+                              ov::intel_gpu::FileDescriptor{m_file_path, 0, ov::intel_gpu::FileAccess::READ});
+        auto remote_output_tensor =
+            ctx.create_tensor(ov::element::f32,
+                              shape,
+                              ov::intel_gpu::VirtualAddressMemory(output_ptr, static_cast<int64_t>(output_buffer_size)));
+
+        auto infer_req = compiled.create_infer_request();
+        infer_req.set_tensor(compiled.input(), remote_input_tensor);
+        infer_req.set_tensor(compiled.output(), remote_output_tensor);
+        infer_req.infer();
+
+        for (size_t i = 0; i < element_count; ++i) {
+            EXPECT_FLOAT_EQ(static_cast<float*>(output_ptr)[i], expected) << "Mismatch at index " << i;
+        }
+    };
+
+    write_data_at_offset(m_file_path, 0, std::vector<float>(element_count, 1.0f));
+    infer_from_file_and_check(1.0f);
+
+    ASSERT_TRUE(std::filesystem::remove(m_file_path));
+    write_data_at_offset(m_file_path, 0, std::vector<float>(element_count, 2.0f));
+    infer_from_file_and_check(2.0f);
+
+    ov::util::aligned_free(output_ptr);
+}
 
 #endif  // OV_GPU_WITH_OCL_RT

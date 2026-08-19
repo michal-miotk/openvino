@@ -472,9 +472,9 @@ bool RemoteTensorImpl::is_shared() const noexcept {
 
 bool RemoteTensorImpl::supports_caching() const {
 #ifdef _WIN32
-    return is_shared() && !m_mapped_memory;
+    return is_shared();
 #else
-    return is_shared() && !m_mapped_memory && m_mem_type != TensorType::BT_SURF_SHARED;
+    return is_shared() && m_mem_type != TensorType::BT_SURF_SHARED;
 #endif
 }
 
@@ -485,6 +485,8 @@ void RemoteTensorImpl::update_hash() {
         m_hash = cldnn::hash_combine(m_hash, m_va_mem);
         m_hash = cldnn::hash_combine(m_hash, m_surf);
         m_hash = cldnn::hash_combine(m_hash, m_plane);
+        m_hash = cldnn::hash_combine(m_hash, m_mapped_memory ? m_mapped_memory->get_id() : 0);
+        m_hash = cldnn::hash_combine(m_hash, m_mapped_memory_read_only);
         m_hash = cldnn::hash_combine(m_hash, m_shape.size());
         m_hash = cldnn::hash_combine(m_hash, m_element_type.hash());
         for (const auto& d : m_shape) {
