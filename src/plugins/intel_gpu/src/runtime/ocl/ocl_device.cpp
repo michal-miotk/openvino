@@ -352,6 +352,7 @@ device_info init_device_info(const cl::Device& device, const cl::Context& contex
     info.supports_cp_offload = false;
     info.supports_counter_based_events = false;
     info.supports_leo = false;
+    info.supports_external_memmap_sysmem = false;
 
 #if defined(ENABLE_ONEDNN_FOR_GPU) && defined(OV_GPU_WITH_OCL_RT)
     using namespace dnnl::impl::gpu::intel::jit;

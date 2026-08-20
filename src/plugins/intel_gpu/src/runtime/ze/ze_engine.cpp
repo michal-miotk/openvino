@@ -5,6 +5,7 @@
 #include "ze_engine.hpp"
 #include "intel_gpu/runtime/utils.hpp"
 #include "openvino/core/except.hpp"
+#include "openvino/util/mmap_object.hpp"
 #include "ze_kernel_builder.hpp"
 #include "openvino/zero_api.hpp"
 #include "ze_engine_factory.hpp"
@@ -14,6 +15,7 @@
 #include "ze_device.hpp"
 #include "ze_kernel.hpp"
 #include "ze_resource_interop.hpp"
+#include "compute_runtime/ze_intel_gpu.h"
 #include <exception>
 #include <vector>
 #include <memory>
@@ -172,11 +174,46 @@ memory_ptr ze_engine::create_subbuffer(const memory& memory, const layout& new_l
 }
 
 memory_ptr ze_engine::create_hostbuffer(void* cpu_address, size_t data_size, allocation_type _allocation_type, const layout output_layout) {
-    OPENVINO_NOT_IMPLEMENTED;
+    return create_hostbuffer_impl(cpu_address, data_size, _allocation_type, output_layout, false);
 }
 
 memory_ptr ze_engine::create_hostbuffer(const void* cpu_address, size_t data_size, allocation_type _allocation_type, const layout output_layout) {
-    OPENVINO_NOT_IMPLEMENTED;
+    return create_hostbuffer_impl(const_cast<void*>(cpu_address), data_size, _allocation_type, output_layout, true);
+}
+
+memory_ptr ze_engine::create_hostbuffer_impl(void* cpu_address, size_t data_size, allocation_type allocation, const layout& output_layout, bool read_only) {
+    OPENVINO_ASSERT(cpu_address != nullptr, "[GPU] shared buffer pointer is invalid");
+    OPENVINO_ASSERT(get_device_info().supports_external_memmap_sysmem,
+                    "[GPU] Importing a host pointer requires the ", ZE_EXTERNAL_MEMORY_MAPPING_EXT_NAME,
+                    " driver extension, which is not supported on this device");
+
+    const auto page_size = static_cast<size_t>(ov::util::get_system_page_size());
+    OPENVINO_ASSERT(page_size > 0, "[GPU] system page size must be > 0 for host pointer import");
+    OPENVINO_ASSERT((reinterpret_cast<std::uintptr_t>(cpu_address) % page_size) == 0,
+                    "[GPU] shared buffer pointer must be ", page_size, "-byte (page) aligned");
+
+    const size_t mapped_size = align_to(data_size, page_size);
+
+    ze_external_memmap_sysmem_ext_desc_t sysmem_desc = {};
+    sysmem_desc.stype = ZE_STRUCTURE_TYPE_EXTERNAL_MEMMAP_SYSMEM_EXT_DESC;
+    sysmem_desc.pNext = nullptr;
+    sysmem_desc.pSystemMemory = cpu_address;
+    sysmem_desc.size = mapped_size;
+
+    ze_host_mem_alloc_desc_t host_desc = {};
+    host_desc.stype = ZE_STRUCTURE_TYPE_HOST_MEM_ALLOC_DESC;
+    host_desc.pNext = &sysmem_desc;
+    host_desc.flags = read_only ? ZE_HOST_MEM_ALLOC_FLAG_MEM_READ_ONLY : 0;
+
+    auto ctx = get_context();
+    ov_ze_usm_handle usm_handle;
+    usm_handle.context = ctx.handle();
+    OV_ZE_EXPECT(ze::zeMemAllocHost(usm_handle.context, &host_desc, mapped_size, page_size, &usm_handle.ptr));
+
+    ze_usm_resource resource(usm_handle);
+    auto tracker = std::make_shared<MemoryTracker>(this, cpu_address, data_size, allocation);
+
+    return std::make_shared<ze::gpu_usm>(this, output_layout, std::move(resource), allocation_type::usm_host, tracker);
 }
 
 bool ze_engine::is_the_same_buffer(const memory& mem1, const memory& mem2) {
