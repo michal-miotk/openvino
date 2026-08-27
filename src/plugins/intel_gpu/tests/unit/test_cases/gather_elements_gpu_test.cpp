@@ -58,6 +58,12 @@ inline void DoTest(engine& engine,
     network->set_input_data("InputData", input0);
     network->set_input_data("InputIndices", input1);
     auto outputs = network->execute();
+
+    if (blocked_format != format::any) {
+        ASSERT_EQ(network->get_primitive("gather_elements")->get_impl_params()->get_output_layout().format,
+                  format::b_fs_yx_fsv16);
+    }
+
     auto output = outputs.at(output_id).get_memory();
     cldnn::mem_lock<uint16_t, mem_lock_type::read> output_ptr(output, get_test_stream());
 
