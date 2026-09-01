@@ -45,7 +45,9 @@ struct reorder_cache_key {
             return (lhs.data_source < rhs.data_source);
         if (lhs.expected_layout != rhs.expected_layout)
             return (lhs.expected_layout < rhs.expected_layout);
-        return lhs.expected_layout.format.traits().block_sizes < rhs.expected_layout.format.traits().block_sizes;
+        if (lhs.expected_layout.format == cldnn::format::custom)
+            return lhs.expected_layout.format.traits().block_sizes < rhs.expected_layout.format.traits().block_sizes;
+        return false;
     }
 };
 
