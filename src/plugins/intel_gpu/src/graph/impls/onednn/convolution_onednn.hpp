@@ -32,8 +32,14 @@ struct ConvolutionImplementationManager : public ImplementationManager {
 
         const auto& in_layout = conv_node.get_input_layout(0);
         const auto& out_layout = conv_node.get_output_layout(0);
+        const auto& wei_layout = conv_node.weights().get_output_layout(false);
+
         auto in_fmt = in_layout.format;
         auto out_fmt = out_layout.format;
+
+        auto in_dt = in_layout.data_type;
+        auto wei_dt = wei_layout.data_type;
+        auto out_dt = out_layout.data_type;
 
         static const std::vector<format> supported_formats = {
             format::any,
@@ -80,7 +86,15 @@ struct ConvolutionImplementationManager : public ImplementationManager {
         if (!is_supported_pad(in_layout) || !is_supported_pad(out_layout))
             return false;
 
+        bool f16_conv = everyone_is(data_types::f16, in_dt, wei_dt) && one_of(out_dt, {data_types::f16, data_types::bf16, data_types::f32, data_types::u8, data_types::i8});
+        bool bf16_conv = everyone_is(data_types::bf16, in_dt, wei_dt) &&
+                         one_of(out_dt, {data_types::f16, data_types::bf16, data_types::f32, data_types::u8, data_types::i8});
+        bool f32_conv = everyone_is(data_types::f32, in_dt, wei_dt, out_dt);
+        bool int8_conv = one_of(in_dt, {data_types::i8, data_types::u8}) && one_of(wei_dt, {data_types::i8, data_types::u8}) &&
+                         one_of(out_dt, {data_types::i32, data_types::f16, data_types::bf16, data_types::f32, data_types::u8, data_types::i8});
 
+        if (!f16_conv && !bf16_conv && !f32_conv && !int8_conv)
+            return false;
 
         if (!is_supported_post_ops(conv_node))
             return false;

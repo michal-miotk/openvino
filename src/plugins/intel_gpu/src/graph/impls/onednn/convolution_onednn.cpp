@@ -108,63 +108,31 @@ static std::shared_ptr<dnnl::convolution_forward::primitive_desc> get_convolutio
 
     if (prim->bias.is_valid()) {
         auto bias_md = onednn::layout_to_memory_desc_flatten(impl_params.get_input_layout(2), dnnl::memory::format_tag::any);
-        try {
-            return std::make_shared<dnnl::convolution_forward::primitive_desc>(
-                engine.get_onednn_engine(),
-                dnnl::prop_kind::forward_inference,
-                dnnl::algorithm::convolution_winograd,
-                input_md,
-                weights_md,
-                bias_md,
-                output_md,
-                stride,
-                dilation,
-                pad_l,
-                pad_r,
-                attr);
-        } catch (const dnnl::error&) {
-            // Winograd is only applicable to a narrow set of convolution shapes (e.g. 3x3, stride 1).
-            // Fall back to the direct algorithm for everything else instead of failing implementation selection.
-            return std::make_shared<dnnl::convolution_forward::primitive_desc>(
-                engine.get_onednn_engine(),
-                dnnl::prop_kind::forward_inference,
-                dnnl::algorithm::convolution_direct,
-                input_md,
-                weights_md,
-                bias_md,
-                output_md,
-                stride,
-                dilation,
-                pad_l,
-                pad_r,
-                attr);
-        }
+        return std::make_shared<dnnl::convolution_forward::primitive_desc>(
+            engine.get_onednn_engine(),
+            dnnl::prop_kind::forward_inference,
+            dnnl::algorithm::convolution_direct,
+            input_md,
+            weights_md,
+            bias_md,
+            output_md,
+            stride,
+            dilation,
+            pad_l,
+            pad_r,
+            attr);
     }
-    try {
-        return std::make_shared<dnnl::convolution_forward::primitive_desc>(engine.get_onednn_engine(),
-                                                                           dnnl::prop_kind::forward_inference,
-                                                                           dnnl::algorithm::convolution_winograd,
-                                                                           input_md,
-                                                                           weights_md,
-                                                                           output_md,
-                                                                           stride,
-                                                                           dilation,
-                                                                           pad_l,
-                                                                           pad_r,
-                                                                           attr);
-    } catch (const dnnl::error&) {
-        return std::make_shared<dnnl::convolution_forward::primitive_desc>(engine.get_onednn_engine(),
-                                                                           dnnl::prop_kind::forward_inference,
-                                                                           dnnl::algorithm::convolution_direct,
-                                                                           input_md,
-                                                                           weights_md,
-                                                                           output_md,
-                                                                           stride,
-                                                                           dilation,
-                                                                           pad_l,
-                                                                           pad_r,
-                                                                           attr);
-    }
+    return std::make_shared<dnnl::convolution_forward::primitive_desc>(engine.get_onednn_engine(),
+                                                                       dnnl::prop_kind::forward_inference,
+                                                                       dnnl::algorithm::convolution_direct,
+                                                                       input_md,
+                                                                       weights_md,
+                                                                       output_md,
+                                                                       stride,
+                                                                       dilation,
+                                                                       pad_l,
+                                                                       pad_r,
+                                                                       attr);
 }
 
 struct convolution_onednn : typed_primitive_onednn_impl<convolution> {
@@ -385,42 +353,22 @@ public:
         }
 
         if (zero_bias) {
-            try {
-                auto prim_desc = std::make_shared<dnnl::convolution_forward::primitive_desc>(
-                                        ib.get_engine().get_onednn_engine(),
-                                        dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_winograd,
-                                        input_md, weights_md, output_md,
-                                        strides, dilates, padding_l, padding_r,
-                                        *_attrs.get());
-                _pd = *prim_desc;
-            } catch (const dnnl::error&) {
-                auto prim_desc = std::make_shared<dnnl::convolution_forward::primitive_desc>(
-                                        ib.get_engine().get_onednn_engine(),
-                                        dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_direct,
-                                        input_md, weights_md, output_md,
-                                        strides, dilates, padding_l, padding_r,
-                                        *_attrs.get());
-                _pd = *prim_desc;
-            }
+            auto prim_desc = std::make_shared<dnnl::convolution_forward::primitive_desc>(
+                                    ib.get_engine().get_onednn_engine(),
+                                    dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_direct,
+                                    input_md, weights_md, output_md,
+                                    strides, dilates, padding_l, padding_r,
+                                    *_attrs.get());
+            _pd = *prim_desc;
         } else {
             auto bias_md = onednn::layout_to_memory_desc_flatten(impl_params->get_input_layout(2), dnnl::memory::format_tag::any);
-            try {
-                auto prim_desc = std::make_shared<dnnl::convolution_forward::primitive_desc>(
-                                        ib.get_engine().get_onednn_engine(),
-                                        dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_winograd,
-                                        input_md, weights_md, bias_md, output_md,
-                                        strides, dilates, padding_l, padding_r,
-                                        *_attrs.get());
-                _pd = *prim_desc;
-            } catch (const dnnl::error&) {
-                auto prim_desc = std::make_shared<dnnl::convolution_forward::primitive_desc>(
-                                        ib.get_engine().get_onednn_engine(),
-                                        dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_direct,
-                                        input_md, weights_md, bias_md, output_md,
-                                        strides, dilates, padding_l, padding_r,
-                                        *_attrs.get());
-                _pd = *prim_desc;
-            }
+            auto prim_desc = std::make_shared<dnnl::convolution_forward::primitive_desc>(
+                                    ib.get_engine().get_onednn_engine(),
+                                    dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_direct,
+                                    input_md, weights_md, bias_md, output_md,
+                                    strides, dilates, padding_l, padding_r,
+                                    *_attrs.get());
+            _pd = *prim_desc;
         }
 
         _scratchpad_md = _pd.scratchpad_desc();

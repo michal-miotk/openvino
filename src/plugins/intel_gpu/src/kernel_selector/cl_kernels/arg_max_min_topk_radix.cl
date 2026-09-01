@@ -58,6 +58,24 @@
 
 #define NUM_BUCKETS 256
 
+#ifndef SORTABLE_BITS
+    #define SORTABLE_BITS 16
+#endif
+
+// Coarse-to-fine radix select: one 8-bit digit per pass, MSD first.
+#define NUM_PASSES (SORTABLE_BITS / 8)
+
+// Ordering of (key, index) pairs. Equal values are broken by the smallest original index,
+// matching TF/ONNX TopK behaviour.
+#ifdef MAX_OUT
+    #define PAIR_GT(ka, ia, kb, ib) ((ka) != (kb) ? (ka) > (kb) : (ia) < (ib))
+    #define FILL_KEY 0u
+#else
+    #define PAIR_GT(ka, ia, kb, ib) ((ka) != (kb) ? (ka) > (kb) : (ia) > (ib))
+    #define FILL_KEY 0xFFFFFFFFu
+#endif
+#define FILL_IDX 0xFFFFFFFFu
+
 inline void FUNC(get_indices_from_dims)(OPTIONAL_SHAPE_INFO_ARG
                                         const uint output_idx,
                                         uint* indices)
@@ -99,26 +117,33 @@ inline void FUNC(get_indices_from_dims)(OPTIONAL_SHAPE_INFO_ARG
 #endif
 }
 
-// Convert f16 to a sortable uint16:
-// For positive f16: the bit pattern is already sortable (larger value = larger uint)
-// For negative f16: flip all bits
-// This gives a monotonically increasing uint16 mapping
-inline uint FUNC(f16_to_sortable)(INPUT0_TYPE val) {
-    // Use as_ushort to get the bit pattern of f16
+// Convert a float value to a monotonically increasing unsigned integer:
+// for positive values the bit pattern is already ordered, so only the sign bit is flipped;
+// for negative values all bits are flipped.
+#if SORTABLE_BITS == 16
+inline uint FUNC(to_sortable)(INPUT0_TYPE val) {
     ushort bits = as_ushort(convert_half(val));
-    // If sign bit is set (negative), flip all bits
-    // If sign bit is clear (positive), flip only sign bit
-    // This maps f16 range to 0..65535 monotonically
     ushort mask = (bits >> 15) ? (ushort)0xFFFF : (ushort)0x8000;
     return (uint)(bits ^ mask);
 }
 
-inline INPUT0_TYPE FUNC(sortable_to_f16)(uint sortable) {
+inline INPUT0_TYPE FUNC(from_sortable)(uint sortable) {
     ushort bits = (ushort)sortable;
     ushort mask = (bits & 0x8000) ? (ushort)0x8000 : (ushort)0xFFFF;
-    bits = bits ^ mask;
-    return convert_float(as_half(bits));
+    return TO_INPUT0_TYPE(as_half((ushort)(bits ^ mask)));
 }
+#else
+inline uint FUNC(to_sortable)(INPUT0_TYPE val) {
+    uint bits = as_uint(convert_float(val));
+    uint mask = (bits >> 31) ? 0xFFFFFFFFu : 0x80000000u;
+    return bits ^ mask;
+}
+
+inline INPUT0_TYPE FUNC(from_sortable)(uint sortable) {
+    uint mask = (sortable & 0x80000000u) ? 0x80000000u : 0xFFFFFFFFu;
+    return TO_INPUT0_TYPE(as_float(sortable ^ mask));
+}
+#endif
 
 REQD_SUB_GROUP_SIZE(16)
 KERNEL(arg_max_min_topk_radix)(
@@ -150,122 +175,92 @@ KERNEL(arg_max_min_topk_radix)(
     __local uint sort_idxs[PADDED_K];           // original indices
     __local uint threshold_bucket;
     __local uint count_above;
-    __local uint fine_threshold;
-    __local uint total_above_threshold;
     __local uint gather_count;
 
     // ============================================================
     // Phase 0: Read input ONCE, convert to sortable keys, cache in global buffer
-    // Also compute coarse histogram in the same pass
     // ============================================================
-    if (lid < NUM_BUCKETS) {
-        histogram[lid] = 0;
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-
     for (uint i = lid; i < VALUES_NUM; i += WG_SIZE) {
         base_indices[AXIS] = i;
         INPUT0_TYPE val = input[FUNC_CALL(get_input_index)(OPTIONAL_SHAPE_INFO_TENSOR
             base_indices[0], base_indices[1], 0, base_indices[2], base_indices[3], base_indices[4])];
-        uint sortable = FUNC_CALL(f16_to_sortable)(val);
-        my_sortable[i] = sortable;
-        uint bucket = sortable >> 8;
-        atomic_add(&histogram[bucket], 1);
+        my_sortable[i] = FUNC_CALL(to_sortable)(val);
     }
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
 
-    // Find coarse bucket containing K-th element
-    if (lid == 0) {
-        uint cumulative = 0;
-#ifdef MAX_OUT
-        for (int b = NUM_BUCKETS - 1; b >= 0; b--) {
-            cumulative += histogram[b];
-            if (cumulative >= TOP_K) {
-                threshold_bucket = (uint)b;
-                count_above = cumulative - histogram[b];
-                break;
-            }
-        }
-#else
-        for (uint b = 0; b < NUM_BUCKETS; b++) {
-            cumulative += histogram[b];
-            if (cumulative >= TOP_K) {
-                threshold_bucket = b;
-                count_above = cumulative - histogram[b];
-                break;
-            }
-        }
-#endif
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    uint coarse_bucket = threshold_bucket;
-    uint already_above = count_above;
-
     // ============================================================
-    // Phase 1b: Fine histogram (bottom 8 bits within coarse bucket)
-    // Read from cached sortable buffer (consistent data)
+    // Phase 1: MSD radix select - resolve the K-th key one byte at a time.
+    // All NUM_PASSES bytes are resolved so the threshold is an exact key value,
+    // which is what phase 2b relies on to break ties by index.
     // ============================================================
-    if (lid < NUM_BUCKETS) {
-        histogram[lid] = 0;
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
+    uint prefix = 0;         // bytes of the threshold resolved so far
+    uint already_above = 0;  // elements strictly beyond the resolved prefix
 
-    for (uint i = lid; i < VALUES_NUM; i += WG_SIZE) {
-        uint sortable = my_sortable[i];
-        if ((sortable >> 8) == coarse_bucket) {
-            atomic_add(&histogram[sortable & 0xFF], 1);
+    for (uint pass = 0; pass < NUM_PASSES; pass++) {
+        const uint shift = SORTABLE_BITS - 8 * (pass + 1);
+        const uint hi_shift = shift + 8;
+
+        if (lid < NUM_BUCKETS) {
+            histogram[lid] = 0;
         }
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
+        barrier(CLK_LOCAL_MEM_FENCE);
 
-    // Find exact threshold
-    if (lid == 0) {
-        uint cumulative = already_above;
+        for (uint i = lid; i < VALUES_NUM; i += WG_SIZE) {
+            uint sortable = my_sortable[i];
+            uint hi = (hi_shift >= SORTABLE_BITS) ? 0u : (sortable >> hi_shift);
+            if (hi == prefix) {
+                atomic_add(&histogram[(sortable >> shift) & 0xFF], 1);
+            }
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        if (lid == 0) {
+            uint cumulative = already_above;
 #ifdef MAX_OUT
-        for (int b = NUM_BUCKETS - 1; b >= 0; b--) {
-            cumulative += histogram[b];
-            if (cumulative >= TOP_K) {
-                fine_threshold = (coarse_bucket << 8) | (uint)b;
-                total_above_threshold = cumulative - histogram[b];
-                break;
+            for (int b = NUM_BUCKETS - 1; b >= 0; b--) {
+                cumulative += histogram[b];
+                if (cumulative >= TOP_K) {
+                    threshold_bucket = (uint)b;
+                    count_above = cumulative - histogram[b];
+                    break;
+                }
             }
-        }
 #else
-        for (uint b = 0; b < NUM_BUCKETS; b++) {
-            cumulative += histogram[b];
-            if (cumulative >= TOP_K) {
-                fine_threshold = (coarse_bucket << 8) | b;
-                total_above_threshold = cumulative - histogram[b];
-                break;
+            for (uint b = 0; b < NUM_BUCKETS; b++) {
+                cumulative += histogram[b];
+                if (cumulative >= TOP_K) {
+                    threshold_bucket = b;
+                    count_above = cumulative - histogram[b];
+                    break;
+                }
             }
-        }
 #endif
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        prefix = (prefix << 8) | threshold_bucket;
+        already_above = count_above;
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+
+    if (lid == 0) {
         gather_count = 0;
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    uint threshold = fine_threshold;
+    const uint threshold = prefix;
 
     // ============================================================
-    // Initialize SLM sort buffers with fill values
-    // Combined key = (sortable << 16) | tiebreaker
-    // For MAX_OUT (descending): fill=0 so unused slots sort to end
-    // For MIN_OUT (ascending): fill=0xFFFFFFFF so unused slots sort to end
+    // Initialize SLM sort buffers with fill values so unused slots sort to the end
     // ============================================================
     for (uint i = lid; i < PADDED_K; i += WG_SIZE) {
-#ifdef MAX_OUT
-        sort_keys[i] = 0;
-#else
-        sort_keys[i] = 0xFFFFFFFF;
-#endif
-        sort_idxs[i] = 0;
+        sort_keys[i] = FILL_KEY;
+        sort_idxs[i] = FILL_IDX;
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
     // ============================================================
     // Phase 2a: Gather elements strictly ABOVE threshold into SLM
-    // Use combined key: (sortable << 16) | tiebreaker(index) for deterministic ordering
     // Read from cached sortable buffer
     // ============================================================
     for (uint i = lid; i < VALUES_NUM; i += WG_SIZE) {
@@ -279,12 +274,7 @@ KERNEL(arg_max_min_topk_radix)(
         if (is_above) {
             uint pos = atomic_add(&gather_count, 1);
             if (pos < PADDED_K) {
-                // Combined key encodes value and index for deterministic tiebreak
-#ifdef MAX_OUT
-                sort_keys[pos] = (sortable << 16) | (0xFFFF - (i & 0xFFFF));
-#else
-                sort_keys[pos] = (sortable << 16) | (i & 0xFFFF);
-#endif
+                sort_keys[pos] = sortable;
                 sort_idxs[pos] = i;
             }
         }
@@ -316,11 +306,7 @@ KERNEL(arg_max_min_topk_radix)(
                 if (sortable == threshold) {
                     uint pos = atomic_add(&gather_count, 1);
                     if (pos < PADDED_K) {
-#ifdef MAX_OUT
-                        sort_keys[pos] = (sortable << 16) | (0xFFFF - (i & 0xFFFF));
-#else
-                        sort_keys[pos] = (sortable << 16) | (i & 0xFFFF);
-#endif
+                        sort_keys[pos] = sortable;
                         sort_idxs[pos] = i;
                     }
                 }
@@ -333,11 +319,7 @@ KERNEL(arg_max_min_topk_radix)(
                 for (uint i = 0; i < VALUES_NUM && pos < PADDED_K; i++) {
                     uint sortable = my_sortable[i];
                     if (sortable == threshold) {
-#ifdef MAX_OUT
-                        sort_keys[pos] = (sortable << 16) | (0xFFFF - (i & 0xFFFF));
-#else
-                        sort_keys[pos] = (sortable << 16) | (i & 0xFFFF);
-#endif
+                        sort_keys[pos] = sortable;
                         sort_idxs[pos] = i;
                         pos++;
                     }
@@ -359,17 +341,18 @@ KERNEL(arg_max_min_topk_radix)(
                 if (partner > i) {
                     uint ki = sort_keys[i];
                     uint kp = sort_keys[partner];
+                    uint ii = sort_idxs[i];
+                    uint ip = sort_idxs[partner];
                     bool ascending = ((i & bk) == 0);
 #ifdef MAX_OUT
                     ascending = !ascending;
 #endif
-                    bool need_swap = ascending ? (ki > kp) : (ki < kp);
+                    bool need_swap = ascending ? PAIR_GT(ki, ii, kp, ip) : PAIR_GT(kp, ip, ki, ii);
                     if (need_swap) {
                         sort_keys[i] = kp;
                         sort_keys[partner] = ki;
-                        uint ti = sort_idxs[i];
-                        sort_idxs[i] = sort_idxs[partner];
-                        sort_idxs[partner] = ti;
+                        sort_idxs[i] = ip;
+                        sort_idxs[partner] = ii;
                     }
                 }
             }
@@ -379,11 +362,9 @@ KERNEL(arg_max_min_topk_radix)(
 
     // ============================================================
     // Phase 4: Write sorted top-K results to output
-    // sort_keys contains combined key: (sortable << 16) | tiebreaker
-    // Extract upper 16 bits to recover the sortable value
     // ============================================================
     for (uint k = lid; k < TOP_K; k += WG_SIZE) {
-        INPUT0_TYPE val = FUNC_CALL(sortable_to_f16)(sort_keys[k] >> 16);
+        INPUT0_TYPE val = FUNC_CALL(from_sortable)(sort_keys[k]);
         uint idx = sort_idxs[k];
 
         base_indices[AXIS] = k;
@@ -412,3 +393,8 @@ KERNEL(arg_max_min_topk_radix)(
 #undef WG_SIZE
 #undef PADDED_K
 #undef NUM_BUCKETS
+#undef SORTABLE_BITS
+#undef NUM_PASSES
+#undef PAIR_GT
+#undef FILL_KEY
+#undef FILL_IDX
