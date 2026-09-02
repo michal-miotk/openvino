@@ -21,6 +21,7 @@
 #include <sstream>
 
 #include "gated_mlp_inst.h"
+#include "fused_conv_silu_pair_inst.h"
 #include "gemm_inst.h"
 #include "moe_gemm_inst.h"
 #include "grouped_matmul_inst.h"
@@ -1454,6 +1455,13 @@ format layout_optimizer::get_preferred_format(program_node& node) {
             set_onednn_dyn_conv_preferred_format(node.as<convolution>());
     } else if (node.is_type<quantize>()) {
         expected = get_expected_format(node.as<quantize>());
+    } else if (node.is_type<fused_conv_silu_pair>()) {
+        // Zfuzowana para konwolucji ma tylko jeden kernel - blokowy fsv16.
+        // Wagi i biasy (wejscia 1..4) sa plaskimi buforami i musza zostac w bfyx.
+        expected = format::b_fs_yx_fsv16;
+        node.set_preferred_input_fmt(0, format::b_fs_yx_fsv16);
+        for (size_t i = 1; i < node.get_dependencies().size(); i++)
+            node.set_preferred_input_fmt(i, format::bfyx);
     } else if (node.is_type<reorder>() || node.is_type<input_layout>()) {
         if (node.is_type<reorder>() && node.as<reorder>().get_primitive()->has_surface_input()) {
             expected = format::nv12;

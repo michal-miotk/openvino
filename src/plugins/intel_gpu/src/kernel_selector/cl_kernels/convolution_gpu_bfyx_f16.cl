@@ -149,6 +149,24 @@ KERNEL(convolution_bfyx_f16)(
     vec_t dst = INPUT0_VAL_ZERO;
 #endif // BIAS_TERM
 
+#if CONV_USE_DPAS_TF32 && !CONV_DPAS_ONE_ACC
+    // Drugi akumulator sciezki DPAS (patrz komentarz przy wywolaniach
+    // intel_sub_group_tf32_tf32_matrix_mad_k8): rozbija szeregowy lancuch
+    // zaleznosci na dwa niezalezne. Startuje od zera - bias jest juz
+    // wliczony w `dst` - i jest doliczany do `dst` tuz po petli po icb.
+    vec_t dst_dpas1 = INPUT0_VAL_ZERO;
+#endif
+
+#if CONV_MAD_ACC >= 2
+    // Dodatkowe akumulatory sciezki mad. Startuja od zera - bias jest juz
+    // wliczony w `dst` - i sa doliczane do `dst` tuz po petli po icb.
+    vec_t dst_acc1 = INPUT0_VAL_ZERO;
+#endif
+#if CONV_MAD_ACC >= 4
+    vec_t dst_acc2 = INPUT0_VAL_ZERO;
+    vec_t dst_acc3 = INPUT0_VAL_ZERO;
+#endif
+
 #if SLM_DIV_FACTOR > 1
     __local vec_t partial_summ[WORK_GROUP_SIZE];
 #endif
@@ -377,6 +395,19 @@ KERNEL(convolution_bfyx_f16)(
 #if GROUPED && !MULTIPLE_GROUPS_INPUT_PRELOAD
     }
 #endif  // GROUPED && !MULTIPLE_GROUPS_INPUT_PRELOAD
+
+#if CONV_USE_DPAS_TF32 && !CONV_DPAS_ONE_ACC
+    // Scalenie dwoch niezaleznych lancuchow akumulacji DPAS.
+    dst += dst_dpas1;
+#endif
+
+#if CONV_MAD_ACC >= 2
+    // Scalenie niezaleznych lancuchow akumulacji sciezki mad.
+    dst += dst_acc1;
+#endif
+#if CONV_MAD_ACC >= 4
+    dst += dst_acc2 + dst_acc3;
+#endif
 
 #if SLM_DIV_FACTOR > 1
     partial_summ[lid1] = dst;

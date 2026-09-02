@@ -66,6 +66,7 @@ void register_implementations() {
     REGISTER_OCL(slice);
     REGISTER_OCL(strided_slice);
     REGISTER_OCL(swiglu);
+    REGISTER_OCL(fused_conv_silu_pair);
     REGISTER_OCL(tile);
     REGISTER_OCL(gather_tree);
     REGISTER_OCL(resample);

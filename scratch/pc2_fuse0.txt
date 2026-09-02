@@ -1,0 +1,552 @@
+﻿[Step 1/11] Parsing and validating input arguments
+[ INFO ] Parsing input parameters
+[Step 2/11] Loading OpenVINO Runtime
+[ INFO ] OpenVINO:
+[ INFO ] Build ................................. 2026.4.0-22907-f0c22f15d7d
+[ INFO ] 
+[ INFO ] Device info:
+[ INFO ] GPU
+[ INFO ] Build ................................. 2026.4.0-22907-f0c22f15d7d
+[ INFO ] 
+[ INFO ] 
+[Step 3/11] Setting device configuration
+[Step 4/11] Reading model files
+[ INFO ] Loading model files
+[ INFO ] Read model took 18.35 ms
+[ INFO ] Original model I/O parameters:
+[ INFO ] Network inputs:
+[ INFO ]     x.1 (node: x.1) : f32 / [...] / [?,3,?,?]
+[ INFO ] Network outputs:
+[ INFO ]     ***NO_NAME*** (node: __module.model.23/aten::cat/Concat_6) : f32 / [...] / [?,300,6]
+[Step 5/11] Resizing model to match image sizes and given batch
+[ WARNING ] x.1: layout is not set explicitly, so it is defaulted to NCHW. It is STRONGLY recommended to set layout manually to avoid further issues.
+[ INFO ] Reshaping model: 'x.1': [1,3,480,480]
+[ INFO ] Reshape model took 7.58 ms
+[Step 6/11] Configuring input of the model
+[ INFO ] Model batch size: 1
+[ INFO ] Network inputs:
+[ INFO ]     x.1 (node: x.1) : u8 / [N,C,H,W] / [1,3,480,480]
+[ INFO ] Network outputs:
+[ INFO ]     ***NO_NAME*** (node: __module.model.23/aten::cat/Concat_6) : f32 / [...] / [1,300,6]
+[Step 7/11] Loading the model to the device
+[ INFO ] Compile model took 575.51 ms
+[ INFO ] Start of compilation memory usage: Peak 115464 KB
+[ INFO ] End of compilation memory usage: Peak 492564 KB
+[ INFO ] Compile model ram used 377100 KB
+[Step 8/11] Querying optimal runtime parameters
+[ INFO ] Model:
+[ INFO ]   NETWORK_NAME: Model6
+[ INFO ]   OPTIMAL_NUMBER_OF_INFER_REQUESTS: 1
+[ INFO ]   PERF_COUNT: YES
+[ INFO ]   ENABLE_CPU_PINNING: NO
+[ INFO ]   ENABLE_CPU_RESERVATION: NO
+[ INFO ]   MODEL_PRIORITY: MEDIUM
+[ INFO ]   GPU_HOST_TASK_PRIORITY: MEDIUM
+[ INFO ]   GPU_QUEUE_PRIORITY: MEDIUM
+[ INFO ]   GPU_ENABLE_LARGE_ALLOCATIONS: NO
+[ INFO ]   GPU_QUEUE_THROTTLE: MEDIUM
+[ INFO ]   GPU_ENABLE_LOOP_UNROLLING: YES
+[ INFO ]   GPU_DISABLE_WINOGRAD_CONVOLUTION: NO
+[ INFO ]   CACHE_DIR: 
+[ INFO ]   CACHE_MODE: optimize_speed
+[ INFO ]   PERFORMANCE_HINT: LATENCY
+[ INFO ]   EXECUTION_MODE_HINT: PERFORMANCE
+[ INFO ]   COMPILATION_NUM_THREADS: 16
+[ INFO ]   NUM_STREAMS: 1
+[ INFO ]   PERFORMANCE_HINT_NUM_REQUESTS: 0
+[ INFO ]   INFERENCE_PRECISION_HINT: f32
+[ INFO ]   DYNAMIC_QUANTIZATION_GROUP_SIZE: 18446744073709551615
+[ INFO ]   ACTIVATIONS_SCALE_FACTOR: -1
+[ INFO ]   KV_CACHE_PRECISION: f32
+[ INFO ]   OFFLOAD_RATIO: 0
+[ INFO ]   DEVICE_ID: 0
+[ INFO ]   EXECUTION_DEVICES: GPU.0
+[ INFO ]   RUNTIME_REQUIREMENTS: meta=1.0;ov=2026.4.0;desc=[driver=32.0.101.8826;ip=30.0.4;eus=96]
+[Step 9/11] Creating infer requests and preparing input tensors
+[ WARNING ] No input files were given: all inputs will be filled with random values!
+[ INFO ] Test Config 0
+[ INFO ] x.1  ([N,C,H,W], u8, [1,3,480,480], static):	random (image/numpy array is expected)
+[Step 10/11] Measuring performance (Start inference synchronously, limits: 30 iterations)
+[ INFO ] Benchmarking in inference only mode (inputs filling are not included in measurement loop).
+[ INFO ] First inference took 18.67 ms
+[Step 11/11] Dumping statistics report
+[ INFO ] Sort performance counts for 0-th infer request:
+__module.model....   EXECUTED             layerType: TopK                 execType: arg_max_min_axis__f32 realTime (ms): 1.826      cpuTime (ms): 0.001      proportion: 15.31%  
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.726      cpuTime (ms): 0.001      proportion: 6.09%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.725      cpuTime (ms): 0.001      proportion: 6.08%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.547      cpuTime (ms): 0.001      proportion: 4.59%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.351      cpuTime (ms): 0.001      proportion: 2.94%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.345      cpuTime (ms): 0.001      proportion: 2.89%   
+__module.model....   EXECUTED             layerType: TopK                 execType: arg_max_min_axis__f32 realTime (ms): 0.341      cpuTime (ms): 0.001      proportion: 2.86%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.300      cpuTime (ms): 0.001      proportion: 2.52%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.248      cpuTime (ms): 0.001      proportion: 2.08%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.241      cpuTime (ms): 0.001      proportion: 2.02%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.239      cpuTime (ms): 0.001      proportion: 2.00%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.202      cpuTime (ms): 0.001      proportion: 1.69%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.196      cpuTime (ms): 0.001      proportion: 1.64%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.189      cpuTime (ms): 0.001      proportion: 1.59%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.176      cpuTime (ms): 0.001      proportion: 1.48%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.176      cpuTime (ms): 0.001      proportion: 1.48%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.176      cpuTime (ms): 0.003      proportion: 1.48%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.170      cpuTime (ms): 0.001      proportion: 1.43%   
+__module.model....   EXECUTED             layerType: Concat               execType: concatenation_gpu_blocked__f32 realTime (ms): 0.170      cpuTime (ms): 0.005      proportion: 1.43%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.164      cpuTime (ms): 0.001      proportion: 1.38%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.138      cpuTime (ms): 0.001      proportion: 1.16%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.114      cpuTime (ms): 0.001      proportion: 0.96%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.113      cpuTime (ms): 0.001      proportion: 0.95%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.108      cpuTime (ms): 0.001      proportion: 0.91%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.100      cpuTime (ms): 0.001      proportion: 0.84%   
+__module.model....   EXECUTED             layerType: Concat               execType: concatenation_gpu_blocked__f32 realTime (ms): 0.096      cpuTime (ms): 0.005      proportion: 0.81%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_to_bfyx_f16__f32 realTime (ms): 0.090      cpuTime (ms): 0.002      proportion: 0.75%   
+__module.model....   EXECUTED             layerType: Concat               execType: concatenation_gpu_blocked__f32 realTime (ms): 0.082      cpuTime (ms): 0.004      proportion: 0.69%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.078      cpuTime (ms): 0.001      proportion: 0.65%   
+__module.model....   EXECUTED             layerType: VariadicSplit        execType: eltwise_blocked_opt__f32 realTime (ms): 0.077      cpuTime (ms): 0.001      proportion: 0.65%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.072      cpuTime (ms): 0.001      proportion: 0.60%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.068      cpuTime (ms): 0.001      proportion: 0.57%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.061      cpuTime (ms): 0.001      proportion: 0.51%   
+__module.model....   EXECUTED             layerType: Concat               execType: concatenation_gpu_blocked__f32 realTime (ms): 0.060      cpuTime (ms): 0.004      proportion: 0.50%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.059      cpuTime (ms): 0.001      proportion: 0.49%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.057      cpuTime (ms): 0.001      proportion: 0.48%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.051      cpuTime (ms): 0.001      proportion: 0.43%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.051      cpuTime (ms): 0.001      proportion: 0.43%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.051      cpuTime (ms): 0.001      proportion: 0.43%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.051      cpuTime (ms): 0.001      proportion: 0.43%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.051      cpuTime (ms): 0.001      proportion: 0.43%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.050      cpuTime (ms): 0.001      proportion: 0.42%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.050      cpuTime (ms): 0.001      proportion: 0.42%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.050      cpuTime (ms): 0.001      proportion: 0.42%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.050      cpuTime (ms): 0.001      proportion: 0.42%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.050      cpuTime (ms): 0.001      proportion: 0.42%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.050      cpuTime (ms): 0.001      proportion: 0.42%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.050      cpuTime (ms): 0.001      proportion: 0.42%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.050      cpuTime (ms): 0.001      proportion: 0.42%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.050      cpuTime (ms): 0.001      proportion: 0.42%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.049      cpuTime (ms): 0.001      proportion: 0.41%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.049      cpuTime (ms): 0.001      proportion: 0.41%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.049      cpuTime (ms): 0.001      proportion: 0.41%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.049      cpuTime (ms): 0.001      proportion: 0.41%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.049      cpuTime (ms): 0.001      proportion: 0.41%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.049      cpuTime (ms): 0.001      proportion: 0.41%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.048      cpuTime (ms): 0.001      proportion: 0.40%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.048      cpuTime (ms): 0.001      proportion: 0.40%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.047      cpuTime (ms): 0.001      proportion: 0.39%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.047      cpuTime (ms): 0.001      proportion: 0.39%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.047      cpuTime (ms): 0.001      proportion: 0.39%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.046      cpuTime (ms): 0.001      proportion: 0.39%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.045      cpuTime (ms): 0.001      proportion: 0.38%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_depthwise__f32 realTime (ms): 0.045      cpuTime (ms): 0.001      proportion: 0.38%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.042      cpuTime (ms): 0.001      proportion: 0.35%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.041      cpuTime (ms): 0.002      proportion: 0.34%   
+__module.model....   EXECUTED             layerType: Concat               execType: concatenation_gpu_blocked__f32 realTime (ms): 0.040      cpuTime (ms): 0.004      proportion: 0.34%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.039      cpuTime (ms): 0.001      proportion: 0.33%   
+__module.model....   EXECUTED             layerType: Interpolate          execType: resample_opt__f32    realTime (ms): 0.039      cpuTime (ms): 0.001      proportion: 0.33%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.039      cpuTime (ms): 0.004      proportion: 0.33%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.038      cpuTime (ms): 0.001      proportion: 0.32%   
+__module.model....   EXECUTED             layerType: Concat               execType: concatenation_gpu_blocked__f32 realTime (ms): 0.038      cpuTime (ms): 0.004      proportion: 0.32%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.035      cpuTime (ms): 0.001      proportion: 0.29%   
+__module.model....   EXECUTED             layerType: Concat               execType: concatenation_gpu_simple_ref__f32 realTime (ms): 0.034      cpuTime (ms): 0.004      proportion: 0.29%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.034      cpuTime (ms): 0.001      proportion: 0.29%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.034      cpuTime (ms): 0.001      proportion: 0.29%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.034      cpuTime (ms): 0.001      proportion: 0.29%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.033      cpuTime (ms): 0.001      proportion: 0.28%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.033      cpuTime (ms): 0.001      proportion: 0.28%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.031      cpuTime (ms): 0.001      proportion: 0.26%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.026      cpuTime (ms): 0.001      proportion: 0.22%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.026      cpuTime (ms): 0.001      proportion: 0.22%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.026      cpuTime (ms): 0.001      proportion: 0.22%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.025      cpuTime (ms): 0.001      proportion: 0.21%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.025      cpuTime (ms): 0.001      proportion: 0.21%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.025      cpuTime (ms): 0.001      proportion: 0.21%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.024      cpuTime (ms): 0.001      proportion: 0.20%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.024      cpuTime (ms): 0.001      proportion: 0.20%   
+__module.model....   EXECUTED             layerType: VariadicSplit        execType: eltwise_blocked_opt__f32 realTime (ms): 0.023      cpuTime (ms): 0.001      proportion: 0.19%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.023      cpuTime (ms): 0.001      proportion: 0.19%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.023      cpuTime (ms): 0.001      proportion: 0.19%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.023      cpuTime (ms): 0.001      proportion: 0.19%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.023      cpuTime (ms): 0.001      proportion: 0.19%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.023      cpuTime (ms): 0.001      proportion: 0.19%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.023      cpuTime (ms): 0.001      proportion: 0.19%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.023      cpuTime (ms): 0.001      proportion: 0.19%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.022      cpuTime (ms): 0.001      proportion: 0.18%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.022      cpuTime (ms): 0.001      proportion: 0.18%   
+__module.model....   EXECUTED             layerType: Crop                 execType: eltwise_blocked_opt__f32 realTime (ms): 0.022      cpuTime (ms): 0.001      proportion: 0.18%   
+Convert_3073         EXECUTED             layerType: Convert              execType: reorder_data__f32    realTime (ms): 0.022      cpuTime (ms): 0.012      proportion: 0.18%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.022      cpuTime (ms): 0.001      proportion: 0.18%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.022      cpuTime (ms): 0.001      proportion: 0.18%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.019      cpuTime (ms): 0.001      proportion: 0.16%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.019      cpuTime (ms): 0.001      proportion: 0.16%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.019      cpuTime (ms): 0.001      proportion: 0.16%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.019      cpuTime (ms): 0.001      proportion: 0.16%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.019      cpuTime (ms): 0.001      proportion: 0.16%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.018      cpuTime (ms): 0.001      proportion: 0.15%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.018      cpuTime (ms): 0.001      proportion: 0.15%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.018      cpuTime (ms): 0.001      proportion: 0.15%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.017      cpuTime (ms): 0.001      proportion: 0.14%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_depthwise__f32 realTime (ms): 0.017      cpuTime (ms): 0.001      proportion: 0.14%   
+__module.model....   EXECUTED             layerType: Sigmoid              execType: activation_ref__f32  realTime (ms): 0.017      cpuTime (ms): 0.001      proportion: 0.14%   
+__module.model....   EXECUTED             layerType: MatMul               execType: gemm_tiled_opt__f32  realTime (ms): 0.016      cpuTime (ms): 0.001      proportion: 0.13%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.016      cpuTime (ms): 0.001      proportion: 0.13%   
+__module.model....   EXECUTED             layerType: Concat               execType: concatenation_gpu_blocked__f32 realTime (ms): 0.016      cpuTime (ms): 0.004      proportion: 0.13%   
+__module.model....   EXECUTED             layerType: MatMul               execType: gemm_tiled_opt__f32  realTime (ms): 0.015      cpuTime (ms): 0.001      proportion: 0.13%   
+__module.model....   EXECUTED             layerType: VariadicSplit        execType: eltwise_blocked_opt__f32 realTime (ms): 0.015      cpuTime (ms): 0.001      proportion: 0.13%   
+__module.model....   EXECUTED             layerType: Interpolate          execType: resample_opt__f32    realTime (ms): 0.014      cpuTime (ms): 0.001      proportion: 0.12%   
+__module.model....   EXECUTED             layerType: Concat               execType: concatenation_gpu_blocked__f32 realTime (ms): 0.014      cpuTime (ms): 0.004      proportion: 0.12%   
+__module.model....   EXECUTED             layerType: Crop                 execType: eltwise_blocked_opt__f32 realTime (ms): 0.013      cpuTime (ms): 0.001      proportion: 0.11%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_depthwise__f32 realTime (ms): 0.012      cpuTime (ms): 0.001      proportion: 0.10%   
+__module.model....   EXECUTED             layerType: Transpose            execType: permute_ref__f32     realTime (ms): 0.012      cpuTime (ms): 0.001      proportion: 0.10%   
+__module.model....   EXECUTED             layerType: MatMul               execType: gemm_tiled_opt__f32  realTime (ms): 0.011      cpuTime (ms): 0.001      proportion: 0.09%   
+__module.model....   EXECUTED             layerType: MatMul               execType: gemm_tiled_opt__f32  realTime (ms): 0.011      cpuTime (ms): 0.001      proportion: 0.09%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.011      cpuTime (ms): 0.001      proportion: 0.09%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_1x1__f32 realTime (ms): 0.010      cpuTime (ms): 0.001      proportion: 0.08%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.010      cpuTime (ms): 0.001      proportion: 0.08%   
+__module.model....   EXECUTED             layerType: VariadicSplit        execType: eltwise_blocked_opt__f32 realTime (ms): 0.008      cpuTime (ms): 0.001      proportion: 0.07%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16__f32 realTime (ms): 0.008      cpuTime (ms): 0.001      proportion: 0.07%   
+__module.model....   EXECUTED             layerType: Crop                 execType: eltwise_blocked_opt__f32 realTime (ms): 0.007      cpuTime (ms): 0.001      proportion: 0.06%   
+__module.model....   EXECUTED             layerType: Softmax              execType: softmax_gpu_bf__f32  realTime (ms): 0.007      cpuTime (ms): 0.001      proportion: 0.06%   
+reshape:__modul...   EXECUTED             layerType: Reorder              execType: reorder_data_fast_b1__f32 realTime (ms): 0.006      cpuTime (ms): 0.001      proportion: 0.05%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_depthwise__f32 realTime (ms): 0.006      cpuTime (ms): 0.001      proportion: 0.05%   
+__module.model....   EXECUTED             layerType: VariadicSplit        execType: eltwise_blocked_opt__f32 realTime (ms): 0.006      cpuTime (ms): 0.001      proportion: 0.05%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_os_iyx_osv16__f32 realTime (ms): 0.006      cpuTime (ms): 0.001      proportion: 0.05%   
+reshape:__modul...   EXECUTED             layerType: Reorder              execType: reorder_data_fast_b1__f32 realTime (ms): 0.006      cpuTime (ms): 0.001      proportion: 0.05%   
+__module.model....   EXECUTED             layerType: Crop                 execType: eltwise_blocked_opt__f32 realTime (ms): 0.006      cpuTime (ms): 0.001      proportion: 0.05%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_depthwise__f32 realTime (ms): 0.005      cpuTime (ms): 0.001      proportion: 0.04%   
+__module.model....   EXECUTED             layerType: MaxPool              execType: pooling_gpu_blocked__f32 realTime (ms): 0.005      cpuTime (ms): 0.001      proportion: 0.04%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_os_iyx_osv16__f32 realTime (ms): 0.005      cpuTime (ms): 0.001      proportion: 0.04%   
+__module.model....   EXECUTED             layerType: Softmax              execType: softmax_gpu_bf__f32  realTime (ms): 0.005      cpuTime (ms): 0.001      proportion: 0.04%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_os_iyx_osv16__f32 realTime (ms): 0.005      cpuTime (ms): 0.001      proportion: 0.04%   
+__module.model....   EXECUTED             layerType: MaxPool              execType: pooling_gpu_blocked__f32 realTime (ms): 0.005      cpuTime (ms): 0.001      proportion: 0.04%   
+:matmul/MatMul_...   EXECUTED             layerType: Permute              execType: permute_xy_swap__f32 realTime (ms): 0.005      cpuTime (ms): 0.001      proportion: 0.04%   
+reshape:__modul...   EXECUTED             layerType: Reorder              execType: reorder_data_bfyx_to_blocked_format__f32 realTime (ms): 0.004      cpuTime (ms): 0.001      proportion: 0.03%   
+__module.model....   EXECUTED             layerType: Crop                 execType: generic_eltwise_ref__f32 realTime (ms): 0.004      cpuTime (ms): 0.001      proportion: 0.03%   
+__module.model....   EXECUTED             layerType: VariadicSplit        execType: eltwise_blocked_opt__f32 realTime (ms): 0.004      cpuTime (ms): 0.001      proportion: 0.03%   
+__module.model....   EXECUTED             layerType: Concat               execType: concatenation_gpu_simple_ref__f32 realTime (ms): 0.004      cpuTime (ms): 0.004      proportion: 0.03%   
+__module.model....   EXECUTED             layerType: MaxPool              execType: pooling_gpu_blocked__f32 realTime (ms): 0.004      cpuTime (ms): 0.001      proportion: 0.03%   
+reshape:__modul...   EXECUTED             layerType: Reorder              execType: reorder_data_bfyx_to_blocked_format__f32 realTime (ms): 0.004      cpuTime (ms): 0.001      proportion: 0.03%   
+__module.model....   EXECUTED             layerType: Crop                 execType: eltwise_blocked_opt__f32 realTime (ms): 0.003      cpuTime (ms): 0.001      proportion: 0.03%   
+Result_49172         EXECUTED             layerType: Result               execType: concatenation_gpu_simple_ref__f32 realTime (ms): 0.003      cpuTime (ms): 0.003      proportion: 0.03%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_depthwise__f32 realTime (ms): 0.003      cpuTime (ms): 0.001      proportion: 0.03%   
+__module.model....   EXECUTED             layerType: Crop                 execType: generic_eltwise_ref__f32 realTime (ms): 0.003      cpuTime (ms): 0.002      proportion: 0.03%   
+__module.model....   EXECUTED             layerType: Crop                 execType: generic_eltwise_ref__f32 realTime (ms): 0.003      cpuTime (ms): 0.001      proportion: 0.03%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_depthwise__f32 realTime (ms): 0.003      cpuTime (ms): 0.001      proportion: 0.03%   
+__module.model....   EXECUTED             layerType: Crop                 execType: eltwise_blocked_opt__f32 realTime (ms): 0.003      cpuTime (ms): 0.001      proportion: 0.03%   
+__module.model....   EXECUTED             layerType: Crop                 execType: generic_eltwise_ref__f32 realTime (ms): 0.003      cpuTime (ms): 0.001      proportion: 0.03%   
+__module.model....   EXECUTED             layerType: Convolution          execType: convolution_gpu_bfyx_f16_depthwise__f32 realTime (ms): 0.003      cpuTime (ms): 0.001      proportion: 0.03%   
+Multiply_12065       EXECUTED             layerType: Multiply             execType: generic_eltwise_ref__f32 realTime (ms): 0.002      cpuTime (ms): 0.001      proportion: 0.02%   
+__module.model....   EXECUTED             layerType: Multiply             execType: generic_eltwise_ref__f32 realTime (ms): 0.002      cpuTime (ms): 0.002      proportion: 0.02%   
+__module.model....   EXECUTED             layerType: Add                  execType: generic_eltwise_ref__f32 realTime (ms): 0.002      cpuTime (ms): 0.001      proportion: 0.02%   
+__module.model....   EXECUTED             layerType: ReduceMax            execType: reduce_ref__f32      realTime (ms): 0.002      cpuTime (ms): 0.001      proportion: 0.02%   
+__module.model....   EXECUTED             layerType: Multiply             execType: generic_eltwise_ref__f32 realTime (ms): 0.002      cpuTime (ms): 0.001      proportion: 0.02%   
+__module.model....   EXECUTED             layerType: VariadicSplit        execType: eltwise_blocked_opt__f32 realTime (ms): 0.001      cpuTime (ms): 0.001      proportion: 0.01%   
+__module.model....   EXECUTED             layerType: Crop                 execType: eltwise_blocked_opt__f32 realTime (ms): 0.001      cpuTime (ms): 0.001      proportion: 0.01%   
+:matmul/MatMul/...   EXECUTED             layerType: Permute              execType: permute_xy_swap__f32 realTime (ms): 0.001      cpuTime (ms): 0.001      proportion: 0.01%   
+__module.model....   EXECUTED             layerType: Crop                 execType: eltwise_blocked_opt__f32 realTime (ms): 0.001      cpuTime (ms): 0.001      proportion: 0.01%   
+__module.model....   EXECUTED             layerType: VariadicSplit        execType: eltwise_blocked_opt__f32 realTime (ms): 0.001      cpuTime (ms): 0.001      proportion: 0.01%   
+__module.model....   EXECUTED             layerType: Broadcast            execType: broadcast_gpu_ref__i32 realTime (ms): 0.001      cpuTime (ms): 0.001      proportion: 0.01%   
+__module.model....   EXECUTED             layerType: Divide               execType: generic_eltwise_ref__i32 realTime (ms): 0.001      cpuTime (ms): 0.001      proportion: 0.01%   
+__module.model....   EXECUTED             layerType: GatherElements       execType: gather_elements_ref__f32 realTime (ms): 0.001      cpuTime (ms): 0.001      proportion: 0.01%   
+__module.model....   EXECUTED             layerType: FloorMod             execType: generic_eltwise_ref__i32 realTime (ms): 0.001      cpuTime (ms): 0.001      proportion: 0.01%   
+__module.model....   EXECUTED             layerType: Multiply             execType: generic_eltwise_ref__f32 realTime (ms): 0.001      cpuTime (ms): 0.001      proportion: 0.01%   
+__module.model....   EXECUTED             layerType: VariadicSplit        execType: eltwise_blocked_opt__f32 realTime (ms): 0.001      cpuTime (ms): 0.001      proportion: 0.01%   
+__module.model....   EXECUTED             layerType: Crop                 execType: eltwise_blocked_opt__f32 realTime (ms): 0.001      cpuTime (ms): 0.001      proportion: 0.01%   
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Concat               execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Concat               execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Concat               execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Concat               execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Concat               execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Concat               execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Concat               execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Concat               execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Concat               execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+Multiply_12065_...   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Concat               execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Concat               execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Concat               execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   EXECUTED             layerType: Broadcast            execType: broadcast_gpu_ref__i32 realTime (ms): 0.000      cpuTime (ms): 0.001      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reorder              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Floor                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   EXECUTED             layerType: GatherElements       execType: gather_elements_ref__i32 realTime (ms): 0.000      cpuTime (ms): 0.001      proportion: N/A%    
+__module.model....   EXECUTED             layerType: GatherElements       execType: gather_elements_ref__f32 realTime (ms): 0.000      cpuTime (ms): 0.001      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Convert              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reorder              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reorder              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reorder              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reorder              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reorder              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reorder              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reorder              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reorder              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reorder              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reorder              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: VariadicSplit        execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Crop                 execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: VariadicSplit        execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Crop                 execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Concat               execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Concat               execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: VariadicSplit        execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Concat               execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Reshape              execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: VariadicSplit        execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Swish                execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Add                  execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+__module.model....   OPTIMIZED_OUT        layerType: Concat               execType: undef                realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+x.1                  EXECUTED             layerType: Parameter            execType: wait_for_events__u8  realTime (ms): 0.000      cpuTime (ms): 0.000      proportion: N/A%    
+Total time: 11.924000     milliseconds
+
+Full device name: Intel(R) Arc(TM) B390 GPU (iGPU)
+
+[ INFO ] Execution Devices: [ GPU.0 ]
+[ INFO ] Count:               30 iterations
+[ INFO ] Duration:            386.30 ms
+[ INFO ] Latency:
+[ INFO ]    Median:           12.64 ms
+[ INFO ]    Average:          12.87 ms
+[ INFO ]    Min:              12.12 ms
+[ INFO ]    Max:              14.34 ms
+[ INFO ] Throughput:          77.66 FPS

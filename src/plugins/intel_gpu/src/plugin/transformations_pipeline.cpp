@@ -95,6 +95,7 @@
 #include "plugin/transformations/fc_convert_fusion.hpp"
 #include "plugin/transformations/fc_horizontal_fusion.hpp"
 #include "plugin/transformations/fold_activation_transpose.hpp"
+#include "plugin/transformations/fuse_conv_silu_pair.hpp"
 #include "plugin/transformations/fuse_gated_mlp.hpp"
 #include "plugin/transformations/fuse_atan2_decomposed.hpp"
 #include "plugin/transformations/fuse_moe_router.hpp"
@@ -1536,6 +1537,13 @@ void TransformationsPipeline::apply(std::shared_ptr<ov::Model> func) {
             manager.register_pass<ov::intel_gpu::FuseGatedMLP>();
         }
         manager.register_pass<ov::intel_gpu::SwiGluFusionWithClamp>();
+
+        // Eksperymentalna fuzja conv -> +bias -> SiLU -> conv(1x1) -> +bias -> SiLU
+        // w jeden kernel. Domyslnie wylaczona; wlaczana przez OV_GPU_FUSE_CONV_SILU_PAIR=1.
+        if (const char* fuse_conv_silu_pair_env = std::getenv("OV_GPU_FUSE_CONV_SILU_PAIR")) {
+            if (fuse_conv_silu_pair_env[0] == '1')
+                manager.register_pass<ov::intel_gpu::FuseConvSiluPair>();
+        }
         // This Validate is needed for proper data type propagation after applying IncreasePositionIdsPrecision pass
         manager.register_pass<ov::pass::Validate>();
 
