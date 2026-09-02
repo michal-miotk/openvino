@@ -67,7 +67,7 @@ class ocl_kernel_builder : public kernel_builder{
                 GPU_DEBUG_INFO << "-------- Kernel build error" << std::endl;
                 auto log = err.getBuildLog();
                 for (auto &e : log) {
-                    GPU_DEBUG_INFO << e.second;
+                    std::cout << e.second;
                 }
                 GPU_DEBUG_INFO << "-------- End of Kernel build error" << std::endl;
                 OPENVINO_THROW(OCL_ERR_MSG_FMT(err));

@@ -1,0 +1,357 @@
+/*******************************************************************************
+ * Copyright (c) 2018-2026 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
+
+namespace KERNEL_NAME {
+
+#ifndef CONV_DT
+#define CONV_DT half
+#endif
+#ifndef CONV_IFM_NUM
+#define CONV_IFM_NUM 64
+#endif
+#ifndef CONV_OFM_NUM
+#define CONV_OFM_NUM 64
+#endif
+#ifndef CONV_IN_SIZE_X
+#define CONV_IN_SIZE_X 56
+#endif
+#ifndef CONV_IN_SIZE_Y
+#define CONV_IN_SIZE_Y 56
+#endif
+#ifndef CONV_OUT_SIZE_X
+#define CONV_OUT_SIZE_X 56
+#endif
+#ifndef CONV_OUT_SIZE_Y
+#define CONV_OUT_SIZE_Y 56
+#endif
+#ifndef CONV_FILTER_SIZE_X
+#define CONV_FILTER_SIZE_X 3
+#endif
+#ifndef CONV_FILTER_SIZE_Y
+#define CONV_FILTER_SIZE_Y 3
+#endif
+#ifndef CONV_STRIDE_X
+#define CONV_STRIDE_X 1
+#endif
+#ifndef CONV_STRIDE_Y
+#define CONV_STRIDE_Y 1
+#endif
+#ifndef CONV_DILATION_X
+#define CONV_DILATION_X 1
+#endif
+#ifndef CONV_DILATION_Y
+#define CONV_DILATION_Y 1
+#endif
+#ifndef CONV_PAD_X
+#define CONV_PAD_X 1
+#endif
+#ifndef CONV_PAD_Y
+#define CONV_PAD_Y 1
+#endif
+#ifndef OUTPUT_X_BLOCK_SIZE
+#define OUTPUT_X_BLOCK_SIZE 8
+#endif
+#ifndef CONV_OC_BLOCKS_PER_THREAD
+#define CONV_OC_BLOCKS_PER_THREAD 1
+#endif
+#ifndef CONV_WITH_BIAS
+#define CONV_WITH_BIAS 1
+#endif
+#ifndef CONV_ACTIVATION
+#define CONV_ACTIVATION 0
+#endif
+#define CONV_ACTIVATION_NONE 0
+#define CONV_ACTIVATION_RELU 1
+#define CONV_ACTIVATION_SILU 2
+
+#ifndef CONV_INPUT_PAD_BEFORE_X
+#define CONV_INPUT_PAD_BEFORE_X 0
+#endif
+#ifndef CONV_INPUT_PAD_AFTER_X
+#define CONV_INPUT_PAD_AFTER_X 0
+#endif
+#ifndef CONV_INPUT_PAD_BEFORE_Y
+#define CONV_INPUT_PAD_BEFORE_Y 0
+#endif
+#ifndef CONV_INPUT_PAD_AFTER_Y
+#define CONV_INPUT_PAD_AFTER_Y 0
+#endif
+#ifndef CONV_OUTPUT_PAD_BEFORE_X
+#define CONV_OUTPUT_PAD_BEFORE_X 0
+#endif
+#ifndef CONV_OUTPUT_PAD_AFTER_X
+#define CONV_OUTPUT_PAD_AFTER_X 0
+#endif
+#ifndef CONV_OUTPUT_PAD_BEFORE_Y
+#define CONV_OUTPUT_PAD_BEFORE_Y 0
+#endif
+#ifndef CONV_OUTPUT_PAD_AFTER_Y
+#define CONV_OUTPUT_PAD_AFTER_Y 0
+#endif
+
+#define FEATURE_SLICE_SIZE 16
+
+#ifndef CONV_USE_DPAS
+#define CONV_USE_DPAS 0
+#endif
+
+#if CONV_USE_DPAS
+#define DPAS_M 8
+#define DPAS_N FEATURE_SLICE_SIZE
+#define DPAS_K 8
+#define DPAS_SYSTOLIC_DEPTH 8
+#endif
+
+extern "C" _GENX_MAIN_ void KERNEL_NAME(
+    CONV_DT* input   [[type("svmptr_t")]],
+    CONV_DT* output  [[type("svmptr_t")]],
+    CONV_DT* weights [[type("svmptr_t")]]
+#if CONV_WITH_BIAS
+    , CONV_DT* biases [[type("svmptr_t")]]
+#endif
+) {
+    constexpr int IC_BLOCKS = (CONV_IFM_NUM + FEATURE_SLICE_SIZE - 1) / FEATURE_SLICE_SIZE;
+    constexpr int OC_BLOCKS = (CONV_OFM_NUM + FEATURE_SLICE_SIZE - 1) / FEATURE_SLICE_SIZE;
+    constexpr int X_BLOCKS  = (CONV_OUT_SIZE_X + OUTPUT_X_BLOCK_SIZE - 1) / OUTPUT_X_BLOCK_SIZE;
+    constexpr int INPUT_LINE_SIZE =
+        (OUTPUT_X_BLOCK_SIZE - 1) * CONV_STRIDE_X + (CONV_FILTER_SIZE_X - 1) * CONV_DILATION_X + 1;
+
+    const uint feature_block = cm_group_id(0) * CONV_OC_BLOCKS_PER_THREAD;
+    const uint xy = cm_group_id(1);
+    const uint b = cm_group_id(2);
+
+    const int x = (int)(xy % (uint)X_BLOCKS) * OUTPUT_X_BLOCK_SIZE;
+    const int y = (int)(xy / (uint)X_BLOCKS);
+
+    const int input_x = x * CONV_STRIDE_X - CONV_PAD_X;
+    const int input_y = y * CONV_STRIDE_Y - CONV_PAD_Y;
+
+    const uint input_x_pitch  = FEATURE_SLICE_SIZE;
+    const uint input_y_pitch  = input_x_pitch *
+            (CONV_INPUT_PAD_BEFORE_X + CONV_IN_SIZE_X + CONV_INPUT_PAD_AFTER_X);
+    const uint input_fs_pitch = input_y_pitch *
+            (CONV_INPUT_PAD_BEFORE_Y + CONV_IN_SIZE_Y + CONV_INPUT_PAD_AFTER_Y);
+    const uint input_b_pitch  = input_fs_pitch * IC_BLOCKS;
+
+    const uint output_x_pitch  = FEATURE_SLICE_SIZE;
+    const uint output_y_pitch  = output_x_pitch *
+            (CONV_OUTPUT_PAD_BEFORE_X + CONV_OUT_SIZE_X + CONV_OUTPUT_PAD_AFTER_X);
+    const uint output_fs_pitch = output_y_pitch *
+            (CONV_OUTPUT_PAD_BEFORE_Y + CONV_OUT_SIZE_Y + CONV_OUTPUT_PAD_AFTER_Y);
+    const uint output_b_pitch  = output_fs_pitch * OC_BLOCKS;
+
+    const uint filter_isv_pitch = FEATURE_SLICE_SIZE;
+    const uint filter_x_pitch   = FEATURE_SLICE_SIZE * FEATURE_SLICE_SIZE;
+    const uint filter_y_pitch   = filter_x_pitch * CONV_FILTER_SIZE_X;
+    const uint filter_is_pitch  = filter_y_pitch * CONV_FILTER_SIZE_Y;
+    const uint filter_os_pitch  = filter_is_pitch * IC_BLOCKS;
+
+    constexpr int IC_LEFTOVER = CONV_IFM_NUM % FEATURE_SLICE_SIZE;
+    constexpr int OC_LEFTOVER = CONV_OFM_NUM % FEATURE_SLICE_SIZE;
+    constexpr bool X_ALIGNED  = (CONV_OUT_SIZE_X % OUTPUT_X_BLOCK_SIZE) == 0;
+    constexpr int OCB         = CONV_OC_BLOCKS_PER_THREAD;
+
+    matrix<float, OCB * OUTPUT_X_BLOCK_SIZE, FEATURE_SLICE_SIZE> acc;
+
+    #pragma unroll
+    for (int ob = 0; ob < OCB; ob++) {
+        const bool oc_block_full =
+            (OC_LEFTOVER == 0) || (feature_block + (uint)ob + 1 < (uint)OC_BLOCKS);
+#if CONV_WITH_BIAS
+        vector<float, FEATURE_SLICE_SIZE> bias_vec;
+        if (oc_block_full) {
+            vector<CONV_DT, FEATURE_SLICE_SIZE> b_raw =
+                *reinterpret_cast<vector<CONV_DT, FEATURE_SLICE_SIZE>*>(
+                    biases + (feature_block + (uint)ob) * FEATURE_SLICE_SIZE);
+            bias_vec = b_raw;
+        } else {
+            #pragma unroll
+            for (int oc = 0; oc < FEATURE_SLICE_SIZE; oc++) {
+                const uint oc_idx = (feature_block + (uint)ob) * FEATURE_SLICE_SIZE + oc;
+                bias_vec(oc) = (oc_idx < (uint)CONV_OFM_NUM) ? (float)biases[oc_idx] : 0.0f;
+            }
+        }
+        #pragma unroll
+        for (int xi = 0; xi < OUTPUT_X_BLOCK_SIZE; xi++) {
+            acc.row(ob * OUTPUT_X_BLOCK_SIZE + xi) = bias_vec;
+        }
+#else
+        #pragma unroll
+        for (int xi = 0; xi < OUTPUT_X_BLOCK_SIZE; xi++) {
+            acc.row(ob * OUTPUT_X_BLOCK_SIZE + xi) = 0.0f;
+        }
+#endif
+    }
+
+    matrix<float, INPUT_LINE_SIZE, FEATURE_SLICE_SIZE> in_line;
+
+#if CONV_USE_DPAS
+    static_assert(OUTPUT_X_BLOCK_SIZE == DPAS_M,
+                  "sciezka dpas wymaga kafelka X rownego RepeatCount instrukcji dpas");
+    static_assert(FEATURE_SLICE_SIZE == DPAS_N,
+                  "sciezka dpas wymaga slice'a kanalow rownego execution size dpas");
+    static_assert(FEATURE_SLICE_SIZE % DPAS_K == 0,
+                  "slice kanalow wejscia musi byc wielokrotnoscia glebokosci K dpas");
+    vector_ref<float, OCB * OUTPUT_X_BLOCK_SIZE * FEATURE_SLICE_SIZE> acc_v = acc.format<float>();
+#endif
+
+    for (int icb = 0; icb < IC_BLOCKS; icb++) {
+        #pragma unroll
+        for (int kh = 0; kh < CONV_FILTER_SIZE_Y; kh++) {
+            const int in_y = input_y + kh * CONV_DILATION_Y;
+            if (in_y < 0 || in_y >= CONV_IN_SIZE_Y) {
+                continue;
+            }
+
+            const uint row_base = b * input_b_pitch + (uint)icb * input_fs_pitch +
+                    (uint)(in_y + CONV_INPUT_PAD_BEFORE_Y) * input_y_pitch;
+
+            if (input_x >= 0 && input_x + INPUT_LINE_SIZE <= CONV_IN_SIZE_X) {
+                const uint line_base = row_base +
+                        (uint)(input_x + CONV_INPUT_PAD_BEFORE_X) * input_x_pitch;
+                #pragma unroll
+                for (int xb = 0; xb < INPUT_LINE_SIZE; xb++) {
+                    vector<CONV_DT, FEATURE_SLICE_SIZE> in_vec =
+                        *reinterpret_cast<vector<CONV_DT, FEATURE_SLICE_SIZE>*>(
+                            input + line_base + (uint)xb * input_x_pitch);
+                    in_line.row(xb) = in_vec;
+                }
+            } else {
+                #pragma unroll
+                for (int xb = 0; xb < INPUT_LINE_SIZE; xb++) {
+                    const int in_x = input_x + xb;
+                    if (in_x >= 0 && in_x < CONV_IN_SIZE_X) {
+                        vector<CONV_DT, FEATURE_SLICE_SIZE> in_vec =
+                            *reinterpret_cast<vector<CONV_DT, FEATURE_SLICE_SIZE>*>(
+                                input + row_base +
+                                (uint)(in_x + CONV_INPUT_PAD_BEFORE_X) * input_x_pitch);
+                        in_line.row(xb) = in_vec;
+                    } else {
+                        in_line.row(xb) = 0.0f;
+                    }
+                }
+            }
+
+            if (IC_LEFTOVER != 0 && icb == IC_BLOCKS - 1) {
+                #pragma unroll
+                for (int ic = IC_LEFTOVER; ic < FEATURE_SLICE_SIZE; ic++) {
+                    in_line.column(ic) = 0.0f;
+                }
+            }
+
+            #pragma unroll
+            for (int kw = 0; kw < CONV_FILTER_SIZE_X; kw++) {
+                const uint filter_base = feature_block * filter_os_pitch +
+                                          (uint)icb * filter_is_pitch +
+                                          (uint)kh * filter_y_pitch +
+                                          (uint)kw * filter_x_pitch;
+
+#if CONV_USE_DPAS
+                #pragma unroll
+                for (int kk = 0; kk < FEATURE_SLICE_SIZE / DPAS_K; kk++) {
+                    vector<float, DPAS_M * DPAS_K> a_tile;
+                    #pragma unroll
+                    for (int m = 0; m < DPAS_M; m++) {
+                        a_tile.select<DPAS_K, 1>(m * DPAS_K) =
+                            in_line.row(m * CONV_STRIDE_X + kw * CONV_DILATION_X)
+                                   .select<DPAS_K, 1>(kk * DPAS_K);
+                    }
+
+                    #pragma unroll
+                    for (int ob = 0; ob < OCB; ob++) {
+                        vector<float, DPAS_K * DPAS_N> b_tile =
+                            *reinterpret_cast<vector<float, DPAS_K * DPAS_N>*>(
+                                weights + filter_base + (uint)ob * filter_os_pitch +
+                                (uint)(kk * DPAS_K) * filter_isv_pitch);
+
+                        acc_v.select<DPAS_M * DPAS_N, 1>(ob * DPAS_M * DPAS_N) =
+                            cm_dpas<CM_PRECISION_TF32, CM_PRECISION_TF32,
+                                    DPAS_SYSTOLIC_DEPTH, DPAS_M, float>(
+                                acc_v.select<DPAS_M * DPAS_N, 1>(ob * DPAS_M * DPAS_N),
+                                b_tile.format<int32_t>(),
+                                a_tile.format<int32_t>());
+                    }
+                }
+#else
+                #pragma unroll
+                for (int ic = 0; ic < FEATURE_SLICE_SIZE; ic++) {
+                    #pragma unroll
+                    for (int ob = 0; ob < OCB; ob++) {
+                        vector<CONV_DT, FEATURE_SLICE_SIZE> w_raw =
+                            *reinterpret_cast<vector<CONV_DT, FEATURE_SLICE_SIZE>*>(
+                                weights + filter_base + (uint)ob * filter_os_pitch +
+                                (uint)ic * filter_isv_pitch);
+                        vector<float, FEATURE_SLICE_SIZE> w_vec = w_raw;
+
+                        #pragma unroll
+                        for (int xi = 0; xi < OUTPUT_X_BLOCK_SIZE; xi++) {
+                            acc.row(ob * OUTPUT_X_BLOCK_SIZE + xi) +=
+                                in_line(xi * CONV_STRIDE_X + kw * CONV_DILATION_X, ic) * w_vec;
+                        }
+                    }
+                }
+#endif
+            }
+        }
+    }
+
+#if CONV_ACTIVATION == CONV_ACTIVATION_RELU
+    {
+        vector_ref<float, OCB * OUTPUT_X_BLOCK_SIZE * FEATURE_SLICE_SIZE> a = acc.format<float>();
+        a = cm_max<float>(a, 0.0f);
+    }
+#elif CONV_ACTIVATION == CONV_ACTIVATION_SILU
+    {
+        constexpr float log2e = 1.4426950408889634f;
+        vector_ref<float, OCB * OUTPUT_X_BLOCK_SIZE * FEATURE_SLICE_SIZE> a = acc.format<float>();
+        a = a / (1.0f + cm_exp(-a * log2e));
+    }
+#endif
+
+    const uint output_tile_base = b * output_b_pitch +
+                                   feature_block * output_fs_pitch +
+                                   (uint)(y + CONV_OUTPUT_PAD_BEFORE_Y) * output_y_pitch +
+                                   (uint)(x + CONV_OUTPUT_PAD_BEFORE_X) * output_x_pitch;
+
+    #pragma unroll
+    for (int ob = 0; ob < OCB; ob++) {
+        const bool oc_block_full =
+            (OC_LEFTOVER == 0) || (feature_block + (uint)ob + 1 < (uint)OC_BLOCKS);
+        const uint output_slice_base = output_tile_base + (uint)ob * output_fs_pitch;
+
+        #pragma unroll
+        for (int xi = 0; xi < OUTPUT_X_BLOCK_SIZE; xi++) {
+            if (!X_ALIGNED && (x + xi >= CONV_OUT_SIZE_X)) {
+                continue;
+            }
+            vector<CONV_DT, FEATURE_SLICE_SIZE> res = acc.row(ob * OUTPUT_X_BLOCK_SIZE + xi);
+            const uint out_base = output_slice_base + (uint)xi * output_x_pitch;
+            if (oc_block_full) {
+                *reinterpret_cast<vector<CONV_DT, FEATURE_SLICE_SIZE>*>(output + out_base) = res;
+            } else {
+                #pragma unroll
+                for (int oc = 0; oc < FEATURE_SLICE_SIZE; oc++) {
+                    if ((feature_block + (uint)ob) * FEATURE_SLICE_SIZE + (uint)oc <
+                            (uint)CONV_OFM_NUM) {
+                        output[out_base + (uint)oc] = res(oc);
+                    }
+                }
+            }
+        }
+    }
+}
+
+}

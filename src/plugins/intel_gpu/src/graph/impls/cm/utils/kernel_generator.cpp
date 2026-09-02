@@ -5,6 +5,8 @@
 #include "kernel_generator.hpp"
 
 #include <cctype>
+#include <iomanip>
+#include <sstream>
 
 #include "intel_gpu/runtime/kernel_args.hpp"
 #include "kernels_db.hpp"
@@ -54,7 +56,14 @@ KernelData KernelGenerator::get_kernel_data(const RuntimeParams& params) const {
 }
 
 std::string KernelGenerator::get_entry_point(const RuntimeParams& params) const {
-    return m_kernel_name + m_stage_suffix + "_" + std::to_string(params.hash()) + (params.is_dynamic() ? "__sa" : "");
+    // Fixed-width (16 hex chars, zero-padded) instead of std::to_string()'s
+    // variable-width decimal (1-20 digits depending on the hash value) -
+    // a variable-length entry point name is the leading suspect for a real,
+    // observed "Error set arg N ... error code: -50" crash that only hit
+    // kernels whose decimal hash happened to be 20 digits long.
+    std::ostringstream oss;
+    oss << std::hex << std::setfill('0') << std::setw(16) << params.hash();
+    return m_kernel_name + m_stage_suffix + "_" + oss.str() + (params.is_dynamic() ? "__sa" : "");
 }
 
 std::string KernelGenerator::get_build_options(const RuntimeParams& params) const {
