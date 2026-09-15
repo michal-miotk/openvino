@@ -16,4 +16,12 @@ if(ENABLE_SSE42)
     COMPILE_DEFINITIONS "HAVE_SSE")
 endif()
 
-ov_build_target_faster(${TARGET_NAME} PCH PCH_EXCLUDE detection_output.cpp)
+if(ENABLE_AVX2)
+  ov_avx2_optimization_flags(avx2_flags)
+  string(REPLACE ";" " " avx2_flags_str "${avx2_flags}")
+  set_source_files_properties(convolution_avx2.cpp PROPERTIES
+    COMPILE_FLAGS "${avx2_flags_str}"
+    COMPILE_DEFINITIONS "HAVE_AVX2")
+endif()
+
+ov_build_target_faster(${TARGET_NAME} PCH PCH_EXCLUDE detection_output.cpp convolution_avx2.cpp)

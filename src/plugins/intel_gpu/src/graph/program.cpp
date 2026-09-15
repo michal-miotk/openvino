@@ -1582,76 +1582,8 @@ void program::set_layout_optimizer_attributes(layout_optimizer& lo) {
             prim.type() == cldnn::resample::type_id() || prim.type() == cldnn::reorg_yolo::type_id())
             lo.set_optimization_attribute(layout_optimizer::optimization_attributes_type::bfyx_only_layer, 1);
 
-        if (!prim.is_in_shape_of_subgraph() &&
-            prim.is_in_data_flow() &&
-            prim.type() != cldnn::convolution::type_id() &&
-            prim.type() != cldnn::deconvolution::type_id() &&
-            prim.type() != cldnn::activation::type_id() &&
-            prim.type() != cldnn::pooling::type_id() &&
-            prim.type() != cldnn::eltwise::type_id() &&
-            prim.type() != cldnn::permute::type_id() &&
-            prim.type() != cldnn::reshape::type_id() &&
-            prim.type() != cldnn::detection_output::type_id() &&
-            prim.type() != cldnn::quantize::type_id() &&
-            prim.type() != cldnn::custom_gpu_primitive::type_id() &&
-            prim.type() != cldnn::concatenation::type_id() &&
-            prim.type() != cldnn::fully_connected::type_id() &&
-            prim.type() != cldnn::reorder::type_id() &&
-            prim.type() != cldnn::input_layout::type_id() &&
-            prim.type() != cldnn::softmax::type_id() &&
-            prim.type() != cldnn::prior_box::type_id() &&
-            prim.type() != cldnn::border::type_id() &&
-            prim.type() != cldnn::resample::type_id() &&
-            prim.type() != cldnn::crop::type_id() &&
-            prim.type() != cldnn::depth_to_space::type_id() &&
-            prim.type() != cldnn::shuffle_channels::type_id() &&
-            (prim.type() != cldnn::mvn::type_id()
-             || (prim.as<mvn>().get_input_layout().data_type != data_types::u8 &&
-                 prim.as<mvn>().get_input_layout().data_type != data_types::i8)
-             || prim.as<mvn>().get_primitive()->across_channels()) &&
-            prim.type() != cldnn::arg_max_min::type_id() &&
-            prim.type() != cldnn::dft::type_id() &&
-            prim.type() != cldnn::grid_sample::type_id() &&
-            prim.type() != cldnn::mutable_data::type_id() &&
-            prim.type() != cldnn::reduce::type_id() &&
-            prim.type() != cldnn::strided_slice::type_id() &&
-            prim.type() != cldnn::region_yolo::type_id() &&
-            prim.type() != cldnn::normalize::type_id() &&
-            prim.type() != cldnn::group_normalization::type_id() &&
-            prim.type() != cldnn::mvn::type_id() &&
-            prim.type() != cldnn::gather_elements::type_id() &&
-            prim.type() != cldnn::gather::type_id() &&
-            prim.type() != cldnn::scatter_nd_update::type_id() &&
-            prim.type() != cldnn::broadcast::type_id() &&
-            prim.type() != cldnn::ctc_loss::type_id() &&
-            prim.type() != cldnn::non_max_suppression::type_id() &&
-            prim.type() != cldnn::non_max_suppression_gather::type_id() &&
-            prim.type() != cldnn::roi_align::type_id() &&
-            prim.type() != cldnn::matrix_nms::type_id() &&
-            prim.type() != cldnn::adaptive_pooling::type_id() &&
-            prim.type() != cldnn::bucketize::type_id() &&
-            prim.type() != cldnn::roll::type_id() &&
-            prim.type() != cldnn::multiclass_nms::type_id() &&
-            prim.type() != cldnn::prior_box::type_id() &&
-            prim.type() != cldnn::roi_pooling::type_id() &&
-            prim.type() != cldnn::resample::type_id() &&
-            prim.type() != cldnn::eye::type_id() &&
-            prim.type() != cldnn::generate_proposals::type_id() &&
-            prim.type() != cldnn::reverse::type_id() &&
-            prim.type() != cldnn::reorg_yolo::type_id() &&
-            prim.type() != cldnn::gemm::type_id() &&
-            prim.type() != cldnn::tile::type_id() &&
-            prim.type() != cldnn::scatter_elements_update::type_id() &&
-            prim.type() != cldnn::gather_tree::type_id() &&
-            prim.type() != cldnn::experimental_detectron_detection_output::type_id() &&
-            prim.type() != cldnn::convert_color::type_id() &&
-            prim.type() != cldnn::unique_count::type_id() &&
-            prim.type() != cldnn::unique_gather::type_id() &&
-            prim.type() != cldnn::experimental_detectron_generate_proposals_single_image::type_id() &&
-            prim.type() != cldnn::rms::type_id() &&
-            prim.type() != cldnn::scaled_dot_product_attention::type_id()) {
-            can_use_fsv16 = false;
-        }
+        // NOTE: can_use_fsv16 is intentionally kept always true (forced), regardless of which
+        // primitives are present in the topology - see set_layout_optimizer_attributes below.
 
         if (prim.type() == cldnn::quantize::type_id() &&
             (prim.get_output_layout().data_type == data_types::i8 || prim.get_output_layout().data_type == data_types::u8)) {

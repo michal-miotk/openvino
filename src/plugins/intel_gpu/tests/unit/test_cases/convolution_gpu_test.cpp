@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <chrono>
 #include <iostream>
 #include <iomanip>
 #include <thread>
@@ -13471,3 +13472,132 @@ TEST(convolution_1d_small_ic_gemm_gate, rejects_input_features_above_max) {
     ASSERT_ANY_THROW(run_conv_1d(c, c.dt, "convolution_gpu_1d_small_ic_gemm"))
         << "kernel accepted IC = " << c.in_features;
 }
+
+// Validates the "cpu" (host) fallback implementation registered for convolution in
+// impls/cpu/convolution.cpp against the regular OpenCL execution path, for a
+// b_fs_yx_fsv16 1x1 convolution similar to the one used in convolution_gpu_bfyx_f16.cl.
+TEST(convolution_gpu, b_fs_yx_fsv16_cpu_impl_vs_ocl) {
+    auto& engine = get_test_engine();
+
+    const int batch = 1;
+    const int in_features = 64;
+    const int out_features = 4;
+    const int size_x = 12;
+    const int size_y = 12;
+
+    auto input = engine.allocate_memory({ data_types::f32, format::bfyx, tensor(batch, in_features, size_x, size_y) });
+    auto weights = engine.allocate_memory({ data_types::f32, format::oiyx, tensor(out_features, in_features, 1, 1) });
+    auto biases = engine.allocate_memory({ data_types::f32, format::bfyx, tensor(1, out_features, 1, 1) });
+
+    set_random_values<float>(input);
+    set_random_values<float>(weights);
+    set_random_values<float>(biases);
+
+    // Runs the convolution alone (no trailing reorder, so nothing can be fused into it) and
+    // gathers its output in logical (b, f, y, x) order regardless of the physical layout that
+    // ended up being used, via layout::get_linear_offset().
+    auto run = [&](impl_types impl) {
+        topology topology(
+            input_layout("input", input->get_layout()),
+            data("weights", weights),
+            data("biases", biases),
+            reorder("input_fsv16", input_info("input"), { data_types::f32, format::b_fs_yx_fsv16, input->get_layout().get_tensor() }),
+            convolution("conv", input_info("input_fsv16"), "weights", "biases", 1, { 1, 1 }, { 1, 1 }, { 0, 0 }, { 0, 0 }, false));
+
+        ExecutionConfig config = get_test_default_config(engine);
+        config.set_property(ov::intel_gpu::optimize_data(false));
+        ov::intel_gpu::ImplementationDesc conv_impl = { format::b_fs_yx_fsv16, "", impl };
+        config.set_property(ov::intel_gpu::force_implementations(ov::intel_gpu::ImplForcingMap{ { "conv", conv_impl } }));
+
+        network network(engine, topology, config);
+        network.set_input_data("input", input);
+
+        auto outputs = network.execute();
+        auto output_memory = outputs.at("conv").get_memory();
+        auto output_layout = output_memory->get_layout();
+        cldnn::mem_lock<float, mem_lock_type::read> output_ptr(output_memory, get_test_stream());
+
+        std::vector<float> result(static_cast<size_t>(batch * out_features * size_y * size_x));
+        size_t idx = 0;
+        for (int b = 0; b < batch; b++)
+            for (int f = 0; f < out_features; f++)
+                for (int y = 0; y < size_y; y++)
+                    for (int x = 0; x < size_x; x++)
+                        result[idx++] = output_ptr[output_layout.get_linear_offset(tensor(b, f, x, y, 0, 0))];
+        return result;
+    };
+
+    auto reference_result = run(impl_types::ocl);
+    auto cpu_result = run(impl_types::cpu);
+
+    ASSERT_EQ(reference_result.size(), cpu_result.size());
+    for (size_t i = 0; i < reference_result.size(); ++i) {
+        ASSERT_NEAR(reference_result[i], cpu_result[i], 1e-3f) << "mismatch at flat index " << i;
+    }
+}
+
+// Benchmarks the new cpu (host) reference implementation against the default ocl kernel
+// (convolution_gpu_bfyx_f16.cl) on the exact shape requested by the user: input 1x64x480x480,
+// weights 4x64x1x1, format b_fs_yx_fsv16.
+TEST(convolution_gpu, b_fs_yx_fsv16_cpu_impl_vs_ocl_speed) {
+    auto& engine = get_test_engine();
+
+    const int batch = 1;
+    const int in_features = 64;
+    const int out_features = 4;
+    const int size_x = 480;
+    const int size_y = 480;
+    const int iterations = 10;
+
+    auto input = engine.allocate_memory({ data_types::f32, format::bfyx, tensor(batch, in_features, size_x, size_y) });
+    auto weights = engine.allocate_memory({ data_types::f32, format::oiyx, tensor(out_features, in_features, 1, 1) });
+    auto biases = engine.allocate_memory({ data_types::f32, format::bfyx, tensor(1, out_features, 1, 1) });
+
+    set_random_values<float>(input);
+    set_random_values<float>(weights);
+    set_random_values<float>(biases);
+
+    // Returns the average wall-clock time (ms) of `iterations` calls to network.execute(),
+    // after a warm-up run to exclude one-time kernel compilation/allocation overhead.
+    auto measure = [&](impl_types impl) {
+        topology topology(
+            input_layout("input", input->get_layout()),
+            data("weights", weights),
+            data("biases", biases),
+            reorder("input_fsv16", input_info("input"), { data_types::f32, format::b_fs_yx_fsv16, input->get_layout().get_tensor() }),
+            convolution("conv", input_info("input_fsv16"), "weights", "biases", 1, { 1, 1 }, { 1, 1 }, { 0, 0 }, { 0, 0 }, false));
+
+        ExecutionConfig config = get_test_default_config(engine);
+        config.set_property(ov::intel_gpu::optimize_data(false));
+        ov::intel_gpu::ImplementationDesc conv_impl = { format::b_fs_yx_fsv16, "", impl };
+        config.set_property(ov::intel_gpu::force_implementations(ov::intel_gpu::ImplForcingMap{ { "conv", conv_impl } }));
+
+        network network(engine, topology, config);
+        network.set_input_data("input", input);
+
+        // Warm-up: excludes first-run overhead (OCL kernel JIT compilation, allocations).
+        network.execute();
+        get_test_stream().finish();
+
+        const auto start = std::chrono::high_resolution_clock::now();
+        for (int i = 0; i < iterations; i++) {
+            network.set_input_data("input", input);
+            network.execute();
+        }
+        get_test_stream().finish();
+        const auto end = std::chrono::high_resolution_clock::now();
+
+        const double total_ms = std::chrono::duration<double, std::milli>(end - start).count();
+        return total_ms / iterations;
+    };
+
+    const double ocl_ms = measure(impl_types::ocl);
+    const double cpu_ms = measure(impl_types::cpu);
+
+    std::cout << "[ SPEED   ] input=1x64x480x480, weights=4x64x1x1, format=b_fs_yx_fsv16, "
+              << iterations << " iterations (after warm-up)" << std::endl;
+    std::cout << "[ SPEED   ] ocl impl (convolution_gpu_bfyx_f16.cl): " << ocl_ms << " ms/iter" << std::endl;
+    std::cout << "[ SPEED   ] cpu impl (host reference):              " << cpu_ms << " ms/iter" << std::endl;
+    std::cout << "[ SPEED   ] cpu / ocl ratio:                        " << (cpu_ms / ocl_ms) << "x" << std::endl;
+}
+

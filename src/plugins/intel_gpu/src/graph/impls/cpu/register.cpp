@@ -12,6 +12,7 @@ namespace cpu {
 
 void register_implementations() {
     REGISTER_CPU(assign);
+    REGISTER_CPU(convolution);
     REGISTER_CPU(detection_output);
     REGISTER_CPU(proposal);
     REGISTER_CPU(read_value);

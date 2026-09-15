@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<net name="conv_bfyx_f16_demo" version="11">
+	<layers>
+		<layer id="0" name="input" type="Parameter" version="opset1">
+			<data shape="1,64,480,480" element_type="f32" />
+			<output>
+				<port id="0" precision="FP32" names="input">
+					<dim>1</dim>
+					<dim>64</dim>
+					<dim>480</dim>
+					<dim>480</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="1" name="weights" type="Const" version="opset1">
+			<data element_type="f32" shape="4, 64, 1, 1" offset="0" size="1024" />
+			<output>
+				<port id="0" precision="FP32">
+					<dim>4</dim>
+					<dim>64</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="2" name="conv_1x1_64to4" type="Convolution" version="opset1">
+			<data strides="1, 1" dilations="1, 1" pads_begin="0, 0" pads_end="0, 0" auto_pad="explicit" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>1</dim>
+					<dim>64</dim>
+					<dim>480</dim>
+					<dim>480</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>4</dim>
+					<dim>64</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="output">
+					<dim>1</dim>
+					<dim>4</dim>
+					<dim>480</dim>
+					<dim>480</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="3" name="output" type="Result" version="opset1" output_names="output">
+			<input>
+				<port id="0" precision="FP32">
+					<dim>1</dim>
+					<dim>4</dim>
+					<dim>480</dim>
+					<dim>480</dim>
+				</port>
+			</input>
+		</layer>
+	</layers>
+	<edges>
+		<edge from-layer="0" from-port="0" to-layer="2" to-port="0" />
+		<edge from-layer="1" from-port="0" to-layer="2" to-port="1" />
+		<edge from-layer="2" from-port="2" to-layer="3" to-port="0" />
+	</edges>
+	<rt_info>
+		<info name="OpenVINO Runtime" value="2026.4.0-22904-7aa85cf68e1-gather_elements" />
+	</rt_info>
+</net>

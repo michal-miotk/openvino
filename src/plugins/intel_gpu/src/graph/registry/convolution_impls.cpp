@@ -27,6 +27,10 @@ const std::vector<std::shared_ptr<cldnn::ImplementationManager>>& Registry<convo
                     return false;
                 return node.as<convolution>().use_explicit_padding();
         })
+        // Host (CPU) reference implementation, based on the b_fs_yx_fsv16 blocking scheme used by
+        // convolution_gpu_bfyx_f16.cl. It is not picked automatically - use force_implementations
+        // (impl_types::cpu, format::b_fs_yx_fsv16) to select it, e.g. for debugging/validation.
+        OV_GPU_GET_INSTANCE_CPU(convolution, shape_types::static_shape)
     };
 
     return impls;
