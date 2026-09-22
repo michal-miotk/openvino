@@ -9,37 +9,43 @@ set(XETLA_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/xetla/include/" CACHE PATH "P
 #
 
 if(ENABLE_ONEDNN_FOR_GPU)
-    # Cached because the installed OpenVINOConfig.cmake resolves this name; the per-twin names
-    # below derive from it, so it must stay outside the function to reach that scope.
+    # Cached because the installed OpenVINOConfig.cmake resolves this name.
     set(DNNL_GPU_LIBRARY_NAME "openvino_onednn_gpu" CACHE STRING "Name of oneDNN library for Intel GPU Plugin")
-    set(ONEDNN_GPU_BUILD_ALWAYS ON CACHE BOOL "Always run oneDNN GPU external build step. It allows incremental build of oneDNN when it is changed.")
 
-    # SUFFIX (empty for single-RT) makes all names per-runtime so COMBINED can build oneDNN
-    # twice (ZE and OCL differ, e.g. LTO is disabled for ZE) without colliding.
-    function(build_onednn_gpu GPU_RUNTIME SUFFIX)
-        include(ExternalProject)
-        # Plain (non-CACHE) locals: a COMBINED build calls this function twice, and CACHE would
-        # freeze the first runtime's values, so the second would reuse them and collide. Anything
-        # the install/export needs is published to the cache explicitly instead (see below).
-        set(ONEDNN_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/onednn_gpu_build${SUFFIX}")
-        set(ONEDNN_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/onednn_gpu_install${SUFFIX}")
-        set(ONEDNN_PREFIX_DIR "${CMAKE_CURRENT_BINARY_DIR}/onednn_gpu_root${SUFFIX}")
-        set(ONEDNN_ENABLED_PRIMITIVES "CONCAT;CONVOLUTION;DECONVOLUTION;GATED_MLP;MATMUL;REORDER;POOLING;REDUCTION;RNN")
-        set(ONEDNN_ENABLED_ISA "XELP;XEHP;XEHPG;XE2;XE3;XE3P")
-        set(onednn_lib_name "${DNNL_GPU_LIBRARY_NAME}${SUFFIX}")
+    if(GPU_RT_TYPE STREQUAL "COMBINED")
+        message(FATAL_ERROR "GPU_RT_TYPE=COMBINED is not supported: oneDNN for GPU is built as a part of the "
+                            "OpenVINO build tree and a single build tree cannot host two oneDNN configurations. "
+                            "Use GPU_RT_TYPE=OCL, ZE or SYCL.")
+    endif()
+
+    function(ov_add_onednn_gpu)
+        set(ONEDNN_GPU_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/onednn_gpu")
+        set(ONEDNN_GPU_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/onednn_gpu")
+        # Configuration independent location of the produced archive, so that ONEDNN_GPU_LIB_PATH
+        # published below is a plain path which OpenVINOConfig.cmake can consume directly.
+        set(ONEDNN_GPU_LIB_DIR "${CMAKE_CURRENT_BINARY_DIR}/onednn_gpu_lib")
 
         if(X86_64)
-            set(ONEDNN_TARGET_ARCH "X64" CACHE STRING "" FORCE)
+            set(DNNL_TARGET_ARCH "X64")
         elseif(X86)
-            set(ONEDNN_TARGET_ARCH "X86" CACHE STRING "" FORCE)
+            set(DNNL_TARGET_ARCH "X86")
         elseif(RISCV64)
-            set(ONEDNN_TARGET_ARCH "RV64" CACHE STRING "" FORCE)
+            set(DNNL_TARGET_ARCH "RV64")
         elseif(ARM)
-            set(ONEDNN_TARGET_ARCH "ARM" CACHE STRING "" FORCE)
+            set(DNNL_TARGET_ARCH "ARM")
         elseif(AARCH64)
-            set(ONEDNN_TARGET_ARCH "AARCH64" CACHE STRING "" FORCE)
+            set(DNNL_TARGET_ARCH "AARCH64")
         else()
             message(WARNING "Intel GPU plugin unsupported architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+        endif()
+
+        if(GPU_RT_TYPE STREQUAL "ZE")
+            # oneDNN is using different version of L0 headers.
+            # Disable LTO to avoid build issues.
+            # Enable once headers are unified MFDNN-14973
+            set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE OFF)
+        else()
+            set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ${ENABLE_LTO})
         endif()
 
         # oneDNN specific compile flags
@@ -64,162 +70,67 @@ if(ENABLE_ONEDNN_FOR_GPU)
         if(WIN32 AND CMAKE_COMPILE_WARNING_AS_ERROR AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND CMAKE_VERSION VERSION_LESS 3.24)
             ov_add_compiler_flags(/WX-)
         endif()
+        set(CMAKE_COMPILE_WARNING_AS_ERROR OFF)
 
-        # pass common variables
-        foreach(cmake_var IN ITEMS CMAKE_SYSTEM_NAME CMAKE_SYSTEM_VERSION
-                                   CMAKE_SYSTEM_PROCESSOR CMAKE_TOOLCHAIN_FILE
-                                   CMAKE_SYSROOT
-                                   CMAKE_VERBOSE_MAKEFILE CMAKE_GENERATOR
-                                   CMAKE_CXX_COMPILER CMAKE_C_COMPILER
-                                   CMAKE_CXX_COMPILER_LAUNCHER CMAKE_C_COMPILER_LAUNCHER)
-            if(${cmake_var})
-                list(APPEND cmake_extra_args "-D${cmake_var}=${${cmake_var}}")
-            endif()
-        endforeach()
-
-        # CMAKE_FIND_ROOT_PATH is a CMake list (semicolon-separated); pass via CMAKE_CACHE_ARGS like other lists below.
-        set(onednn_gpu_cache_args
-            "-DDNNL_ENABLE_PRIMITIVE:STRING=${ONEDNN_ENABLED_PRIMITIVES}"
-            "-DDNNL_ENABLE_PRIMITIVE_GPU_ISA:STRING=${ONEDNN_ENABLED_ISA}")
-        if(CMAKE_FIND_ROOT_PATH)
-            list(APPEND onednn_gpu_cache_args "-DCMAKE_FIND_ROOT_PATH:STRING=${CMAKE_FIND_ROOT_PATH}")
-        endif()
-
-        set(onednn_gpu_cxx_flags "${CMAKE_CXX_FLAGS}")
         if(NOT BUILD_SHARED_LIBS)
             if(MSVC)
-                string(APPEND onednn_gpu_cxx_flags " /DNGEN_LINK_OPENCL")
+                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DNGEN_LINK_OPENCL")
             else()
-                string(APPEND onednn_gpu_cxx_flags " -DNGEN_LINK_OPENCL")
+                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNGEN_LINK_OPENCL")
             endif()
         endif()
 
-        # pass compilation flags
-        foreach(lang IN ITEMS C CXX)
-            foreach(build_type IN ITEMS "" "_DEBUG" "_MINSIZEREL" "_RELEASE" "_RELWITHDEBINFO")
-                set(flag_var "CMAKE_${lang}_FLAGS${build_type}")
-                if("${flag_var}" STREQUAL "CMAKE_CXX_FLAGS")
-                    if(onednn_gpu_cxx_flags)
-                        list(APPEND cmake_extra_args "-D${flag_var}=${onednn_gpu_cxx_flags}")
-                    endif()
-                elseif(${flag_var})
-                    list(APPEND cmake_extra_args "-D${flag_var}=${${flag_var}}")
-                endif()
-            endforeach()
+        # oneDNN picks the OpenCL version it needs on its own, drop the plugin-wide one
+        # to avoid a macro redefinition
+        remove_definitions(-DCL_TARGET_OPENCL_VERSION=${INTEL_GPU_TARGET_OCL_VERSION})
+
+        # oneDNN configuration. ONEDNN_* are the canonical option names and the DNNL_* aliases are
+        # derived from them by oneDNN itself, so the values have to be set with the ONEDNN_ prefix.
+        set(ONEDNN_LIBRARY_TYPE "STATIC" CACHE STRING "" FORCE)
+        set(ONEDNN_LIBRARY_NAME "${DNNL_GPU_LIBRARY_NAME}" CACHE STRING "" FORCE)
+        set(ONEDNN_CPU_RUNTIME "NONE" CACHE STRING "" FORCE)
+        set(ONEDNN_GPU_RUNTIME "${GPU_RT_TYPE}" CACHE STRING "" FORCE)
+        set(ONEDNN_BLAS_VENDOR "NONE" CACHE STRING "" FORCE)
+        set(ONEDNN_BUILD_GRAPH OFF CACHE BOOL "" FORCE)
+        set(ONEDNN_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+        set(ONEDNN_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+        set(ONEDNN_ENABLE_CONCURRENT_EXEC ON CACHE BOOL "" FORCE)
+        set(ONEDNN_ENABLE_PRIMITIVE_CACHE ON CACHE BOOL "" FORCE)
+        set(ONEDNN_ENABLE_WORKLOAD "INFERENCE" CACHE STRING "" FORCE)
+        set(ONEDNN_ENABLE_JIT_PROFILING ${BUILD_SHARED_LIBS} CACHE BOOL "" FORCE)
+        set(ONEDNN_ENABLE_ITT_TASKS ${BUILD_SHARED_LIBS} CACHE BOOL "" FORCE)
+        set(ONEDNN_EXPERIMENTAL_PROFILING ON CACHE BOOL "" FORCE)
+        set(ONEDNN_EXPERIMENTAL_GROUPED_MEMORY ON CACHE BOOL "" FORCE)
+        set(ONEDNN_ENABLE_PRIMITIVE "CONCAT;CONVOLUTION;DECONVOLUTION;GATED_MLP;MATMUL;REORDER;POOLING;REDUCTION;RNN"
+            CACHE STRING "" FORCE)
+        set(ONEDNN_ENABLE_PRIMITIVE_GPU_ISA "XELP;XEHP;XEHPG;XE2;XE3;XE3P" CACHE STRING "" FORCE)
+
+        add_subdirectory("${ONEDNN_GPU_SOURCE_DIR}" "${ONEDNN_GPU_BINARY_DIR}" EXCLUDE_FROM_ALL)
+
+        # Keep the archive out of the per-configuration subdirectories and without the debug
+        # postfix, so that its location is known at configuration time (see ONEDNN_GPU_LIB_PATH
+        # below), which is what OpenVINOConfig.cmake resolves for a static build.
+        set_target_properties(dnnl PROPERTIES
+            DEBUG_POSTFIX ""
+            ARCHIVE_OUTPUT_DIRECTORY "${ONEDNN_GPU_LIB_DIR}")
+        foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)
+            string(TOUPPER "${config}" config_upper)
+            set_target_properties(dnnl PROPERTIES ARCHIVE_OUTPUT_DIRECTORY_${config_upper} "${ONEDNN_GPU_LIB_DIR}")
         endforeach()
 
-        # pass build type
-        if(OV_GENERATOR_MULTI_CONFIG)
-            if(CMAKE_GENERATOR STREQUAL "Ninja Multi-Config")
-                list(APPEND cmake_extra_args "-DCMAKE_CONFIGURATION_TYPES=${CMAKE_DEFAULT_BUILD_TYPE}")
-                list(APPEND cmake_extra_args "-DCMAKE_DEFAULT_BUILD_TYPE=${CMAKE_DEFAULT_BUILD_TYPE}")
-            endif()
-        else()
-            list(APPEND cmake_extra_args "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
-        endif()
+        # ONEDNN_GPU_LIB_PATH escapes to src/cmake/openvino.cmake (OpenVINOConfig PATH_VARS),
+        # so it must be cached.
+        set(ONEDNN_GPU_LIB_PATH
+            "${ONEDNN_GPU_LIB_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}${DNNL_GPU_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}"
+            CACHE FILEPATH "Path to oneDNN GPU library" FORCE)
 
-        if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.15 AND DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
-            list(APPEND cmake_extra_args "-DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY}")
-        endif()
-
-        # propogate OpenCL if explicitly specified
-        if(OpenCL_LIBRARY)
-            list(APPEND cmake_extra_args "-DOpenCL_LIBRARY=${OpenCL_LIBRARY}")
-        endif()
-        if(OpenCL_INCLUDE_DIR)
-            list(APPEND cmake_extra_args "-DOpenCL_INCLUDE_DIR=${OpenCL_INCLUDE_DIR}")
-        elseif(TARGET OpenCL::OpenCL)
-            # If OpenCL target exists but OpenCL_INCLUDE_DIR is not set, extract from target
-            get_target_property(opencl_include_dirs OpenCL::OpenCL INTERFACE_INCLUDE_DIRECTORIES)
-            if(opencl_include_dirs)
-                list(APPEND cmake_extra_args "-DOpenCL_INCLUDE_DIRS=${opencl_include_dirs}")
-            endif()
-        endif()
-
-        set(onednn_gpu_lib "${CMAKE_STATIC_LIBRARY_PREFIX}${onednn_lib_name}${CMAKE_STATIC_LIBRARY_SUFFIX}")
-        # This twin's own library: everything below builds, links and installs THIS path, so it
-        # must stay local - sharing it across twins would link one runtime against the other's.
-        set(onednn_lib_path "${ONEDNN_INSTALL_DIR}/lib/${onednn_gpu_lib}")
-        # ONEDNN_GPU_LIB_PATH escapes to src/cmake/openvino.cmake (OpenVINOConfig PATH_VARS) so it
-        # must be cached, and it names one library: publish the default twin's, the one whose name
-        # DNNL_GPU_LIBRARY_NAME carries, rather than whichever call ran last.
-        if(NOT SUFFIX)
-            set(ONEDNN_GPU_LIB_PATH "${onednn_lib_path}" CACHE FILEPATH "Path to oneDNN GPU library" FORCE)
-        endif()
-        set(ONEDNN_GPU_DIR ${CMAKE_CURRENT_SOURCE_DIR}/onednn_gpu)
-        if(GPU_RUNTIME STREQUAL "ZE")
-            set(ONEDNN_GPU_RT "ZE")
-            # OneDNN is using different version of L0 headers
-            # Disable LTO to avoid build issues
-            # Enable once headers are unified MFDNN-14973
-            set(ONEDNN_ENABLE_LTO OFF)
-        elseif(GPU_RUNTIME STREQUAL "OCL")
-            set(ONEDNN_GPU_RT "OCL")
-            set(ONEDNN_ENABLE_LTO ${ENABLE_LTO})
-        elseif(GPU_RUNTIME STREQUAL "SYCL")
-            set(ONEDNN_GPU_RT "SYCL")
-            set(ONEDNN_ENABLE_LTO ${ENABLE_LTO})
-        endif()
-
-        ExternalProject_Add(onednn_gpu_build${SUFFIX}
-            # Directory Options:
-            PREFIX "${ONEDNN_PREFIX_DIR}"
-            SOURCE_DIR "${ONEDNN_GPU_DIR}"
-            BINARY_DIR "${ONEDNN_BUILD_DIR}"
-            INSTALL_DIR "${ONEDNN_INSTALL_DIR}"
-            # Configure Step Options:
-            CMAKE_ARGS
-                ${cmake_extra_args}
-                "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE=${ONEDNN_ENABLE_LTO}"
-                "-DCMAKE_POLICY_DEFAULT_CMP0069=NEW"
-                "-DDNNL_TARGET_ARCH=${ONEDNN_TARGET_ARCH}"
-                "-DDNNL_CPU_RUNTIME=NONE"
-                "-DDNNL_GPU_RUNTIME=${ONEDNN_GPU_RT}"
-                "-DDNNL_LIBRARY_NAME=${onednn_lib_name}"
-                "-DCMAKE_INSTALL_PREFIX=${ONEDNN_INSTALL_DIR}"
-                "-DDNNL_ENABLE_CONCURRENT_EXEC=ON"
-                "-DDNNL_ENABLE_PRIMITIVE_CACHE=ON"
-                "-DDNNL_ENABLE_WORKLOAD=INFERENCE"
-                "-DDNNL_ENABLE_JIT_PROFILING=${BUILD_SHARED_LIBS}"
-                "-DDNNL_ENABLE_ITT_TASKS=${BUILD_SHARED_LIBS}"
-                "-DDNNL_BUILD_TESTS=OFF"
-                "-DDNNL_BUILD_EXAMPLES=OFF"
-                "-DDNNL_BLAS_VENDOR=NONE"
-                "-DDNNL_LIBRARY_TYPE=STATIC"
-                "-DDNNL_EXPERIMENTAL_PROFILING=ON"
-                "-DONEDNN_BUILD_GRAPH=OFF"
-                "-DDNNL_EXPERIMENTAL_GROUPED_MEMORY=ON"
-                # Conan calls cmake with default value for CMP0091, so we have to bypass it to oneDNN build
-                # because we bypass conan_toolchain.cmake via CMAKE_TOOLCHAIN_FILE
-                "-DCMAKE_POLICY_DEFAULT_CMP0091=NEW"
-            CMAKE_CACHE_ARGS
-                # The arguments below requires list to be passed as argument
-                # which doesn't work properly when passed to CMAKE_ARGS.
-                # Thus we pass it via CMAKE_CACHE_ARGS
-                ${onednn_gpu_cache_args}
-            # Build Step Options:
-            BUILD_BYPRODUCTS ${onednn_lib_path}
-            BUILD_ALWAYS ${ONEDNN_GPU_BUILD_ALWAYS}
-            # Target Options:
-            EXCLUDE_FROM_ALL ON
-        )
-
-        if(WIN32 AND NOT BUILD_SHARED_LIBS)
-            ExternalProject_Add_Step(onednn_gpu_build${SUFFIX} post-build
-                COMMAND ${CMAKE_COMMAND}
-                    -D "BUILD_DIR=${ONEDNN_BUILD_DIR}/src"
-                    -D "OUTPUT_DIR=${OPENVINO_STATIC_PDB_OUTPUT_DIRECTORY}"
-                    -P "${CMAKE_CURRENT_SOURCE_DIR}/copy_pdb.cmake"
-                COMMENT "Copy oneDNN for GPU PDB files"
-                DEPENDEES install  # Ensures this runs after install
-            )
-        endif()
-        set(LIB_INCLUDE_DIRS "${ONEDNN_INSTALL_DIR}/include"
-                             "${ONEDNN_GPU_DIR}/src"
-                             "${ONEDNN_GPU_DIR}/src/gpu/intel/jit/ngen"
-                             "${ONEDNN_GPU_DIR}/src/gpu/intel/jit/config"
-                             "${ONEDNN_GPU_DIR}/src/gpu/intel/gemm/jit/include"
-                             "${ONEDNN_GPU_DIR}/third_party/ngen")
+        set(LIB_INCLUDE_DIRS "${ONEDNN_GPU_SOURCE_DIR}/include"
+                             "${ONEDNN_GPU_BINARY_DIR}/include"
+                             "${ONEDNN_GPU_SOURCE_DIR}/src"
+                             "${ONEDNN_GPU_SOURCE_DIR}/src/gpu/intel/jit/ngen"
+                             "${ONEDNN_GPU_SOURCE_DIR}/src/gpu/intel/jit/config"
+                             "${ONEDNN_GPU_SOURCE_DIR}/src/gpu/intel/gemm/jit/include"
+                             "${ONEDNN_GPU_SOURCE_DIR}/third_party/ngen")
         set(LIB_DEFINITIONS ENABLE_ONEDNN_FOR_GPU
                             DNNL_DLL
                             DNNL_DLL_EXPORTS
@@ -232,30 +143,21 @@ if(ENABLE_ONEDNN_FOR_GPU)
             list(APPEND LIB_DEFINITIONS NGEN_LINK_OPENCL)
         endif()
 
-        add_library(onednn_gpu_tgt${SUFFIX} INTERFACE)
-        set_target_properties(onednn_gpu_tgt${SUFFIX} PROPERTIES
-            INTERFACE_LINK_LIBRARIES $<BUILD_INTERFACE:${onednn_lib_path}>
+        add_library(onednn_gpu_tgt INTERFACE)
+        set_target_properties(onednn_gpu_tgt PROPERTIES
+            INTERFACE_LINK_LIBRARIES $<BUILD_INTERFACE:dnnl>
             INTERFACE_INCLUDE_DIRECTORIES "$<BUILD_INTERFACE:${LIB_INCLUDE_DIRS}>"
             INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "$<BUILD_INTERFACE:${LIB_INCLUDE_DIRS}>"
             INTERFACE_COMPILE_DEFINITIONS "${LIB_DEFINITIONS}"
         )
-        add_dependencies(onednn_gpu_tgt${SUFFIX} onednn_gpu_build${SUFFIX})
 
         if(NOT BUILD_SHARED_LIBS)
-            ov_install_static_lib(onednn_gpu_tgt${SUFFIX} ${OV_CPACK_COMP_CORE})
-
-            # we need to install library explicitly and set_target_properties in OpenVINOConfig.cmake for 'onednn_gpu_tgt'
-            # to point to installation location of this file
-            install(FILES "${onednn_lib_path}"
-                    DESTINATION ${OV_CPACK_ARCHIVEDIR}
-                    COMPONENT ${OV_CPACK_COMP_CORE})
+            # 'dnnl' is installed explicitly, because set_target_properties in OpenVINOConfig.cmake
+            # makes 'onednn_gpu_tgt' point to the installation location of this file
+            ov_install_static_lib(dnnl ${OV_CPACK_COMP_CORE})
+            ov_install_static_lib(onednn_gpu_tgt ${OV_CPACK_COMP_CORE})
         endif()
     endfunction()
-    if(GPU_RT_TYPE STREQUAL "COMBINED")
-        # ZE twin keeps the default (empty-suffix) names; OCL twin is suffixed.
-        build_onednn_gpu(ZE "")
-        build_onednn_gpu(OCL "_ocl")
-    else()
-        build_onednn_gpu(${GPU_RT_TYPE} "")
-    endif()
+
+    ov_add_onednn_gpu()
 endif()
