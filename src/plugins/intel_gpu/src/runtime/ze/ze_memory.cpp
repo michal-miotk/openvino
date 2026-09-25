@@ -32,7 +32,7 @@ static inline cldnn::event::ptr create_event(stream& stream, size_t bytes_count)
 }
 
 ze_usm_resource import_dx_buffer(ze_engine* engine, shared_mem_params params) {
-    #ifndef WIN32
+    #ifndef _WIN32
         OPENVINO_THROW("[GPU] Importing D3D11 buffers is only supported on Windows");
     #else
         auto ctx = engine->get_context();
@@ -356,6 +356,18 @@ gpu_usm::gpu_usm(ze_engine* engine, const layout& layout, allocation_type type)
     }
 
     m_mem_tracker = std::make_shared<MemoryTracker>(engine, _buffer.handle().ptr, actual_bytes_count, type);
+}
+
+gpu_usm_from_external_sysmem::gpu_usm_from_external_sysmem(ze_engine* engine,
+                                                           const layout& new_layout,
+                                                           ov_ze_usm_handle usm_handle,
+                                                           allocation_type type,
+                                                           std::shared_ptr<MemoryTracker> mem_tracker)
+    : gpu_usm(engine, new_layout, ze_usm_resource(usm_handle, true), type, mem_tracker)
+    , _usm_handle(usm_handle) {}
+
+gpu_usm_from_external_sysmem::~gpu_usm_from_external_sysmem() {
+    zeMemFree(_usm_handle.context, _usm_handle.ptr);
 }
 
 void* gpu_usm::lock(const stream& stream, mem_lock_type type) {
