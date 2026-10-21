@@ -308,7 +308,11 @@ KERNEL(sdpa_ref)(
             OUTPUT_COMPUTE_T attn_mask_val = OUTPUT_COMPUTE_VAL_ZERO;
 #endif
 
-            OUTPUT_COMPUTE_T qk_val = tmp_buf[tmp_buf_offset] + attn_mask_val;
+            // Add in the accumulator type and clamp to the storage range: a finite score plus a large
+            // negative mask must not overflow to -inf, which would give NaN for a fully masked row.
+            ACCUMULATOR_TYPE qk_sum = TO_ACCUMULATOR_TYPE(tmp_buf[tmp_buf_offset]) + TO_ACCUMULATOR_TYPE(attn_mask_val);
+            const ACCUMULATOR_TYPE qk_min = TO_ACCUMULATOR_TYPE(OUTPUT_COMPUTE_VAL_MIN);
+            OUTPUT_COMPUTE_T qk_val = TO_OUTPUT_COMPUTE_T(qk_sum < qk_min ? qk_min : qk_sum);
             tmp_buf[tmp_buf_offset] = qk_val;
 
             qk_max = ACCUMULATOR_MAX_FUNC(qk_max, TO_ACCUMULATOR_TYPE(qk_val));
